@@ -492,8 +492,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* 印刷: ローカル版でのみ動く */
 function printHTML(html){
   $('#printArea').innerHTML=html;
-  const local=location.protocol==='file:'||/^(localhost|127\.|192\.168\.)/.test(location.hostname);
-  if(!local){alert_('印刷は お手元の フォルダに置いた ローカル版で できます。');return}
+  const onClaude=/claude|anthropic/i.test(location.hostname);
+  if(onClaude){alert_('印刷は ローカル版か 自分で置いた サイトで できます。');return}
   setTimeout(()=>window.print(),50);
 }
 function alert_(m){const e=$('#err');if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent=''},3000)}}

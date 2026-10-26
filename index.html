@@ -29,11 +29,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-siz
   max-width:900px;margin:0 auto;display:flex;flex-direction:column;-webkit-text-size-adjust:100%}
 button{font-family:inherit;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
-.topbar{display:flex;align-items:center;gap:8px;min-height:40px;margin-bottom:6px;flex-wrap:wrap}
+.topbar{display:flex;align-items:center;gap:6px;min-height:36px;margin-bottom:4px}
 .topbar .sp{flex:1}
-.stageTag{font-family:var(--font-display);font-weight:900;font-size:.9rem;border-radius:999px;padding:4px 12px;color:#2b2a33;background:var(--ten)}
+.stageTag{font-family:var(--font-display);font-weight:900;font-size:.85rem;border-radius:999px;padding:4px 10px;color:#2b2a33;background:var(--ten);max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .progress{font-size:15px;color:var(--muted);font-weight:800;font-variant-numeric:tabular-nums}
-.btn{font-family:var(--font-display);font-weight:700;border:none;border-radius:12px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);font-size:1.05rem;cursor:pointer}
+.btn{font-family:var(--font-display);font-weight:700;border:none;border-radius:12px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);font-size:1.05rem;cursor:pointer;white-space:nowrap}
 .btn:disabled{opacity:.35;cursor:default}
 .btn.ghost{background:var(--paper);color:var(--ink);border:2px solid var(--line)}
 .btn.sm{font-size:.85rem;padding:6px 10px}
@@ -73,7 +73,11 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .numin.active{border-color:var(--dot);box-shadow:0 0 0 4px color-mix(in srgb,var(--dot) 25%,transparent)}
 .numin.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--paper))}
 .numin.ng{border-color:var(--ng);background:color-mix(in srgb,var(--ng) 12%,var(--paper))}
-.msgbox{height:clamp(76px,10vh,120px);margin-top:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.msgbox{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;z-index:2;gap:2px}
+.msgbox.has{background:color-mix(in srgb,var(--paper) 82%,transparent);border-radius:12px}
+.msgbox .err:empty,.msgbox .verdict:empty,.msgbox .eqline:empty{display:none}
+.err{background:var(--paper);border-radius:8px;padding:2px 10px}
+@media (max-height:720px){.qtitle{font-size:16px;margin:0 0 4px}.prog{margin-bottom:2px}#padwrap{min-height:200px}.answerrow{margin-top:4px}.read{min-height:1.2em}}
 .err{color:var(--ng);font-size:15px}
 .verdict{font-family:var(--font-display);font-weight:900;font-size:clamp(22px,4vw,36px)}
 .verdict.ok{color:var(--ok)}.verdict.ng{color:var(--accent)}
@@ -182,6 +186,18 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .rsec td,.rsec th{border:1px solid #999;padding:1mm 2mm;text-align:left}
 .pl{display:inline-block;border:1px solid #000;border-radius:1mm;padding:.5mm 2mm;margin:.5mm 1mm .5mm 0;font-size:9.5pt}
 .pl.ok{background:#ddd}
+/* gate & teacher */
+.gate h2{font-family:var(--font-display);font-size:1.3rem;margin:4px 0 8px}
+.gate p{margin:4px 0 10px;line-height:1.6}
+.gate input{font-family:inherit;font-size:1.3rem;font-weight:800;border:3px solid var(--line);border-radius:12px;padding:8px 12px;width:100%;background:var(--paper);color:var(--ink)}
+.gate .note{font-size:.85rem;color:var(--muted)}
+.tt{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+.tt td,.tt th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.tree{margin:6px 0 12px;padding-left:0;list-style:none}
+.tree li{margin:2px 0;padding-left:14px;border-left:2px solid var(--line)}
+.tree .nm{font-weight:800}
+.tree .mt{color:var(--muted);font-size:.8rem;margin-left:6px}
+.codebox{font-family:ui-monospace,monospace;font-size:.85rem;background:var(--bg);border-radius:8px;padding:6px 8px;word-break:break-all;user-select:all}
 /* adult */
 .adult{margin-top:12px;font-size:.85rem;color:var(--muted)}
 .adult table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
@@ -207,7 +223,9 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
   <div class="prog" id="prog"></div>
   <div id="q">
     <div class="qtitle">たて・よこ・こたえ</div>
-    <div class="stagewrap" id="stagewrap"><div class="grid" id="grid"></div></div>
+    <div class="stagewrap" id="stagewrap"><div class="grid" id="grid"></div>
+      <div class="msgbox" id="msgbox"><div class="err" id="err"></div><div class="verdict" id="verdict"></div><div class="eqline" id="eqline"></div></div>
+    </div>
     <div class="read" id="read"></div>
     <div class="answerrow">
       <span class="lb">たて</span><div class="numin" id="inA" data-max="1"></div>
@@ -216,15 +234,17 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
       <span class="x">＝</span>
       <div class="numin ans" id="inC" data-max="3"></div>
     </div>
-    <div class="msgbox">
-      <div class="err" id="err"></div>
-      <div class="verdict" id="verdict"></div>
-      <div class="eqline" id="eqline"></div>
-    </div>
     <div id="padwrap"></div>
   </div>
   <div class="result" id="result" hidden></div>
   <div class="adult" id="adult" hidden></div>
+</div>
+
+<div class="card" id="gate" hidden>
+  <div id="gateBody"></div>
+</div>
+<div class="card" id="teacher" hidden>
+  <div id="teacherBody"></div>
 </div>
 
 <div class="card" id="map" hidden>
@@ -237,7 +257,11 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
   <div class="mapbtns">
     <button class="btn" id="mapBack">もどる</button>
     <button class="btn ghost" id="licBtn" hidden>ライセンス</button>
+    <span class="sp" style="flex:1"></span>
+    <button class="btn ghost" id="invBtn">しょうたい</button>
+    <a class="btn ghost" id="blogBtn" href="https://empmeio.blogspot.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">塾のブログ</a>
   </div>
+  <div id="invBox" hidden></div>
 </div>
 
 <div class="card" id="rep" hidden>
@@ -248,6 +272,9 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 
 <div id="printArea"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -267,12 +294,107 @@ const STAGES=[
 ];
 const key=(a,b)=>a+'x'+b;
 const SET=10,FLASH=700;
+/* ===== クラウド（Firebase）: 招待URL → ニックネーム登録 → ひきつぎURL。先生は ?teacher ===== */
+const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
+const TEACHER_EMAIL='terauchi@em-plus.net';
+const BLOG='https://empmeio.blogspot.com';
+const SITE=location.origin+location.pathname;
+let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
+const rnd=(n,chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789')=>{let o='';const a=new Uint32Array(n);crypto.getRandomValues(a);for(let i=0;i<n;i++)o+=chars[a[i]%chars.length];return o};
+try{if(window.firebase){firebase.initializeApp(FB_CONFIG);db=firebase.firestore();fbAuth=firebase.auth()}}catch(e){db=null}
+const inviteURL=code=>`${SITE}?i=${code}`;
+const handoverURL=()=>`${SITE}?t=${TOKEN}`;
+function lineShare(text){return 'https://line.me/R/share?text='+encodeURIComponent(text)}
+function cloudSave(){
+  if(!db||!TOKEN)return;clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>{db.collection('users').doc(TOKEN).update({progress:P,stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{})},1500);
+}
+function showOnly(id){['play','map','rep','gate','teacher'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
+function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}</div>`;showOnly('gate')}
+async function boot(){
+  const q=new URLSearchParams(location.search);
+  if(q.has('teacher')){return teacherScreen()}
+  if(!db){ // 公開版（claude.ai）やオフライン: 端末内だけで動く
+    start();return}
+  if(q.get('t')){try{localStorage.setItem('kukulab-token',q.get('t'))}catch(e){};history.replaceState(null,'',location.pathname)}
+  try{TOKEN=localStorage.getItem('kukulab-token')}catch(e){}
+  if(TOKEN){
+    try{const d=await db.collection('users').doc(TOKEN).get();
+      if(d.exists){ME=d.data();if(ME.progress&&ME.progress.sp){P=Object.assign(fresh(),ME.progress);save()}
+        if(q.get('i'))history.replaceState(null,'',location.pathname);
+        start();return}
+    }catch(e){}
+    TOKEN=null;
+  }
+  const code=(q.get('i')||'').toUpperCase();
+  if(!code){gate(`<h2>九九ラボ</h2><p>このアプリは <b>しょうたい URL</b> から ひらきます。<br>先生や、すでに つかっている人から もらった URL を ひらいてください。</p><p>べつの たんまつで つづきを する人は、おとな画面の「ひきつぎ URL」を ひらいてください。</p><p><a href="${BLOG}" target="_blank" rel="noopener">塾のブログ</a></p>`);return}
+  let inv=null;try{const d=await db.collection('invites').doc(code).get();if(d.exists)inv=d.data()}catch(e){}
+  if(!inv){gate(`<h2>しょうたい URL が ちがいます</h2><p>コード <b>${esc(code)}</b> は みつかりません。おくってくれた人に もういちど URL を もらってください。</p>`);return}
+  gate(`<h2>はじめまして</h2><p>${esc(inv.nick||'先生')} さんからの しょうたいです。<br>アプリで つかう <b>ニックネーム</b> を きめてください。</p>
+  <input id="nickIn" maxlength="12" placeholder="ニックネーム（12文字まで）">
+  <p class="note">進み具合は オンラインに のこります。本名ではなく ニックネームを おすすめします。</p>
+  <div class="mapbtns"><button class="btn" id="regBtn">はじめる</button></div><div class="err" id="gateErr"></div>`);
+  $('#regBtn').onclick=async()=>{
+    const nick=$('#nickIn').value.trim();if(!nick){$('#gateErr').textContent='ニックネームを 入れてね';return}
+    $('#regBtn').disabled=true;
+    const token=rnd(24,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),my=rnd(6);
+    const root=inv.by==='teacher'?code:(inv.root||code);
+    P=fresh();P.name=nick;
+    try{
+      await db.collection('users').doc(token).set({nick,code:my,inv:code,root,progress:P,stage:0,seen:0,cleared:0,created:firebase.firestore.FieldValue.serverTimestamp(),updated:firebase.firestore.FieldValue.serverTimestamp()});
+      await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:firebase.firestore.FieldValue.serverTimestamp()});
+    }catch(e){$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
+    TOKEN=token;ME={nick,code:my,inv:code,root};try{localStorage.setItem('kukulab-token',token)}catch(e){}
+    save();history.replaceState(null,'',location.pathname);showOnly('play');start();
+  };
+}
+/* しょうたい */
+$('#invBtn').onclick=()=>{
+  const b=$('#invBox');b.hidden=!b.hidden;if(b.hidden)return;
+  if(!ME){b.innerHTML='<div class="rep">しょうたいは オンライン版（しょうたい URL から ひらいた とき）で つかえます。</div>';return}
+  const url=inviteURL(ME.code),text=`九九ラボ（となえない九九）への しょうたいです。この URL から ひらいて ニックネームを きめると はじめられます。\n${url}`;
+  b.innerHTML=`<div class="rep"><h3>ともだちを しょうたい</h3><div class="codebox">${url}</div>
+  <div class="pbar"><a class="btn sm" href="${lineShare(text)}" target="_blank" rel="noopener" style="text-decoration:none">LINE で おくる</a><button class="btn ghost sm" id="invCopy">URL を コピー</button>${navigator.share?'<button class="btn ghost sm" id="invShare">ほかの アプリで</button>':''}</div>
+  <p class="note" style="font-size:.85rem;color:var(--muted)">しょうたいされた人も、また べつの人を しょうたいできます。</p></div>`;
+  $('#invCopy').onclick=()=>navigator.clipboard?.writeText(url).then(()=>alert_('コピーしました')).catch(()=>{});
+  const sh=$('#invShare');if(sh)sh.onclick=()=>navigator.share({title:'九九ラボ',text,url}).catch(()=>{});
+};
+/* 先生画面 */
+async function teacherScreen(){
+  showOnly('teacher');const T=$('#teacherBody');
+  if(!db){T.innerHTML='Firebase に つながっていません。';return}
+  const login=()=>{T.innerHTML=`<div class="gate"><h2>先生ログイン</h2><input id="tEmail" placeholder="メール" value="${TEACHER_EMAIL}" style="font-size:1rem;margin-bottom:8px"><input id="tPw" type="password" placeholder="パスワード" style="font-size:1rem"><div class="mapbtns"><button class="btn" id="tLogin">ログイン</button></div><div class="err" id="tErr"></div></div>`;
+    $('#tLogin').onclick=()=>fbAuth.signInWithEmailAndPassword($('#tEmail').value,$('#tPw').value).catch(e=>$('#tErr').textContent='ログインできません: '+e.code)};
+  fbAuth.onAuthStateChanged(u=>{if(!u||u.email!==TEACHER_EMAIL){login();return}dashboard()});
+  async function dashboard(){
+    T.innerHTML='<p>読みこみ中…</p>';
+    const [us,is]=await Promise.all([db.collection('users').get(),db.collection('invites').get()]);
+    const users=us.docs.map(d=>({id:d.id,...d.data()})),invites=is.docs.map(d=>({id:d.id,...d.data()}));
+    const roots=invites.filter(i=>i.by==='teacher');
+    const byInv=c=>users.filter(u=>u.inv===c).sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0));
+    const fmt=ts=>ts&&ts.seconds?new Date(ts.seconds*1000).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}):'-';
+    const node=u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">ステージ ${(u.stage||0)+1} ／ ぱっと見 ${u.seen||0} ／ クリア ${u.cleared||0} ／ ${fmt(u.updated)}</span><ul class="tree">${byInv(u.code).map(node).join('')}</ul></li>`;
+    const countBranch=c=>byInv(c).reduce((n,u)=>n+1+countBranch(u.code),0);
+    let html=`<div class="gate"><h2>先生画面</h2><p>登録 ${users.length} 人 ／ 枝 ${roots.length} 本　<button class="btn ghost sm" id="tReload">更新</button> <button class="btn ghost sm" id="tOut">ログアウト</button></p>
+    <div class="rep"><h3>新しい招待コードを発行</h3><div class="pbar"><input id="tLabel" placeholder="メモ（例: 2年A組 田中さん）" style="flex:1;font-size:1rem"><button class="btn sm" id="tNew">発行</button></div><div id="tNewOut"></div></div>`;
+    roots.sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0)).forEach(r=>{
+      html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">コード ${r.id}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${inviteURL(r.id)}</div><ul class="tree">${byInv(r.id).map(node).join('')||'<li class="mt">まだ だれも</li>'}</ul></div>`});
+    const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
+    if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(node).join('')}</ul></div>`;
+    html+=`<div class="rep"><h3>一覧（最終利用順）</h3><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>ぱっと見</th><th>最終</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/81</td><td>${fmt(u.updated)}</td></tr>`).join('')}</table></div></div>`;
+    T.innerHTML=html;
+    $('#tReload').onclick=dashboard;$('#tOut').onclick=()=>fbAuth.signOut();
+    $('#tNew').onclick=async()=>{const code=rnd(6);const label=$('#tLabel').value.trim();
+      await db.collection('invites').doc(code).set({by:'teacher',label,root:code,nick:'先生',created:firebase.firestore.FieldValue.serverTimestamp()});
+      $('#tNewOut').innerHTML=`<p>発行しました。</p><div class="codebox">${inviteURL(code)}</div><p class="mt">この URL を保護者に送ってください（LINE など）。</p>`;setTimeout(dashboard,1500)};
+  }
+}
 const fresh=()=>({limit:6,stage:0,cleared:[],sp:{},weak:{},hist:[],badges:{g:0,s:0,b:0},seen:{},days:{},name:''});
 let P=fresh();
 try{const s=JSON.parse(localStorage.getItem('kukulab-v6'));if(s&&s.sp)P=Object.assign(fresh(),s)}catch(e){}
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const seenCount=()=>{let n=0;for(let a=1;a<=9;a++)for(let b=1;b<=9;b++)if(P.seen[key(a,b)])n++;return n};
-function save(){try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){}}
+function save(){try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){};cloudSave()}
 const cur=()=>STAGES[P.stage];
 function sp(k){return P.sp[P.stage+':'+k]||0}
 function setSp(k,v){P.sp[P.stage+':'+k]=v}
@@ -333,7 +455,7 @@ function tapCell(idx){
   const ng=newGroup(cells);mergeIfFive(ng);drawGrid();
 }
 function sizeDots(){
-  const d=`clamp(14px, min(${(76/Math.max(B,5)).toFixed(2)}vw, ${(30/Math.max(A,3)).toFixed(2)}vh), 48px)`;
+  const d=`clamp(14px, min(${(76/Math.max(B,5)).toFixed(2)}vw, ${(26/Math.max(A,3)).toFixed(2)}vh), 48px)`;
   document.documentElement.style.setProperty('--d',d);
   document.documentElement.style.setProperty('--g',`calc(${d} * .2)`);
 }
@@ -455,8 +577,8 @@ function showResult(){
   $('#nextSet').onclick=()=>{if(cleared&&P.stage<STAGES.length-1){P.stage++;save()}setRes=[];start()};
 }
 /* map */
-$('#mapBtn').onclick=()=>{renderMap();$('#play').hidden=true;$('#map').hidden=false};
-$('#mapBack').onclick=()=>{$('#map').hidden=true;$('#play').hidden=false};
+$('#mapBtn').onclick=()=>{renderMap();$('#invBox').hidden=true;showOnly('map')};
+$('#mapBack').onclick=()=>showOnly('play');
 const ISLAND=['5のしま','ちいさな絵のしま','3のしま','4のしま','入れかえのしま','大きいだんのしま','しあげのしま'];
 function renderMap(){
   const n=seenCount();$('#seenNum').textContent=`${n} / 81`;$('#seenFill').style.width=(n/81*100)+'%';
@@ -470,7 +592,7 @@ function renderMap(){
     ids.forEach(i=>{const s=STAGES[i];const c=el('button','step');const done=P.cleared.includes(i),open=i<=maxOpen;
       c.innerHTML=`${i+1}<small>${s.name}</small>`;
       if(done)c.classList.add('done');if(i===P.stage)c.classList.add('cur');if(!open&&!done)c.classList.add('lock');
-      c.onclick=()=>{if(!open&&!done)return;P.stage=i;setRes=[];save();$('#map').hidden=true;$('#play').hidden=false;start()};
+      c.onclick=()=>{if(!open&&!done)return;P.stage=i;setRes=[];save();showOnly('play');start()};
       foot.appendChild(c)});
     sec.appendChild(foot);m.appendChild(sec)});
   const all=P.cleared.length>=STAGES.length;
@@ -507,7 +629,7 @@ function picHTML(a,b,mm){
   return s+'</div>';
 }
 /* おうちへ: 文章 + A4 */
-$('#repBack').onclick=()=>{$('#rep').hidden=true;$('#play').hidden=false};
+$('#repBack').onclick=()=>showOnly('play');
 function weekCount(){let n=0;const t=Date.now();for(const [d,c] of Object.entries(P.days)){if(t-new Date(d).getTime()<7*864e5)n+=c}return n}
 function factsStatus(){
   const okL=[],chL=[];
@@ -578,6 +700,7 @@ function renderAdult(){
   const opts=STAGES.map((s,i)=>`<option value="${i}" ${i===P.stage?'selected':''}>${i+1} ${s.name}</option>`).join('');
   a.innerHTML=`<div class="cap">おとな用（この端末のみ）　5=5のかたまり ⑩=合体 ←=ほどく ÷=10を2つに</div>
   <p>なまえ <input id="nameIn" value="${esc(P.name)}" style="width:8em">　ぱっと見の制限（3つ入れるまで）<input type="number" id="lim" min="1" max="20" step="0.5" value="${P.limit}" style="width:4em">秒　｜　ステージ <select id="jump">${opts}</select></p>
+  ${TOKEN?`<p>ひきつぎ URL（べつの端末で続きをするとき。家族以外に送らない）<div class="codebox">${handoverURL()}</div><div class="pbar"><a class="btn ghost sm" href="${lineShare('九九ラボ ひきつぎURL（家族以外に送らない）\n'+handoverURL())}" target="_blank" rel="noopener" style="text-decoration:none">LINE で自分に送る</a><button class="btn ghost sm" id="hoCopy">コピー</button></div></p>`:''}
   <div class="pbar"><button class="btn sm" id="repBtn">おうちへ（連絡・A4）</button><button class="btn ghost sm" id="hwBtn">このステージの宿題を印刷</button><button class="btn ghost sm" id="hwBtn2">宿題 3 枚（前後のステージも）</button></div>
   <p>このステージの式（${cur().review?'まとめ: 各1回':'各2回連続'}のぱっと見でクリア）</p><div class="chips">${chips}</div>
   <p>復習で落ちた式</p><div class="chips">${weak}</div>
@@ -585,13 +708,15 @@ function renderAdult(){
   <button class="btn ghost sm" id="resetAll" style="margin-top:6px">すべて最初から</button>`;
   $('#lim').onchange=e=>{P.limit=+e.target.value||6;save()};
   $('#nameIn').onchange=e=>{P.name=e.target.value.trim();save()};
-  $('#repBtn').onclick=()=>{renderReport();$('#play').hidden=true;$('#rep').hidden=false};
+  const hc=$('#hoCopy');if(hc)hc.onclick=()=>navigator.clipboard?.writeText(handoverURL()).then(()=>alert_('コピーしました')).catch(()=>{});
+  $('#repBtn').onclick=()=>{renderReport();showOnly('rep')};
   $('#hwBtn').onclick=()=>printHTML(homeworkSheet(P.stage));
   $('#hwBtn2').onclick=()=>printHTML([P.stage-1,P.stage,P.stage+1].filter(i=>i>=0&&i<STAGES.length).map(homeworkSheet).join(''));
   $('#jump').onchange=e=>{P.stage=+e.target.value;setRes=[];save();start()};
   $('#resetAll').onclick=()=>{P={limit:P.limit,stage:0,cleared:[],sp:{},weak:{},hist:[],badges:{g:0,s:0,b:0}};setRes=[];save();start()};
 }
-start();
+const mb=$('#msgbox');new MutationObserver(()=>{mb.classList.toggle('has',!!($('#verdict').textContent||$('#eqline').textContent||$('#err').textContent))}).observe(mb,{childList:true,subtree:true,characterData:true});
+boot();
 })();
 </script>
 </body>

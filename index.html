@@ -439,7 +439,7 @@ function boardHTML(users,roots,me){
   sorted.forEach(u=>{
     const cl=new Set(Array.isArray(u.cl)?u.cl:((u.progress&&u.progress.cleared)||[])),cur=u.stage||0,idle=now-(u.updated?.seconds||0)>7*86400,isMe=student&&u.id===me;
     const last=u.updated&&u.updated.seconds?new Date(u.updated.seconds*1000).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}):'-';
-    h+=`<tr class="${idle?'idle':''}${isMe?' me':''}" data-root="${esc(u.root||'')}"><td class="nm"${student?'':` title="${esc(label(u.root))}"`}>${isMe?'★ ':''}${esc(u.nick)}</td>${STAGES.map((st,i)=>`<td class="c${cl.has(i)?' d':''}${i===cur?' cur':''}" style="--pc:var(${PH[st.p][2]})" title="${esc(u.nick)}　${i+1} ${esc(st.name)}${cl.has(i)?'（クリア）':''}${i===cur?'（いま）':''}"></td>`).join('')}<td class="meta">ぱっと見 ${u.seen||0}/81　${last}</td></tr>`});
+    h+=`<tr class="${idle?'idle':''}${isMe?' me':''}" data-root="${esc(u.root||'')}"${student?'':` data-id="${esc(u.id)}"`}><td class="nm"${student?'':` title="${esc(label(u.root))}　押すと記録を直せます" style="cursor:pointer;text-decoration:underline dotted"`}>${isMe?'★ ':''}${esc(u.nick)}</td>${STAGES.map((st,i)=>`<td class="c${cl.has(i)?' d':''}${i===cur?' cur':''}" style="--pc:var(${PH[st.p][2]})" title="${esc(u.nick)}　${i+1} ${esc(st.name)}${cl.has(i)?'（クリア）':''}${i===cur?'（いま）':''}"></td>`).join('')}<td class="meta">ぱっと見 ${u.seen||0}/81　${last}</td></tr>`});
   if(!sorted.length)h+=`<tr><td class="nm">まだ だれも いません</td></tr>`;
   return h+'</table></div></div>';
 }
@@ -464,6 +464,34 @@ async function teacherScreen(){
   const login=()=>{T.innerHTML=`<div class="gate"><h2>先生ログイン</h2><input id="tEmail" placeholder="メール" value="${TEACHER_EMAIL}" style="font-size:1rem;margin-bottom:8px"><input id="tPw" type="password" placeholder="パスワード" style="font-size:1rem"><div class="mapbtns"><button class="btn" id="tLogin">ログイン</button></div><div class="err" id="tErr"></div></div>`;
     $('#tLogin').onclick=()=>fbAuth.signInWithEmailAndPassword($('#tEmail').value,$('#tPw').value).catch(e=>$('#tErr').textContent='ログインできません: '+e.code)};
   fbAuth.onAuthStateChanged(u=>{if(!u||u.email!==TEACHER_EMAIL){login();return}dashboard()});
+  function editKid(u){
+    if(!u)return;
+    const pr=Object.assign(fresh(),u.progress||{});let cl=new Set(pr.cleared||[]),stg=pr.stage||0;
+    const box=$('#kidEdit');
+    const draw=()=>{box.innerHTML=`<div class="rep" style="border-color:var(--accent)"><h3>${esc(u.nick)} さんの 記録を直す</h3>
+      <p class="mt" style="color:var(--muted);font-size:.85rem">クリアのマスを押すと 取り消し／もどし。取り消したステージは、そのステージの合格回数も 0 にもどります。</p>
+      <div class="board"><table><tr>${STAGES.map((st,i)=>`<th class="n">${i+1}</th>`).join('')}</tr>
+      <tr>${STAGES.map((st,i)=>`<td class="c${cl.has(i)?' d':''}${i===stg?' cur':''}" data-s="${i}" style="--pc:var(${PH[st.p][2]});cursor:pointer" title="${i+1} ${esc(st.name)}"></td>`).join('')}</tr></table></div>
+      <p>いまのステージ <select id="keStage">${STAGES.map((st,i)=>`<option value="${i}" ${i===stg?'selected':''}>${i+1} ${esc(st.name)}</option>`).join('')}</select></p>
+      <div class="pbar"><button class="btn sm" id="keSave">保存</button><button class="btn ghost sm" id="keCancel">やめる</button></div><div class="err" id="keErr"></div>
+      <p class="mt" style="color:var(--muted);font-size:.8rem">保存したら、その子の端末で アプリを いちど とじて 開きなおしてもらってください（開いたままだと 古い記録で 上書きされます）。</p></div>`;
+      box.querySelectorAll('td[data-s]').forEach(td=>td.onclick=()=>{const i=+td.dataset.s;cl.has(i)?cl.delete(i):cl.add(i);draw()});
+      $('#keStage').onchange=e=>{stg=+e.target.value;draw()};
+      $('#keCancel').onclick=()=>box.innerHTML='';
+      $('#keSave').onclick=async()=>{
+        const before=new Set(pr.cleared||[]);const removed=[...before].filter(i=>!cl.has(i));
+        const sp=Object.assign({},pr.sp||{});Object.keys(sp).forEach(k=>{if(removed.includes(+k.split(':')[0]))delete sp[k]});
+        const np=Object.assign({},pr,{cleared:[...cl].sort((a,b)=>a-b),stage:stg,sp});
+        try{
+          await db.collection('users').doc(u.id).update({progress:np,stage:stg,cleared:np.cleared.length,updated:firebase.firestore.FieldValue.serverTimestamp()});
+          await db.collection('board').doc(u.code).set({nick:u.nick,root:u.root||'',stage:stg,cl:np.cleared,seen:Math.min(u.seen||0,81),updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
+          box.innerHTML='<div class="rep">保存しました。</div>';setTimeout(dashboard,800);
+        }catch(e){$('#keErr').textContent='保存できませんでした: '+(e.code||e.message)}
+      };
+      box.scrollIntoView({behavior:'smooth',block:'start'});
+    };
+    draw();
+  }
   async function dashboard(){
     T.innerHTML='<p>読みこみ中…</p>';
     const [us,is]=await Promise.all([db.collection('users').get(),db.collection('invites').get()]);
@@ -481,8 +509,9 @@ async function teacherScreen(){
     const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
     if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(node).join('')}</ul></div>`;
     html+=`<div class="rep"><h3>一覧（最終利用順）</h3><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>ぱっと見</th><th>最終</th><th>ひきつぎ URL</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/81</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-t="${esc(u.id)}" data-n="${esc(u.nick)}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`九九ラボ ${u.nick} さんの ひきつぎURL（家族以外に送らない）\n${SITE}?t=${u.id}`)}">LINE</a></td></tr>`).join('')}</table><p class="mt" style="color:var(--muted);font-size:.8rem">ひきつぎ URL はその子の鍵です。保護者本人にだけ送ってください。</p></div></div>`;
-    T.innerHTML=html;
+    T.innerHTML=html+'<div id="kidEdit"></div>';
     $('#tReload').onclick=dashboard;
+    document.querySelectorAll('.board tr[data-id] td.nm').forEach(td=>td.onclick=()=>editKid(users.find(u=>u.id===td.parentElement.dataset.id)));
     document.querySelectorAll('.hoBtn').forEach(b=>b.onclick=()=>{const u=`${SITE}?t=${b.dataset.t}`;navigator.clipboard?.writeText(u).then(()=>{b.textContent='コピーしました';setTimeout(()=>b.textContent='コピー',1500)}).catch(()=>prompt?.call(window,b.dataset.n,u))});
     const bf=$('#bFilter');if(bf)bf.onchange=()=>document.querySelectorAll('.board tr[data-root]').forEach(tr=>tr.hidden=!!bf.value&&tr.dataset.root!==bf.value);$('#tOut').onclick=()=>fbAuth.signOut();
     $('#tNew').onclick=async()=>{const code=rnd(6);const label=$('#tLabel').value.trim();

@@ -32,6 +32,8 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .topbar{display:flex;align-items:center;gap:6px;min-height:36px;margin-bottom:4px}
 .topbar .sp{flex:1}
 .stageTag{font-family:var(--font-display);font-weight:900;font-size:.85rem;border-radius:999px;padding:4px 10px;color:#2b2a33;background:var(--ten);max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who{font-family:var(--font-display);font-weight:900;font-size:.9rem;max-width:7em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who:empty{display:none}
 .progress{font-size:15px;color:var(--muted);font-weight:800;font-variant-numeric:tabular-nums}
 .btn{font-family:var(--font-display);font-weight:700;border:none;border-radius:12px;padding:10px 16px;background:var(--accent);color:var(--accent-ink);font-size:1.05rem;cursor:pointer;white-space:nowrap}
 .btn:disabled{opacity:.35;cursor:default}
@@ -236,6 +238,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 <body>
 <div class="topbar">
   <button class="btn ghost sm" id="mapBtn">ちず</button>
+  <span class="who" id="who"></span>
   <span class="stageTag" id="stageTag"></span>
   <span class="sp"></span>
   <span class="progress" id="progress"></span>
@@ -344,23 +347,48 @@ function boardSave(){
 }
 function showOnly(id){['play','map','rep','gate','teacher','mates'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
 function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}</div>`;showOnly('gate')}
+/* この端末で使っている子の一覧（1台を きょうだいで使える） */
+function kidsGet(){try{const k=JSON.parse(localStorage.getItem('kukulab-kids')||'[]');const t=localStorage.getItem('kukulab-token');if(t&&!k.some(x=>x.t===t))k.push({t,nick:''});return k}catch(e){return []}}
+function kidsPut(k){try{localStorage.setItem('kukulab-kids',JSON.stringify(k))}catch(e){}}
+function kidsAdd(t,nick){const k=kidsGet().filter(x=>x.t!==t);k.push({t,nick});kidsPut(k)}
+async function openKid(t){
+  try{const d=await db.collection('users').doc(t).get();
+    if(!d.exists)return false;
+    TOKEN=t;ME=d.data();try{localStorage.setItem('kukulab-token',t)}catch(e){}
+    kidsAdd(t,ME.nick);
+    P=(ME.progress&&ME.progress.sp)?Object.assign(fresh(),ME.progress):fresh();setRes=[];
+    try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){}
+    history.replaceState(null,'',location.pathname);
+    showOnly('play');start();boardSave();return true;
+  }catch(e){return false}
+}
+function pickKid(code){
+  const kids=kidsGet();
+  gate(`<h2>${code?'しょうたい URL を ひらきました':'だれが やる？'}</h2>
+  ${code?`<p>この たんまつには もう つかっている子が います。</p><div class="mapbtns"><button class="btn" id="newKid">あたらしい子として はじめる</button></div><p style="margin-top:14px">つづきを する子は こちら</p>`:''}
+  <div class="mapbtns" style="flex-direction:column;align-items:stretch">${kids.map((k,i)=>`<button class="btn ${code?'ghost':''}" data-i="${i}" style="font-size:1.3rem">${esc(k.nick||'（なまえ よみこみ中）')}</button>`).join('')}</div>
+  ${code?'':'<p class="note">あたらしい子を ふやすときは、しょうたい URL を ひらいてください。</p>'}<div class="err" id="gateErr"></div>`);
+  document.querySelectorAll('#gateBody [data-i]').forEach(b=>b.onclick=async()=>{b.disabled=true;if(!await openKid(kids[+b.dataset.i].t)){$('#gateErr').textContent='よみこめませんでした。電波を たしかめて もういちど。';b.disabled=false}});
+  const nb=$('#newKid');if(nb)nb.onclick=()=>registerScreen(code);
+}
 async function boot(){
   const q=new URLSearchParams(location.search);
   if(q.has('teacher')){return teacherScreen()}
   if(!db){ // 公開版（claude.ai）やオフライン: 端末内だけで動く
     start();return}
-  if(q.get('t')){try{localStorage.setItem('kukulab-token',q.get('t'))}catch(e){};history.replaceState(null,'',location.pathname)}
-  try{TOKEN=localStorage.getItem('kukulab-token')}catch(e){}
-  if(TOKEN){
-    try{const d=await db.collection('users').doc(TOKEN).get();
-      if(d.exists){ME=d.data();if(ME.progress&&ME.progress.sp){P=Object.assign(fresh(),ME.progress);save()}
-        if(q.get('i'))history.replaceState(null,'',location.pathname);
-        start();boardSave();return}
-    }catch(e){}
-    TOKEN=null;
-  }
   const code=(q.get('i')||'').toUpperCase();
-  if(!code){gate(`<h2>九九ラボ</h2><p>このアプリは <b>しょうたい URL</b> から ひらきます。<br>先生や、すでに つかっている人から もらった URL を ひらいてください。</p><p>べつの たんまつで つづきを する人は、おとな画面の「ひきつぎ URL」を ひらいてください。</p><p><a href="${BLOG}" target="_blank" rel="noopener">塾のブログ</a></p>`);return}
+  if(q.get('t')){if(await openKid(q.get('t')))return}
+  const kids=kidsGet();
+  // 名前が空の子は クラウドから名前を補う
+  if(kids.some(k=>!k.nick)){await Promise.all(kids.filter(k=>!k.nick).map(k=>db.collection('users').doc(k.t).get().then(d=>{if(d.exists)k.nick=d.data().nick}).catch(()=>{})));kidsPut(kids.filter(k=>k.nick))}
+  const K=kidsGet().filter(k=>k.nick);
+  if(code&&K.length)return pickKid(code);
+  if(code)return registerScreen(code);
+  if(K.length===1){if(await openKid(K[0].t))return}
+  if(K.length>1)return pickKid('');
+  gate(`<h2>九九ラボ</h2><p>このアプリは <b>しょうたい URL</b> から ひらきます。<br>先生や、すでに つかっている人から もらった URL を ひらいてください。</p><p>べつの たんまつで つづきを する人は、おとな画面の「ひきつぎ URL」を ひらいてください。</p><p><a href="${BLOG}" target="_blank" rel="noopener">塾のブログ</a></p>`);
+}
+async function registerScreen(code){
   let inv=null;try{const d=await db.collection('invites').doc(code).get();if(d.exists)inv=d.data()}catch(e){}
   if(!inv){gate(`<h2>しょうたい URL が ちがいます</h2><p>コード <b>${esc(code)}</b> は みつかりません。おくってくれた人に もういちど URL を もらってください。</p>`);return}
   gate(`<h2>はじめまして</h2><p>${esc(inv.nick||'先生')} さんからの しょうたいです。<br>アプリで つかう <b>ニックネーム</b> を きめてください。</p>
@@ -378,7 +406,7 @@ async function boot(){
       await db.collection('users').doc(token).set({nick,code:my,inv:code,root,progress:P,stage:0,seen:0,cleared:0,created:firebase.firestore.FieldValue.serverTimestamp(),updated:firebase.firestore.FieldValue.serverTimestamp()});
       await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:firebase.firestore.FieldValue.serverTimestamp()});
     }catch(e){$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
-    TOKEN=token;ME={nick,code:my,inv:code,root};try{localStorage.setItem('kukulab-token',token)}catch(e){}
+    TOKEN=token;ME={nick,code:my,inv:code,root};try{localStorage.setItem('kukulab-token',token)}catch(e){};kidsAdd(token,nick);setRes=[];
     save();boardSave();history.replaceState(null,'',location.pathname);showOnly('play');start();
   };
 }
@@ -569,6 +597,7 @@ function renderProg(){
   const p=$('#prog');p.innerHTML='';
   for(let i=0;i<SET;i++){const d=el('i');if(setRes[i])d.className=setRes[i];p.appendChild(d)}
   $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
+  $('#who').textContent=ME?ME.nick:'';
   $('#stageTag').textContent=`ステージ ${P.stage+1}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
 }
@@ -638,6 +667,7 @@ function showResult(){
   const n=setRes.filter(x=>x==='p').length,kind=n===SET?'g':n>=7?'s':'b';P.badges[kind]++;
   const name={g:'きん',s:'ぎん',b:'どう'}[kind],msg={g:'ぜんぶ ぱっと見！',s:'ぱっと見が ふえてきた！',b:'かたまりで たしかめた。それが だいじ。'}[kind];
   const cleared=stageDone()&&!P.cleared.includes(P.stage);
+  const canNext=(stageDone()||P.cleared.includes(P.stage))&&P.stage<STAGES.length-1;
   if(cleared)P.cleared.push(P.stage);
   save();$('#q').hidden=true;renderProg();
   const r=$('#result');r.hidden=false;
@@ -645,8 +675,9 @@ function showResult(){
   r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>ステージ ${P.stage+1} クリア！</h2><p>${cur().name} が じぶんのものに なった。</p>${islandDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}<p>ぱっと見で 見えた しき　${seenCount()} / 81</p><hr style="border:none;border-top:2px dashed var(--line)">`:'')+
   `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ かたまり ${SET-n} こ</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div>
-  <button class="btn" id="nextSet" style="font-size:1.2rem">${cleared&&P.stage<STAGES.length-1?'つぎの ステージへ':'つぎの 10もん'}</button>`;
-  $('#nextSet').onclick=()=>{if(cleared&&P.stage<STAGES.length-1){P.stage++;save()}setRes=[];start()};
+  <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの ステージへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}`;
+  $('#nextSet').onclick=()=>{if(canNext){P.stage++;save()}setRes=[];start()};
+  const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];start()};
 }
 /* map */
 $('#mapBtn').onclick=()=>{renderMap();$('#invBox').hidden=true;showOnly('map')};
@@ -773,6 +804,7 @@ function renderAdult(){
   a.innerHTML=`<div class="cap">おとな用（この端末のみ）　5=5のかたまり ⑩=合体 ←=ほどく ÷=10を2つに</div>
   <p>なまえ <input id="nameIn" value="${esc(P.name)}" style="width:8em">　ぱっと見の制限（3つ入れるまで）<input type="number" id="lim" min="1" max="20" step="0.5" value="${P.limit}" style="width:4em">秒　｜　ステージ <select id="jump">${opts}</select></p>
   ${TOKEN?`<p>ひきつぎ URL（べつの端末で続きをするとき。家族以外に送らない）<div class="codebox">${handoverURL()}</div><div class="pbar"><a class="btn ghost sm" href="${lineShare('九九ラボ ひきつぎURL（家族以外に送らない）\n'+handoverURL())}" target="_blank" rel="noopener" style="text-decoration:none">LINE で自分に送る</a><button class="btn ghost sm" id="hoCopy">コピー</button></div></p>`:''}
+  ${TOKEN&&kidsGet().length>1?'<div class="pbar"><button class="btn ghost sm" id="swKid">べつの子に こうたい</button></div>':''}
   <div class="pbar"><button class="btn sm" id="repBtn">おうちへ（連絡・A4）</button><button class="btn ghost sm" id="hwBtn">このステージの宿題を印刷</button><button class="btn ghost sm" id="hwBtn2">宿題 3 枚（前後のステージも）</button></div>
   <p>このステージの式（${cur().review?'まとめ: 各1回':'各2回連続'}のぱっと見でクリア）</p><div class="chips">${chips}</div>
   <p>復習で落ちた式</p><div class="chips">${weak}</div>
@@ -780,6 +812,7 @@ function renderAdult(){
   <button class="btn ghost sm" id="resetAll" style="margin-top:6px">すべて最初から</button>`;
   $('#lim').onchange=e=>{P.limit=+e.target.value||6;save()};
   $('#nameIn').onchange=e=>{P.name=e.target.value.trim();save()};
+  const sw=$('#swKid');if(sw)sw.onclick=()=>{$('#adult').hidden=true;adultOn=false;pickKid('')};
   const hc=$('#hoCopy');if(hc)hc.onclick=()=>navigator.clipboard?.writeText(handoverURL()).then(()=>alert_('コピーしました')).catch(()=>{});
   $('#repBtn').onclick=()=>{renderReport();showOnly('rep')};
   $('#hwBtn').onclick=()=>printHTML(homeworkSheet(P.stage));

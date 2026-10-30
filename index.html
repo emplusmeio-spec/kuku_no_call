@@ -329,7 +329,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='10/31c';
+const VER='10/31d';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -367,14 +367,23 @@ async function boot(){
       const d=await db.collection('invites').doc(code).get();
       if(!d.exists){gate(`<h2>この URL は つかえません</h2><p>コード <b>${esc(code)}</b> が みつかりません。</p>`);return}
       const inv=d.data();
+      if(Array.isArray(inv.cands)&&inv.cands.length>1)return chooseKid(code,inv.cands);
       if(inv.uid&&await loadKid(inv.uid,code))return;
-      return registerScreen(code,inv);
+      return registerScreen(code,inv,inv.uid||null);
     }
     if(q.get('t')&&await loadKid(q.get('t')))return; // 以前の ひきつぎ URL
   }catch(e){gate(`<h2>よみこめませんでした</h2><p>電波を たしかめて、もういちど ひらいてください。</p>`);return}
   gate(`<h2>九九ラボ</h2><p>先生や、つかっている人から もらった URL から ひらいてください。</p><p><a href="${BLOG}" target="_blank" rel="noopener">塾のブログ</a></p>`);
 }
-function registerScreen(code,inv){
+/* 以前の作りで 同じコードに 2人 登録されている場合だけ: どちらかを えらぶ */
+function chooseKid(code,cands){
+  gate(`<h2>どちらが やる？</h2>
+  <div class="mapbtns" style="flex-direction:column;align-items:stretch">${cands.map((c,i)=>`<button class="btn" data-i="${i}" style="font-size:1.3rem">${esc(c.nick)}</button>`).join('')}</div><div class="err" id="gateErr"></div>`);
+  document.querySelectorAll('#gateBody [data-i]').forEach(b=>b.onclick=async()=>{b.disabled=true;
+    if(!await loadKid(cands[+b.dataset.i].uid,code)){$('#gateErr').textContent='よみこめませんでした。電波を たしかめて もういちど。';b.disabled=false}});
+}
+/* 登録: 先に コードを 押さえて（1コード 1人）、押さえられたら その子の 記録を 作る */
+function registerScreen(code,inv,claimed){
   gate(`<h2>はじめまして</h2><p>${esc(inv.nick||'先生')} さんからの しょうたいです。<br>アプリで つかう <b>ニックネーム</b> を きめてください。</p>
   <input id="nickIn" maxlength="12" placeholder="ニックネーム（12文字まで）">
   <p class="note">進み具合は オンラインに のこります。本名ではなく ニックネームを おすすめします。</p>
@@ -382,15 +391,21 @@ function registerScreen(code,inv){
   $('#regBtn').onclick=async()=>{
     const nick=$('#nickIn').value.trim();if(!nick){$('#gateErr').textContent='ニックネームを 入れてね';return}
     $('#regBtn').disabled=true;
-    const token=rnd(24,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),my=rnd(6);
+    const ts=firebase.firestore.FieldValue.serverTimestamp();
+    const token=claimed||rnd(24,'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'),my=rnd(6);
+    if(!claimed){
+      try{await db.collection('invites').doc(code).update({uid:token,usedAt:ts})}
+      catch(e){
+        let used=false;try{const d=await db.collection('invites').doc(code).get();used=!!(d.exists&&(d.data().uid||d.data().cands))}catch(_){}
+        if(used){gate(`<h2>この URL は もう つかわれています</h2><p>あたらしく はじめる 人は、しょうたい してくれた人に べつの URL を もらってください。</p>`);return}
+        $('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
+    }
     const root=inv.by==='teacher'?code:(inv.root||code);
     P=fresh();P.name=nick;
-    const ts=firebase.firestore.FieldValue.serverTimestamp();
     try{
       await db.collection('users').doc(token).set({nick,code:my,inv:code,root,progress:P,stage:0,seen:0,cleared:0,created:ts,updated:ts});
       await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:ts}); // みんなの様子 用
-      await db.collection('invites').doc(code).update({uid:token,usedAt:ts});
-    }catch(e){$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
+    }catch(e){claimed=token;$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     TOKEN=token;ME={nick,code:my,inv:code,root};CUR=code;setRes=[];
     save();boardSave();showOnly('play');start();
   };
@@ -487,12 +502,16 @@ async function teacherScreen(){
     const ts=firebase.firestore.FieldValue.serverTimestamp();
     // 以前のコード（VGPNZ6 など）に、そのコードで登録した子を結びつける（いちばん最近つかった子）
     for(const iv of invites){
-      if(iv.uid||iv.by==='user'&&iv.kind!=='issued')continue;
-      const u=users.filter(x=>x.inv===iv.id).sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0))[0];
-      if(u){iv.uid=u.id;await db.collection('invites').doc(iv.id).update({uid:u.id}).catch(()=>{})}
+      if(iv.cands||(iv.by==='user'&&iv.kind!=='issued'))continue;
+      const list=users.filter(x=>x.inv===iv.id&&!invites.some(i=>i.uid===x.id&&i.id!==iv.id)).sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0));
+      if(list.length>1){ // 以前の作りで 2人以上: 開くと えらぶ画面
+        iv.cands=list.map(u=>({uid:u.id,nick:u.nick}));delete iv.uid;
+        await db.collection('invites').doc(iv.id).update({cands:iv.cands,uid:firebase.firestore.FieldValue.delete()}).catch(()=>{});
+      }else if(list.length===1&&!iv.uid){iv.uid=list[0].id;await db.collection('invites').doc(iv.id).update({uid:iv.uid}).catch(()=>{})}
     }
     const userOf=c=>{const iv=invites.find(i=>i.id===c);return iv&&iv.uid?users.find(u=>u.id===iv.uid):null};
-    const codeOf=u=>{const iv=invites.find(i=>i.uid===u.id);return iv?iv.id:''};
+    const candsOf=c=>{const iv=invites.find(i=>i.id===c);return iv&&Array.isArray(iv.cands)?iv.cands.map(x=>users.find(u=>u.id===x.uid)).filter(Boolean):[]};
+    const codeOf=u=>{const iv=invites.find(i=>i.uid===u.id||(Array.isArray(i.cands)&&i.cands.some(x=>x.uid===u.id)));return iv?iv.id:''};
     const urlOf=u=>{const c=codeOf(u);return c?kidURL(c):`${SITE}?t=${u.id}`};
     // 子どものコード c から出た招待（押すたびに 1 つ）。以前の作り（その子の共通コード）で来た子も つなぐ
     const issuedFrom=c=>invites.filter(i=>i.kind==='issued'&&i.parent===c).sort((a,b)=>(a.created?.seconds||0)-(b.created?.seconds||0));
@@ -500,12 +519,14 @@ async function teacherScreen(){
     const roots=invites.filter(i=>i.by==='teacher').sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0));
     const fmt=t=>t&&t.seconds?new Date(t.seconds*1000).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}):'-';
     const line=(c,iv)=>{const u=userOf(c);const by=iv&&iv.by==='user'?`　${esc(iv.nick)} さんが ${fmt(iv.created)} に発行`:'';
+      const cs=candsOf(c);
+      if(cs.length)return `<span class="nm">${cs.map(x=>esc(x.nick)).join(' ／ ')}</span><span class="mt">${c}　同じコードに ${cs.length}人（開くと えらぶ画面）${by}</span>`;
       return u?`<span class="nm">${esc(u.nick)}</span><span class="mt">${c}　ステージ ${(u.stage||0)+1} ／ ぱっと見 ${u.seen||0} ／ ${fmt(u.updated)}${by}</span>`
               :`<span class="mt">${c}　未使用${by}</span>`};
     const node=c=>{const iv=invites.find(i=>i.id===c);
       const kids=issuedFrom(c).map(i=>node(i.id)).join('')+legacyFrom(c).map(u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">${esc(u.inv)}（以前の方式）　ステージ ${(u.stage||0)+1}</span></li>`).join('');
       return `<li>${line(c,iv)}${kids?`<ul class="tree">${kids}</ul>`:''}</li>`};
-    const count=c=>(userOf(c)?1:0)+issuedFrom(c).reduce((n,i)=>n+count(i.id),0)+legacyFrom(c).length;
+    const count=c=>(userOf(c)?1:candsOf(c).length)+issuedFrom(c).reduce((n,i)=>n+count(i.id),0)+legacyFrom(c).length;
     const active=users;
     const issuedCount=invites.filter(i=>i.kind==='issued').length;
     let html=`<div class="gate"><h2>先生画面</h2><p>登録 ${active.length} 人 ／ 枝 ${roots.length} 本 ／ 発行された招待 ${issuedCount}　<button class="btn ghost sm" id="tReload">更新</button> <button class="btn ghost sm" id="tOut">ログアウト</button></p>

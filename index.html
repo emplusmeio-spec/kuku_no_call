@@ -329,6 +329,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: 招待URL → ニックネーム登録 → ひきつぎURL。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
+const VER='10/31b';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -346,7 +347,7 @@ function boardSave(){
   db.collection('board').doc(ME.code).set({nick:ME.nick,root:ME.root||'',stage:Math.min(P.stage,STAGES.length-1),cl:P.cleared.slice(0,STAGES.length),seen:Math.min(seenCount(),81),updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
 }
 function showOnly(id){['play','map','rep','gate','teacher','mates'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
-function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}</div>`;showOnly('gate')}
+function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}<p class="note" style="margin-top:16px;font-size:.75rem;color:var(--muted)">版 ${VER}</p></div>`;showOnly('gate')}
 /* この端末で使っている子の一覧（1台を きょうだいで使える） */
 function kidsGet(){try{const k=JSON.parse(localStorage.getItem('kukulab-kids')||'[]');const t=localStorage.getItem('kukulab-token');if(t&&!k.some(x=>x.t===t))k.push({t,nick:''});return k}catch(e){return []}}
 function kidsPut(k){try{localStorage.setItem('kukulab-kids',JSON.stringify(k))}catch(e){}}
@@ -358,7 +359,7 @@ async function openKid(t){
     kidsAdd(t,ME.nick);
     P=(ME.progress&&ME.progress.sp)?Object.assign(fresh(),ME.progress):fresh();setRes=[];
     try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){}
-    history.replaceState(null,'',location.pathname);
+    history.replaceState(null,'',`${location.pathname}?t=${t}`);
     showOnly('play');start();boardSave();return true;
   }catch(e){return false}
 }
@@ -407,7 +408,7 @@ async function registerScreen(code){
       await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:firebase.firestore.FieldValue.serverTimestamp()});
     }catch(e){$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     TOKEN=token;ME={nick,code:my,inv:code,root};try{localStorage.setItem('kukulab-token',token)}catch(e){};kidsAdd(token,nick);setRes=[];
-    save();boardSave();history.replaceState(null,'',location.pathname);showOnly('play');start();
+    save();boardSave();history.replaceState(null,'',`${location.pathname}?t=${token}`);showOnly('play');start();
   };
 }
 /* しょうたい */
@@ -801,7 +802,8 @@ function renderAdult(){
   const weak=Object.keys(P.weak).map(k=>`<span class="chip w">${k.replace('x','×')}</span>`).join('')||'なし';
   const rows=P.hist.slice(-12).reverse().map(h=>`<tr><td>${h.k.replace('x','×')}${h.r?' (復習)':''}</td><td>${(h.t/10).toFixed(1)}s</td><td>${h.att}回</td><td>${h.ops||'—'}</td><td>${h.pass?'ぱっと見 ✓':h.used?'かたまり':'遅い/やり直し'}</td></tr>`).join('');
   const opts=STAGES.map((s,i)=>`<option value="${i}" ${i===P.stage?'selected':''}>${i+1} ${s.name}</option>`).join('');
-  a.innerHTML=`<div class="cap">おとな用（この端末のみ）　5=5のかたまり ⑩=合体 ←=ほどく ÷=10を2つに</div>
+  a.innerHTML=`<div class="cap">おとな用　${ME?`いまの子: <b>${esc(ME.nick)}</b>（招待コード ${esc(ME.code)}）　`:''}版 ${VER}</div>
+  <div class="cap" style="margin-top:4px">　5=5のかたまり ⑩=合体 ←=ほどく ÷=10を2つに</div>
   <p>なまえ <input id="nameIn" value="${esc(P.name)}" style="width:8em">　ぱっと見の制限（3つ入れるまで）<input type="number" id="lim" min="1" max="20" step="0.5" value="${P.limit}" style="width:4em">秒　｜　ステージ <select id="jump">${opts}</select></p>
   ${TOKEN?`<p>ひきつぎ URL（べつの端末で続きをするとき。家族以外に送らない）<div class="codebox">${handoverURL()}</div><div class="pbar"><a class="btn ghost sm" href="${lineShare('九九ラボ ひきつぎURL（家族以外に送らない）\n'+handoverURL())}" target="_blank" rel="noopener" style="text-decoration:none">LINE で自分に送る</a><button class="btn ghost sm" id="hoCopy">コピー</button></div></p>`:''}
   ${TOKEN&&kidsGet().length>1?'<div class="pbar"><button class="btn ghost sm" id="swKid">べつの子に こうたい</button></div>':''}

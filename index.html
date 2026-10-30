@@ -198,6 +198,29 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .tree .nm{font-weight:800}
 .tree .mt{color:var(--muted);font-size:.8rem;margin-left:6px}
 .codebox{font-family:ui-monospace,monospace;font-size:.85rem;background:var(--bg);border-radius:8px;padding:6px 8px;word-break:break-all;user-select:all}
+/* みんなの様子 */
+.board{overflow-x:auto;margin:6px 0 4px}
+.board table{border-collapse:separate;border-spacing:2px;font-variant-numeric:tabular-nums;font-size:.78rem}
+.board th,.board td{padding:0;text-align:center}
+.board th.nm,.board td.nm{position:sticky;left:0;background:var(--paper);text-align:left;padding:0 8px 0 2px;white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis;font-weight:800;z-index:1}
+.board td.nm small{font-weight:400;color:var(--muted);margin-left:4px}
+.board .ph{height:6px;border-radius:3px}
+.board th.n{width:22px;color:var(--muted);font-weight:800}
+.board td.c{width:22px;height:20px;border-radius:5px;background:var(--bg);border:1px solid var(--line)}
+.board td.c.d{background:var(--pc);border-color:var(--pc)}
+.board td.c.cur{background:var(--paper);border:3px solid var(--accent)}
+.board td.c.cur.d{background:var(--pc)}
+.board tr.idle td.nm{color:var(--muted);font-weight:400}
+.board tr.me td.nm{color:var(--accent)}
+.board tr.me td.c{box-shadow:0 0 0 1px var(--accent)}
+.board tr.idle td.c.cur{border-color:var(--muted)}
+.board tr.dist td{height:auto;font-weight:900;font-size:.8rem;color:var(--ink)}
+.board tr.dist td .bub{display:inline-flex;min-width:20px;height:20px;border-radius:10px;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);padding:0 4px}
+.board .meta{color:var(--muted);font-weight:400;white-space:nowrap;padding:0 4px;text-align:left}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px;border:1px solid var(--line);background:var(--bg)}
+.legend i.d{background:var(--pB);border-color:var(--pB)}
+.legend i.cur{background:var(--paper);border:3px solid var(--accent)}
 /* adult */
 .adult{margin-top:12px;font-size:.85rem;color:var(--muted)}
 .adult table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
@@ -258,10 +281,16 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
     <button class="btn" id="mapBack">もどる</button>
     <button class="btn ghost" id="licBtn" hidden>ライセンス</button>
     <span class="sp" style="flex:1"></span>
+    <button class="btn ghost" id="matesBtn">みんなの様子</button>
     <button class="btn ghost" id="invBtn">しょうたい</button>
     <a class="btn ghost" id="blogBtn" href="https://empmeio.blogspot.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">塾のブログ</a>
   </div>
   <div id="invBox" hidden></div>
+</div>
+
+<div class="card" id="mates" hidden>
+  <div id="matesBody"></div>
+  <div class="mapbtns"><button class="btn" id="matesBack">もどる</button><button class="btn ghost" id="matesReload">さいしんに する</button></div>
 </div>
 
 <div class="card" id="rep" hidden>
@@ -307,9 +336,13 @@ const handoverURL=()=>`${SITE}?t=${TOKEN}`;
 function lineShare(text){return 'https://line.me/R/share?text='+encodeURIComponent(text)}
 function cloudSave(){
   if(!db||!TOKEN)return;clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{db.collection('users').doc(TOKEN).update({progress:P,stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{})},1500);
+  syncTimer=setTimeout(()=>{db.collection('users').doc(TOKEN).update({progress:P,stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});boardSave()},1500);
 }
-function showOnly(id){['play','map','rep','gate','teacher'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
+function boardSave(){
+  if(!db||!ME||!ME.code)return;
+  db.collection('board').doc(ME.code).set({nick:ME.nick,root:ME.root||'',stage:Math.min(P.stage,STAGES.length-1),cl:P.cleared.slice(0,STAGES.length),seen:Math.min(seenCount(),81),updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
+}
+function showOnly(id){['play','map','rep','gate','teacher','mates'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
 function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}</div>`;showOnly('gate')}
 async function boot(){
   const q=new URLSearchParams(location.search);
@@ -322,7 +355,7 @@ async function boot(){
     try{const d=await db.collection('users').doc(TOKEN).get();
       if(d.exists){ME=d.data();if(ME.progress&&ME.progress.sp){P=Object.assign(fresh(),ME.progress);save()}
         if(q.get('i'))history.replaceState(null,'',location.pathname);
-        start();return}
+        start();boardSave();return}
     }catch(e){}
     TOKEN=null;
   }
@@ -333,6 +366,7 @@ async function boot(){
   gate(`<h2>はじめまして</h2><p>${esc(inv.nick||'先生')} さんからの しょうたいです。<br>アプリで つかう <b>ニックネーム</b> を きめてください。</p>
   <input id="nickIn" maxlength="12" placeholder="ニックネーム（12文字まで）">
   <p class="note">進み具合は オンラインに のこります。本名ではなく ニックネームを おすすめします。</p>
+  <p class="note">もう つかっている子が べつの たんまつで つづきを するときは、ここで 登録せず、いつもの たんまつの「おとな」→「ひきつぎ URL」を ひらいてください。</p>
   <div class="mapbtns"><button class="btn" id="regBtn">はじめる</button></div><div class="err" id="gateErr"></div>`);
   $('#regBtn').onclick=async()=>{
     const nick=$('#nickIn').value.trim();if(!nick){$('#gateErr').textContent='ニックネームを 入れてね';return}
@@ -345,7 +379,7 @@ async function boot(){
       await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:firebase.firestore.FieldValue.serverTimestamp()});
     }catch(e){$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     TOKEN=token;ME={nick,code:my,inv:code,root};try{localStorage.setItem('kukulab-token',token)}catch(e){}
-    save();history.replaceState(null,'',location.pathname);showOnly('play');start();
+    save();boardSave();history.replaceState(null,'',location.pathname);showOnly('play');start();
   };
 }
 /* しょうたい */
@@ -359,6 +393,41 @@ $('#invBtn').onclick=()=>{
   $('#invCopy').onclick=()=>navigator.clipboard?.writeText(url).then(()=>alert_('コピーしました')).catch(()=>{});
   const sh=$('#invShare');if(sh)sh.onclick=()=>navigator.share({title:'九九ラボ',text,url}).catch(()=>{});
 };
+/* みんなの様子: 行=子ども、列=ステージ1〜30 */
+function boardHTML(users,roots,me){
+  const student=!!me;
+  const now=Date.now()/1000;
+  const sorted=users.slice().sort((a,b)=>((b.stage||0)-(a.stage||0))||((b.updated?.seconds||0)-(a.updated?.seconds||0)));
+  const label=c=>{const r=roots.find(x=>x.id===c);return r?(r.label||c):c};
+  const dist=Array(STAGES.length).fill(0);sorted.forEach(u=>{const st=Math.min(u.stage||0,STAGES.length-1);if(now-(u.updated?.seconds||0)<14*86400)dist[st]++});
+  let h=`<div class="rep"><h3>みんなの様子</h3>
+  <div class="legend"><span><i class="d"></i>クリア</span><span><i class="cur"></i>いま やっている</span><span>うすい行 = 7日以上 やっていない</span><span>赤い数 = そのステージに いる人数</span>
+  ${student?'':`<label style="margin-left:auto"><select id="bFilter" style="font-size:.85rem"><option value="">すべての枝</option>${roots.map(r=>`<option value="${r.id}">${esc(r.label||r.id)}</option>`).join('')}</select></label>`}</div>
+  <div class="board"><table>
+  <tr><th class="nm"></th>${STAGES.map(st=>`<th><div class="ph" style="background:var(${PH[st.p][2]})"></div></th>`).join('')}<th></th></tr>
+  <tr><th class="nm"></th>${STAGES.map((_,i)=>`<th class="n">${i+1}</th>`).join('')}<th></th></tr>
+  <tr class="dist"><td class="nm">人数</td>${dist.map(n=>`<td>${n?`<span class="bub">${n}</span>`:''}</td>`).join('')}<td></td></tr>`;
+  sorted.forEach(u=>{
+    const cl=new Set(Array.isArray(u.cl)?u.cl:((u.progress&&u.progress.cleared)||[])),cur=u.stage||0,idle=now-(u.updated?.seconds||0)>7*86400,isMe=student&&u.id===me;
+    const last=u.updated&&u.updated.seconds?new Date(u.updated.seconds*1000).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}):'-';
+    h+=`<tr class="${idle?'idle':''}${isMe?' me':''}" data-root="${esc(u.root||'')}"><td class="nm"${student?'':` title="${esc(label(u.root))}"`}>${isMe?'★ ':''}${esc(u.nick)}</td>${STAGES.map((st,i)=>`<td class="c${cl.has(i)?' d':''}${i===cur?' cur':''}" style="--pc:var(${PH[st.p][2]})" title="${esc(u.nick)}　${i+1} ${esc(st.name)}${cl.has(i)?'（クリア）':''}${i===cur?'（いま）':''}"></td>`).join('')}<td class="meta">ぱっと見 ${u.seen||0}/81　${last}</td></tr>`});
+  if(!sorted.length)h+=`<tr><td class="nm">まだ だれも いません</td></tr>`;
+  return h+'</table></div></div>';
+}
+/* 生徒用 みんなの様子 */
+async function renderMates(){
+  const B=$('#matesBody');
+  if(!db||!ME){B.innerHTML='<div class="rep">みんなの様子は オンライン版（しょうたい URL から ひらいた とき）で 見られます。</div>';return}
+  B.innerHTML='<p>よみこみ中…</p>';
+  try{
+    const snap=await db.collection('board').get();
+    const users=snap.docs.map(d=>({id:d.id,...d.data()}));
+    B.innerHTML=boardHTML(users,[],ME.code)+'<p class="note" style="font-size:.8rem;color:var(--muted)">★ が じぶん。ニックネームと ステージだけが 見えます。</p>';
+  }catch(e){B.innerHTML='<div class="rep">よみこめませんでした。電波を たしかめて「さいしんに する」を おしてね。</div>'}
+}
+$('#matesBtn').onclick=()=>{showOnly('mates');renderMates()};
+$('#matesBack').onclick=()=>{renderMap();showOnly('map')};
+$('#matesReload').onclick=renderMates;
 /* 先生画面 */
 async function teacherScreen(){
   showOnly('teacher');const T=$('#teacherBody');
@@ -376,14 +445,17 @@ async function teacherScreen(){
     const node=u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">ステージ ${(u.stage||0)+1} ／ ぱっと見 ${u.seen||0} ／ クリア ${u.cleared||0} ／ ${fmt(u.updated)}</span><ul class="tree">${byInv(u.code).map(node).join('')}</ul></li>`;
     const countBranch=c=>byInv(c).reduce((n,u)=>n+1+countBranch(u.code),0);
     let html=`<div class="gate"><h2>先生画面</h2><p>登録 ${users.length} 人 ／ 枝 ${roots.length} 本　<button class="btn ghost sm" id="tReload">更新</button> <button class="btn ghost sm" id="tOut">ログアウト</button></p>
+    ${boardHTML(users,roots)}
     <div class="rep"><h3>新しい招待コードを発行</h3><div class="pbar"><input id="tLabel" placeholder="メモ（例: 2年A組 田中さん）" style="flex:1;font-size:1rem"><button class="btn sm" id="tNew">発行</button></div><div id="tNewOut"></div></div>`;
     roots.sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0)).forEach(r=>{
       html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">コード ${r.id}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${inviteURL(r.id)}</div><ul class="tree">${byInv(r.id).map(node).join('')||'<li class="mt">まだ だれも</li>'}</ul></div>`});
     const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
     if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(node).join('')}</ul></div>`;
-    html+=`<div class="rep"><h3>一覧（最終利用順）</h3><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>ぱっと見</th><th>最終</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/81</td><td>${fmt(u.updated)}</td></tr>`).join('')}</table></div></div>`;
+    html+=`<div class="rep"><h3>一覧（最終利用順）</h3><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>ぱっと見</th><th>最終</th><th>ひきつぎ URL</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/81</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-t="${esc(u.id)}" data-n="${esc(u.nick)}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`九九ラボ ${u.nick} さんの ひきつぎURL（家族以外に送らない）\n${SITE}?t=${u.id}`)}">LINE</a></td></tr>`).join('')}</table><p class="mt" style="color:var(--muted);font-size:.8rem">ひきつぎ URL はその子の鍵です。保護者本人にだけ送ってください。</p></div></div>`;
     T.innerHTML=html;
-    $('#tReload').onclick=dashboard;$('#tOut').onclick=()=>fbAuth.signOut();
+    $('#tReload').onclick=dashboard;
+    document.querySelectorAll('.hoBtn').forEach(b=>b.onclick=()=>{const u=`${SITE}?t=${b.dataset.t}`;navigator.clipboard?.writeText(u).then(()=>{b.textContent='コピーしました';setTimeout(()=>b.textContent='コピー',1500)}).catch(()=>prompt?.call(window,b.dataset.n,u))});
+    const bf=$('#bFilter');if(bf)bf.onchange=()=>document.querySelectorAll('.board tr[data-root]').forEach(tr=>tr.hidden=!!bf.value&&tr.dataset.root!==bf.value);$('#tOut').onclick=()=>fbAuth.signOut();
     $('#tNew').onclick=async()=>{const code=rnd(6);const label=$('#tLabel').value.trim();
       await db.collection('invites').doc(code).set({by:'teacher',label,root:code,nick:'先生',created:firebase.firestore.FieldValue.serverTimestamp()});
       $('#tNewOut').innerHTML=`<p>発行しました。</p><div class="codebox">${inviteURL(code)}</div><p class="mt">この URL を保護者に送ってください（LINE など）。</p>`;setTimeout(dashboard,1500)};

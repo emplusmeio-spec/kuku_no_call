@@ -324,7 +324,6 @@
     if (ho) {
       const box = el(`<div>${ho}</div>`);
       CLOUD.bindCopy(box);
-      const sw = box.querySelector("#swKid"); if (sw) sw.onclick = () => CLOUD.switchKid();
       app.append(box);
     }
     const pr = el(`<div><h3 class="sec">いんさつ（じぶんで おいた サイトで つかえます）</h3><div class="pbar"><button class="go sm" id="prRep">おうちへの おしらせ（A4）</button><button class="go sm ghost" id="prHw">このレベルの しゅくだい</button><button class="go sm ghost" id="prHw3">しゅくだい 3まい</button></div><p class="err" id="prErr"></p></div>`);
@@ -484,9 +483,9 @@
     const top = el(`<div class="top"><button class="back">← もどる</button><span class="tag" style="--c:#8d6e63">ともだちを　しょうたい</span></div>`);
     top.querySelector(".back").onclick = home;
     app.append(top);
-    const box = el(`<div>${CLOUD.inviteHTML()}</div>`);
-    CLOUD.bindCopy(box);
+    const box = el(`<div></div>`);
     app.append(box);
+    CLOUD.renderInvite(box);
   }
 
   // オンライン版：しょうたい URL・ひきつぎ URL を みて、その子の 記録で はじめる

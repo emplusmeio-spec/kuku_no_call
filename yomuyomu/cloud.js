@@ -1,7 +1,7 @@
 // オンライン管理（九九ラボと同じしくみ）
 //
-//   しょうたい URL（?i=コード） → ニックネーム登録 → この端末に記録
-//   ひきつぎ URL（?t=トークン） → べつの端末で つづき
+//   ?i=コード が その子の かぎ（1コード 1人）。はじめて ひらいた ときに ニックネームを きめる
+//   2かいめからは どの たんまつで ひらいても その子の 記録で はじまる（端末には 記録しない）
 //   先生画面（?teacher）        → ログイン、しょうたいコード発行、みんなの様子、ひきつぎ URL
 //   Firebase が読みこめない所（claude.ai の公開版・オフライン）では、端末の中だけで動く。
 //
@@ -13,7 +13,6 @@ const CLOUD = (() => {
   const TEACHER_EMAIL = "terauchi@em-plus.net";
   const COL = { users: "rst_users", invites: "rst_invites", board: "rst_board" };
   const APP = "よむよむ チャレンジ";
-  const LS_KIDS = "rst-kids-kids", LS_TOKEN = "rst-kids-token";
   const SITE = location.origin + location.pathname;
 
   let db = null, auth = null, TOKEN = null, ME = null, timer = null, onReadyCb = null;
@@ -22,17 +21,16 @@ const CLOUD = (() => {
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const rnd = (n, chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789") => { const a = new Uint32Array(n); crypto.getRandomValues(a); return Array.from(a, (x) => chars[x % chars.length]).join(""); };
-  const inviteURL = (code) => `${SITE}?i=${code}`;
-  const handoverURL = () => `${SITE}?t=${TOKEN}`;
   const lineShare = (text) => "https://line.me/R/share?text=" + encodeURIComponent(text);
   const fmt = (t) => (t && t.seconds ? new Date(t.seconds * 1000).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" }) : "-");
   const $app = () => document.getElementById("app");
   const copy = (text, btn) => navigator.clipboard?.writeText(text).then(() => { if (btn) { const o = btn.textContent; btn.textContent = "コピーしました"; setTimeout(() => (btn.textContent = o), 1500); } }).catch(() => {});
 
-  // ---------- この端末で つかっている子（きょうだいで 1台を つかえる） ----------
-  const kidsGet = () => { try { return JSON.parse(localStorage.getItem(LS_KIDS) || "[]"); } catch (e) { return []; } };
-  const kidsPut = (k) => { try { localStorage.setItem(LS_KIDS, JSON.stringify(k)); } catch (e) {} };
-  const kidsAdd = (t, nick) => kidsPut([...kidsGet().filter((x) => x.t !== t), { t, nick }]);
+  // ---------- URL が その子の かぎ（九九ラボと 同じ「1コード 1人」） ----------
+  //   ?i=コード を ひらく → そのコードを もっている子の 記録で はじまる（どの たんまつでも おなじ）
+  //   まだ だれも もっていない コードなら、ニックネームを きめて その子の ものに する
+  let CUR = null; // いま ひらいている子の コード
+  const kidURL = (c) => `${SITE}?i=${c}`;
 
   function gate(html) {
     const a = $app();
@@ -40,58 +38,63 @@ const CLOUD = (() => {
     return a;
   }
 
-  async function openKid(t) {
-    try {
-      const d = await db.collection(COL.users).doc(t).get();
-      if (!d.exists) return false;
-      TOKEN = t; ME = d.data();
-      try { localStorage.setItem(LS_TOKEN, t); } catch (e) {}
-      kidsAdd(t, ME.nick);
-      history.replaceState(null, "", location.pathname);
-      onReadyCb(ME.progress || null);
-      return true;
-    } catch (e) { return false; }
+  async function loadKid(token, code) {
+    const d = await db.collection(COL.users).doc(token).get();
+    if (!d.exists) return false;
+    TOKEN = token; ME = d.data(); CUR = code || ME.inv;
+    // URL を その子の URL に して おく（ホーム画面に 追加しても その子で ひらける）
+    history.replaceState(null, "", `${location.pathname}?i=${CUR}`);
+    onReadyCb(ME.progress || null);
+    return true;
   }
 
-  function pickKid(code) {
-    const kids = kidsGet();
-    const a = gate(`<h2 class="title">${code ? "しょうたい URL を ひらきました" : "だれが やる？"}</h2>
-      ${code ? `<p>この たんまつには もう つかっている子が います。</p><button class="allbtn" id="newKid">あたらしい子として はじめる</button><p class="lead">つづきを する子は こちら</p>` : ""}
-      <div class="kidlist">${kids.map((k, i) => `<button class="go kid" data-i="${i}">${esc(k.nick || "（なまえ よみこみ中）")}</button>`).join("")}</div>
-      ${code ? "" : '<p class="hint">あたらしい子を ふやすときは、しょうたい URL を ひらいてください。</p>'}<p class="err" id="gErr"></p>`);
+  async function openCode(code) {
+    const d = await db.collection(COL.invites).doc(code).get();
+    if (!d.exists) { gate(`<h2 class="title">この URL は つかえません</h2><p>コード <b>${esc(code)}</b> が みつかりません。おくってくれた人に もういちど URL を もらってください。</p>`); return; }
+    const inv = d.data();
+    if (Array.isArray(inv.cands) && inv.cands.length > 1) return chooseKid(code, inv.cands);
+    if (inv.uid && (await loadKid(inv.uid, code))) return;
+    return register(code, inv, inv.uid || null);
+  }
+
+  // 以前の つくりで おなじ コードに 2人 いる ときだけ：どちらかを えらぶ
+  function chooseKid(code, cands) {
+    const a = gate(`<h2 class="title">どちらが やる？</h2><div class="kidlist">${cands.map((c, i) => `<button class="go kid" data-i="${i}">${esc(c.nick)}</button>`).join("")}</div><p class="err" id="gErr"></p>`);
     a.querySelectorAll("[data-i]").forEach((b) => (b.onclick = async () => {
       b.disabled = true;
-      if (!(await openKid(kids[+b.dataset.i].t))) { a.querySelector("#gErr").textContent = "よみこめませんでした。電波を たしかめて もういちど。"; b.disabled = false; }
+      if (!(await loadKid(cands[+b.dataset.i].uid, code).catch(() => false))) { a.querySelector("#gErr").textContent = "よみこめませんでした。電波を たしかめて もういちど。"; b.disabled = false; }
     }));
-    const nb = a.querySelector("#newKid"); if (nb) nb.onclick = () => register(code);
   }
 
-  async function register(code) {
-    let inv = null;
-    try { const d = await db.collection(COL.invites).doc(code).get(); if (d.exists) inv = d.data(); } catch (e) {}
-    if (!inv) { gate(`<h2 class="title">しょうたい URL が ちがいます</h2><p>コード <b>${esc(code)}</b> は みつかりません。おくってくれた人に もういちど URL を もらってください。</p>`); return; }
+  // 登録：さきに コードを おさえて（1コード 1人）、おさえられたら その子の 記録を つくる
+  function register(code, inv, claimed) {
     const a = gate(`<h2 class="title">はじめまして</h2>
       <p>${esc(inv.nick || "先生")} さんからの しょうたいです。<br>アプリで つかう <b>ニックネーム</b> を きめてください。</p>
       <input id="nickIn" maxlength="12" placeholder="ニックネーム（12もじまで）">
-      <p class="hint">すすみぐあいは オンラインに のこります。本名ではなく ニックネームを おすすめします。<br>べつの たんまつで つづきを するときは、ここで 登録せず「おうちの方・先生へ」の「ひきつぎ URL」を ひらいてください。</p>
+      <p class="hint">すすみぐあいは オンラインに のこります。本名ではなく ニックネームを おすすめします。<br>この URL が この子の かぎに なります。つぎからは、どの たんまつでも この URL を ひらけば つづきから できます。</p>
       <button class="allbtn" id="regBtn">はじめる</button><p class="err" id="gErr"></p>`);
+    const err = (m) => { a.querySelector("#gErr").textContent = m; a.querySelector("#regBtn").disabled = false; };
     a.querySelector("#regBtn").onclick = async () => {
       const nick = a.querySelector("#nickIn").value.trim();
       if (!nick) { a.querySelector("#gErr").textContent = "ニックネームを 入れてね"; return; }
       a.querySelector("#regBtn").disabled = true;
-      const token = rnd(24, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), my = rnd(6);
+      const token = claimed || rnd(24, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), my = rnd(6);
+      if (!claimed) {
+        try { await db.collection(COL.invites).doc(code).update({ uid: token, usedAt: ts() }); }
+        catch (e) {
+          let used = false;
+          try { const d = await db.collection(COL.invites).doc(code).get(); used = !!(d.exists && (d.data().uid || d.data().cands)); } catch (_) {}
+          if (used) { gate(`<h2 class="title">この URL は もう つかわれています</h2><p>あたらしく はじめる 人は、しょうたい してくれた人に べつの URL を もらってください。</p>`); return; }
+          return err("とうろくに しっぱいしました。電波を たしかめて もういちど。");
+        }
+      }
       const root = inv.by === "teacher" ? code : inv.root || code;
       try {
         await db.collection(COL.users).doc(token).set({ nick, code: my, inv: code, root, progress: null, lv: 1, passed: [], created: ts(), updated: ts() });
-        await db.collection(COL.invites).doc(my).set({ by: "user", parent: code, root, nick, created: ts() });
-      } catch (e) {
-        a.querySelector("#gErr").textContent = "とうろくに しっぱいしました。電波を たしかめて もういちど。";
-        a.querySelector("#regBtn").disabled = false; return;
-      }
-      TOKEN = token; ME = { nick, code: my, inv: code, root };
-      try { localStorage.setItem(LS_TOKEN, token); } catch (e) {}
-      kidsAdd(token, nick);
-      history.replaceState(null, "", location.pathname);
+        await db.collection(COL.invites).doc(my).set({ by: "user", parent: code, root, nick, created: ts() }); // みんなの様子 用
+      } catch (e) { claimed = token; return err("とうろくに しっぱいしました。電波を たしかめて もういちど。"); }
+      TOKEN = token; ME = { nick, code: my, inv: code, root }; CUR = code;
+      history.replaceState(null, "", `${location.pathname}?i=${code}`);
       onReadyCb(null);
       boardSave(null);
     };
@@ -103,18 +106,11 @@ const CLOUD = (() => {
     if (q.has("teacher")) return teacherScreen();
     if (!db) return onReady(null); // 端末の中だけで動く
     const code = (q.get("i") || "").toUpperCase();
-    if (q.get("t") && (await openKid(q.get("t")))) return;
-    const kids = kidsGet();
-    if (kids.some((k) => !k.nick)) {
-      await Promise.all(kids.filter((k) => !k.nick).map((k) => db.collection(COL.users).doc(k.t).get().then((d) => { if (d.exists) k.nick = d.data().nick; }).catch(() => {})));
-      kidsPut(kids.filter((k) => k.nick));
-    }
-    const K = kidsGet();
-    if (code && K.length) return pickKid(code);
-    if (code) return register(code);
-    if (K.length === 1 && (await openKid(K[0].t))) return;
-    if (K.length > 1) return pickKid("");
-    gate(`<h2 class="title">${APP}</h2><p>この アプリは <b>しょうたい URL</b> から ひらきます。<br>先生や、すでに つかっている人から もらった URL を ひらいてください。</p><p>べつの たんまつで つづきを する人は、「おうちの方・先生へ」の「ひきつぎ URL」を ひらいてください。</p>`);
+    try {
+      if (code) return await openCode(code);
+      if (q.get("t") && (await loadKid(q.get("t")))) return; // 以前の ひきつぎ URL
+    } catch (e) { gate(`<h2 class="title">よみこめませんでした</h2><p>電波を たしかめて、もういちど ひらいてください。</p>`); return; }
+    gate(`<h2 class="title">${APP}</h2><p>この アプリは <b>しょうたい URL</b> から ひらきます。<br>先生や、すでに つかっている人から もらった URL を ひらいてください。</p>`);
   }
 
   // ---------- ほぞん ----------
@@ -159,19 +155,28 @@ const CLOUD = (() => {
     } catch (e) { box.innerHTML = '<p class="hint">よみこめませんでした。電波を たしかめて もういちど。</p>'; }
   }
 
-  // ---------- しょうたい（ともだちを さそう） ----------
-  function inviteHTML() {
-    if (!ME) return '<p class="hint">しょうたいは オンライン版（しょうたい URL から ひらいた とき）で つかえます。</p>';
-    const url = inviteURL(ME.code);
-    const text = `${APP}（よむ ちから トレーニング）への しょうたいです。この URL から ひらいて ニックネームを きめると はじめられます。\n${url}`;
-    return `<div class="codebox">${esc(url)}</div><div class="pbar"><a class="go sm" href="${lineShare(text)}" target="_blank" rel="noopener">LINE で おくる</a><button class="go sm ghost" data-copy="${esc(url)}">URL を コピー</button></div><p class="hint">しょうたいされた人も、また べつの人を しょうたい できます。</p>`;
+  // ---------- しょうたい（ともだちを さそう）：おすたびに あたらしい コードを 1つ つくる ----------
+  function renderInvite(box) {
+    if (!ME || !CUR) { box.innerHTML = '<p class="hint">しょうたいは オンライン版（しょうたい URL から ひらいた とき）で つかえます。</p>'; return; }
+    box.innerHTML = `<p>ともだち 1人に 1つ、しょうたい URL を つくります。</p><button class="allbtn" id="mkInv">しょうたい URL を つくる</button><div id="invOut"></div>`;
+    box.querySelector("#mkInv").onclick = async () => {
+      const out = box.querySelector("#invOut");
+      out.innerHTML = '<p class="hint">つくっています…</p>';
+      const code = rnd(6);
+      try { await db.collection(COL.invites).doc(code).set({ by: "user", kind: "issued", parent: CUR, root: ME.root || CUR, nick: ME.nick, created: ts() }); }
+      catch (e) { out.innerHTML = '<p class="err">つくれませんでした。電波を たしかめて もういちど。</p>'; return; }
+      const url = kidURL(code);
+      const text = `${APP}（よむ ちから トレーニング）への しょうたいです。この URL を ひらいて ニックネームを きめると はじめられます。\n${url}`;
+      out.innerHTML = `<h3 class="sec">しょうたい URL（${code}）</h3><div class="codebox">${esc(url)}</div><div class="pbar"><a class="go sm" href="${lineShare(text)}" target="_blank" rel="noopener">LINE で おくる</a><button class="go sm ghost" data-copy="${esc(url)}">URL を コピー</button></div><p class="hint">もう 1人 しょうたい するときは、もういちど「しょうたい URL を つくる」を おしてね。</p>`;
+      bindCopy(out);
+    };
   }
+  // この子の URL（どの たんまつでも この URL で つづき）
   function handoverHTML() {
-    if (!TOKEN) return "";
-    const url = handoverURL();
-    return `<h3 class="sec">ひきつぎ URL（べつの たんまつで つづきを するとき。家族いがいに おくらない）</h3><div class="codebox">${esc(url)}</div>
-      <div class="pbar"><a class="go sm" href="${lineShare(`${APP} ひきつぎURL（家族いがいに おくらない）\n${url}`)}" target="_blank" rel="noopener">LINE で じぶんに おくる</a><button class="go sm ghost" data-copy="${esc(url)}">コピー</button></div>
-      ${kidsGet().length > 1 ? '<button class="go sm ghost" id="swKid">べつの子に こうたい</button>' : ""}`;
+    if (!TOKEN || !CUR) return "";
+    const url = kidURL(CUR);
+    return `<h3 class="sec">この子の URL（どの たんまつでも、この URL を ひらけば つづきから。家族いがいに おくらない）</h3><div class="codebox">${esc(url)}</div>
+      <div class="pbar"><a class="go sm" href="${lineShare(`${APP} ${ME.nick} さんの URL（家族いがいに おくらない）\n${url}`)}" target="_blank" rel="noopener">LINE で じぶんに おくる</a><button class="go sm ghost" data-copy="${esc(url)}">コピー</button></div>`;
   }
   function bindCopy(root) { root.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = () => copy(b.dataset.copy, b))); }
 
@@ -188,21 +193,32 @@ const CLOUD = (() => {
       a.innerHTML = '<p class="hint">よみこみ中…</p>';
       const [us, is] = await Promise.all([db.collection(COL.users).get(), db.collection(COL.invites).get()]);
       const users = us.docs.map((d) => ({ id: d.id, ...d.data() })), invites = is.docs.map((d) => ({ id: d.id, ...d.data() }));
+      // 以前の つくり（1つの コードに 何人も 登録できた）の 整理：1人なら その子の コードに、2人いじょうなら「どちらが やる？」に する
+      for (const iv of invites) {
+        if (iv.uid || iv.cands) continue;
+        const list = users.filter((u) => u.inv === iv.id && !invites.some((j) => j.uid === u.id && j.id !== iv.id));
+        if (list.length > 1) { iv.cands = list.map((u) => ({ uid: u.id, nick: u.nick })); await db.collection(COL.invites).doc(iv.id).update({ cands: iv.cands }).catch(() => {}); }
+        else if (list.length === 1) { iv.uid = list[0].id; await db.collection(COL.invites).doc(iv.id).update({ uid: iv.uid }).catch(() => {}); }
+      }
       const roots = invites.filter((i) => i.by === "teacher");
-      const byInv = (c) => users.filter((u) => u.inv === c).sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0));
-      const node = (u) => `<li><b>${esc(u.nick)}</b><span class="mt">Lv${u.lv || 1}　★${u.done || 0}/${u.all || 0}　ごうかく ${(u.passed || []).length}　${fmt(u.updated)}</span><ul class="tree">${byInv(u.code).map(node).join("")}</ul></li>`;
-      const countBranch = (c) => byInv(c).reduce((n, u) => n + 1 + countBranch(u.code), 0);
-      let h = `<div class="gate"><h2 class="title">先生画面　${APP}</h2><p>登録 ${users.length} 人 ／ 枝 ${roots.length} 本　<button class="go sm ghost" id="tReload">更新</button> <button class="go sm ghost" id="tOut">ログアウト</button></p>
+      const kidsOf = (iv) => (iv.uid ? users.filter((u) => u.id === iv.uid) : Array.isArray(iv.cands) ? iv.cands.map((c) => users.find((u) => u.id === c.uid)).filter(Boolean) : []);
+      const codeOf = (u) => { const iv = invites.find((i) => i.uid === u.id || (Array.isArray(i.cands) && i.cands.some((c) => c.uid === u.id))); return iv ? iv.id : u.inv; };
+      // その子が しょうたいした 子：その子が つくった コード（parent）や、以前の つくりの コード（u.code）で 登録した 子
+      const childrenOf = (u) => invites.filter((i) => i.id !== codeOf(u) && (i.parent === codeOf(u) || i.id === u.code)).flatMap(kidsOf).filter((x) => x.id !== u.id);
+      const node = (u, seen = new Set()) => { if (seen.has(u.id)) return ""; seen.add(u.id); const url = kidURL(codeOf(u));
+        return `<li><b>${esc(u.nick)}</b><span class="mt">Lv${u.lv || 1}　★${u.done || 0}/${u.all || 0}　ごうかく ${(u.passed || []).length}　${fmt(u.updated)}</span> <button class="go sm ghost" data-copy="${esc(url)}">この子の URL</button><ul class="tree">${childrenOf(u).map((c) => node(c, seen)).join("")}</ul></li>`; };
+      const countKids = (u, seen = new Set()) => { if (seen.has(u.id)) return 0; seen.add(u.id); return 1 + childrenOf(u).reduce((n, c) => n + countKids(c, seen), 0); };
+      const unused = roots.filter((r) => !kidsOf(r).length);
+      let h = `<div class="gate"><h2 class="title">先生画面　${APP}</h2><p>登録 ${users.length} 人　<button class="go sm ghost" id="tReload">更新</button> <button class="go sm ghost" id="tOut">ログアウト</button></p>
         <h3 class="sec">みんなの様子</h3>${boardHTML(users, roots)}
-        <h3 class="sec">あたらしい しょうたいコードを 発行</h3><div class="pbar"><input id="tLabel" placeholder="メモ（例：年長 さくら組）"><button class="go sm" id="tNew">発行</button></div><div id="tNewOut"></div>`;
-      roots.sort((x, y) => (y.created?.seconds || 0) - (x.created?.seconds || 0)).forEach((r) => {
-        h += `<div class="rep"><h3>${esc(r.label || "（メモなし）")}　<span class="mt">コード ${esc(r.id)}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${esc(inviteURL(r.id))}</div><ul class="tree">${byInv(r.id).map(node).join("") || '<li class="mt">まだ だれも</li>'}</ul></div>`;
-      });
-      const orphan = users.filter((u) => !invites.some((i) => i.id === u.inv));
-      if (orphan.length) h += `<div class="rep"><h3>しょうたい元が 不明</h3><ul class="tree">${orphan.map(node).join("")}</ul></div>`;
-      h += `<h3 class="sec">一覧（さいごに つかった順）</h3><div class="board"><table class="rec"><tr><th>ニックネーム</th><th>レベル</th><th>★</th><th>まちがえた ことば（まだ クリア していない）</th><th>この1週間</th><th>さいご</th><th>ひきつぎ URL</th></tr>
-        ${users.sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0)).map((u) => `<tr><td>${esc(u.nick)}</td><td>${u.lv || 1}</td><td>${u.done || 0}/${u.all || 0}</td><td>${esc((u.weak || []).join("・")) || "-"}</td><td>${u.week || 0}もん</td><td>${fmt(u.updated)}</td><td><button class="go sm ghost" data-copy="${esc(SITE + "?t=" + u.id)}">コピー</button> <a class="go sm ghost" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの ひきつぎURL（家族いがいに おくらない）\n${SITE}?t=${u.id}`)}">LINE</a></td></tr>`).join("")}</table></div>
-        <p class="hint">ひきつぎ URL は その子の かぎ です。保護者本人にだけ おくってください。</p></div>`;
+        <h3 class="sec">しょうたい URL を 発行（1人に 1つ）</h3><p class="hint">URL が その子の かぎに なります。はじめて ひらいた子の ものに なり、そのあとは どの たんまつでも その子で ひらきます。メモに 子どもの なまえを 入れてください。</p>
+        <div class="pbar"><input id="tLabel" placeholder="メモ（例：さくら組 たろう）"><button class="go sm" id="tNew">発行</button></div><div id="tNewOut"></div>`;
+      if (unused.length) h += `<div class="rep"><h3>まだ ひらかれていない URL（${unused.length}）</h3><ul class="tree">${unused.map((r) => `<li>${esc(r.label || "（メモなし）")}<span class="mt">${fmt(r.created)}</span> <button class="go sm ghost" data-copy="${esc(kidURL(r.id))}">URL を コピー</button></li>`).join("")}</ul></div>`;
+      const used = roots.filter((r) => kidsOf(r).length).sort((x, y) => (y.created?.seconds || 0) - (x.created?.seconds || 0));
+      if (used.length) h += `<div class="rep"><h3>登録ずみ（しょうたいの つながり）</h3>${used.map((r) => `<p class="mt">${esc(r.label || "（メモなし）")}　${kidsOf(r).reduce((n, u) => n + countKids(u), 0)} 人</p><ul class="tree">${kidsOf(r).map((u) => node(u)).join("")}</ul>`).join("")}</div>`;
+      h += `<h3 class="sec">一覧（さいごに つかった順）</h3><div class="board"><table class="rec"><tr><th>ニックネーム</th><th>レベル</th><th>★</th><th>まちがえた ことば（まだ クリア していない）</th><th>この1週間</th><th>さいご</th><th>この子の URL</th></tr>
+        ${users.sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0)).map((u) => { const url = kidURL(codeOf(u)); return `<tr><td>${esc(u.nick)}</td><td>${u.lv || 1}</td><td>${u.done || 0}/${u.all || 0}</td><td>${esc((u.weak || []).join("・")) || "-"}</td><td>${u.week || 0}もん</td><td>${fmt(u.updated)}</td><td><button class="go sm ghost" data-copy="${esc(url)}">コピー</button> <a class="go sm ghost" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族いがいに おくらない）\n${url}`)}">LINE</a></td></tr>`; }).join("")}</table></div>
+        <p class="hint">この子の URL は その子の かぎ です。保護者本人にだけ おくってください。</p></div>`;
       a.innerHTML = h;
       bindCopy(a);
       a.querySelector("#tReload").onclick = dashboard;
@@ -212,7 +228,7 @@ const CLOUD = (() => {
       a.querySelector("#tNew").onclick = async () => {
         const code = rnd(6), label = a.querySelector("#tLabel").value.trim();
         await db.collection(COL.invites).doc(code).set({ by: "teacher", label, root: code, nick: "先生", created: ts() });
-        a.querySelector("#tNewOut").innerHTML = `<p>発行しました。</p><div class="codebox">${esc(inviteURL(code))}</div><p class="hint">この URL を 保護者に おくってください（LINE など）。</p>`;
+        a.querySelector("#tNewOut").innerHTML = `<p>発行しました（${esc(label || "メモなし")}）。</p><div class="codebox">${esc(kidURL(code))}</div><p class="hint">この URL を その子の 保護者に おくってください（LINE など）。</p>`;
         setTimeout(dashboard, 1500);
       };
     }
@@ -221,7 +237,6 @@ const CLOUD = (() => {
   return {
     get online() { return !!(db && TOKEN); },
     get nick() { return ME ? ME.nick : ""; },
-    boot, save, renderMates, inviteHTML, handoverHTML, bindCopy,
-    switchKid: () => pickKid(""),
+    boot, save, renderMates, renderInvite, handoverHTML, bindCopy,
   };
 })();

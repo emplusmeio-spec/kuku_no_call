@@ -273,3 +273,8 @@ table.rec th { background: #f6efe2; font-size: 13px; }
 .hc { display: flex; flex-wrap: wrap; gap: 2mm 6mm; font-size: 11pt; }
 .hcc { display: inline-flex; align-items: center; gap: 1mm; }
 .hcc svg { height: 14mm; width: auto; }
+.rep.warn { border-color: #ff7043; background: #fff3e0; }
+.dup { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+.dupu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0; font-size: 16px; }
+.dupu .dupnick { font: inherit; font-size: 16px; padding: 4px 8px; border: 2px solid var(--line); border-radius: 8px; width: 9em; }
+.ver { text-align: center; font-size: 11px; color: var(--sub); margin-top: 14px; }

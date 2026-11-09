@@ -136,6 +136,7 @@
     const rec = el(`<button class="link">おうちの方・先生へ：きろく・れんらく</button>`);
     rec.onclick = () => records(lv);
     app.append(rec);
+    app.append(el(`<p class="ver">版 ${APP_VER}</p>`));
   }
 
   // 画面の中に出す かくにん（window.confirm が使えない環境でも動くように）

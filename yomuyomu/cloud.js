@@ -34,7 +34,7 @@ const CLOUD = (() => {
 
   function gate(html) {
     const a = $app();
-    a.innerHTML = `<div class="gate">${html}</div>`;
+    a.innerHTML = `<div class="gate">${html}<p class="ver">版 ${APP_VER}</p></div>`;
     return a;
   }
 
@@ -180,6 +180,24 @@ const CLOUD = (() => {
   }
   function bindCopy(root) { root.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = () => copy(b.dataset.copy, b))); }
 
+  // ---------- せいせきを あわせる ----------
+  //   ことば・型ごと：クリアは どれかで クリアなら クリア、回答数は たす、連続正解は 大きい ほう
+  function mergeProgress(list) {
+    const out = { lv: 1, passed: {}, units: {}, days: {}, badges: { g: 0, s: 0, b: 0 }, name: "" };
+    for (const p of list) {
+      out.lv = Math.max(out.lv, p.lv || 1);
+      Object.entries(p.passed || {}).forEach(([k, v]) => { if (v) out.passed[k] = true; });
+      Object.entries(p.units || {}).forEach(([k, u]) => {
+        const o = out.units[k] || { s: 0, w: false, m: false, n: 0 };
+        out.units[k] = { s: Math.max(o.s, u.s || 0), w: o.w || !!u.w, m: o.m || !!u.m, n: o.n + (u.n || 0) };
+      });
+      Object.entries(p.days || {}).forEach(([d, c]) => (out.days[d] = (out.days[d] || 0) + c));
+      ["g", "s", "b"].forEach((x) => (out.badges[x] += (p.badges || {})[x] || 0));
+      if (!out.name && p.name) out.name = p.name;
+    }
+    return out;
+  }
+
   // ---------- 先生画面 ----------
   function teacherScreen() {
     const a = gate("");
@@ -189,16 +207,44 @@ const CLOUD = (() => {
       a.querySelector("#tLogin").onclick = () => auth.signInWithEmailAndPassword(a.querySelector("#tEmail").value, a.querySelector("#tPw").value).catch((e) => (a.querySelector("#tErr").textContent = "ログインできません: " + e.code));
     };
     auth.onAuthStateChanged((u) => (u && u.email === TEACHER_EMAIL ? dashboard() : login()));
+    // せいせきを あわせて 1人に する（先生だけが できる：ほかの 記録を けす ため）
+    async function mergeKids(iv, keep, others, nick) {
+      const all = [keep, ...others];
+      const P = mergeProgress(all.map((u) => u.progress || {}));
+      const passed = [...new Set(all.flatMap((u) => u.passed || []))].sort((x, y) => x - y);
+      const weak = [...new Set(all.flatMap((u) => u.weak || []))];
+      const sum = (f) => all.reduce((n, u) => n + (u[f] || 0), 0), max = (f) => Math.max(...all.map((u) => u[f] || 0));
+      await db.collection(COL.users).doc(keep.id).update({ nick, progress: P, lv: Math.max(1, max("lv")), passed, weak, done: max("done"), all: max("all"), answers: sum("answers"), week: sum("week"), updated: ts() });
+      await db.collection(COL.invites).doc(iv.id).update({ uid: keep.id, cands: null });
+      if (keep.code) {
+        await db.collection(COL.invites).doc(keep.code).update({ nick }).catch(() => {});
+        await db.collection(COL.board).doc(keep.code).set({ nick, root: keep.root || "", lv: Math.max(1, max("lv")), passed, done: max("done"), all: max("all"), updated: ts() }).catch(() => {});
+      }
+      for (const u of others) {
+        await db.collection(COL.users).doc(u.id).delete();
+        if (u.code) {
+          await db.collection(COL.board).doc(u.code).delete().catch(() => {});
+          await db.collection(COL.invites).doc(u.code).delete().catch(() => {});
+        }
+      }
+    }
     async function dashboard() {
       a.innerHTML = '<p class="hint">よみこみ中…</p>';
       const [us, is] = await Promise.all([db.collection(COL.users).get(), db.collection(COL.invites).get()]);
       const users = us.docs.map((d) => ({ id: d.id, ...d.data() })), invites = is.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // 以前の つくり（1つの コードに 何人も 登録できた）の 整理：1人なら その子の コードに、2人いじょうなら「どちらが やる？」に する
+      // おなじ URL（コード）に 何人も 登録されて しまった 子を さがす（以前の つくりや、古い プログラムが のこっていた とき）
+      const claimedElsewhere = (u, code) => invites.some((j) => j.id !== code && j.uid === u.id);
+      const groupOf = (iv) => {
+        const ids = new Set(users.filter((u) => u.inv === iv.id && !claimedElsewhere(u, iv.id)).map((u) => u.id));
+        if (iv.uid) ids.add(iv.uid);
+        if (Array.isArray(iv.cands)) iv.cands.forEach((c) => ids.add(c.uid));
+        return [...ids].map((id) => users.find((u) => u.id === id)).filter(Boolean);
+      };
+      const dups = [];
       for (const iv of invites) {
-        if (iv.uid || iv.cands) continue;
-        const list = users.filter((u) => u.inv === iv.id && !invites.some((j) => j.uid === u.id && j.id !== iv.id));
-        if (list.length > 1) { iv.cands = list.map((u) => ({ uid: u.id, nick: u.nick })); await db.collection(COL.invites).doc(iv.id).update({ cands: iv.cands }).catch(() => {}); }
-        else if (list.length === 1) { iv.uid = list[0].id; await db.collection(COL.invites).doc(iv.id).update({ uid: iv.uid }).catch(() => {}); }
+        const g = groupOf(iv);
+        if (g.length > 1) dups.push({ iv, users: g });
+        else if (g.length === 1 && !iv.uid) { iv.uid = g[0].id; await db.collection(COL.invites).doc(iv.id).update({ uid: iv.uid }).catch(() => {}); }
       }
       const roots = invites.filter((i) => i.by === "teacher");
       const kidsOf = (iv) => (iv.uid ? users.filter((u) => u.id === iv.uid) : Array.isArray(iv.cands) ? iv.cands.map((c) => users.find((u) => u.id === c.uid)).filter(Boolean) : []);
@@ -213,6 +259,11 @@ const CLOUD = (() => {
         <h3 class="sec">みんなの様子</h3>${boardHTML(users, roots)}
         <h3 class="sec">しょうたい URL を 発行（1人に 1つ）</h3><p class="hint">URL が その子の かぎに なります。はじめて ひらいた子の ものに なり、そのあとは どの たんまつでも その子で ひらきます。メモに 子どもの なまえを 入れてください。</p>
         <div class="pbar"><input id="tLabel" placeholder="メモ（例：さくら組 たろう）"><button class="go sm" id="tNew">発行</button></div><div id="tNewOut"></div>`;
+      if (dups.length) h = h.replace('<h3 class="sec">みんなの様子</h3>', `<div class="rep warn"><h3>おなじ URL に 何人も 登録されています（${dups.length}）</h3><p class="hint">おなじ 子なら、のこす ニックネームを えらんで「1人に まとめる」を おしてください。せいせき（星・ごうかく・メダル）は ぜんぶ あわせます。</p>
+        ${dups.map((d, k) => `<div class="dup" data-k="${k}"><p><b>${esc(d.iv.label || d.iv.id)}</b>　<span class="mt">?i=${esc(d.iv.id)}</span></p>
+          ${d.users.map((u, j) => `<label class="dupu"><input type="radio" name="dup${k}" value="${j}"${j === 0 ? " checked" : ""}> ${esc(u.nick)}<span class="mt">Lv${u.lv || 1}　★${u.done || 0}/${u.all || 0}　回答${u.answers || 0}　${fmt(u.updated)}</span></label>`).join("")}
+          <label class="dupu"><input type="radio" name="dup${k}" value="new"> べつの ニックネーム：<input class="dupnick" maxlength="12" placeholder="ニックネーム"></label>
+          <button class="go sm" data-merge="${k}">1人に まとめる</button><p class="err"></p></div>`).join("")}</div><h3 class="sec">みんなの様子</h3>`);
       if (unused.length) h += `<div class="rep"><h3>まだ ひらかれていない URL（${unused.length}）</h3><ul class="tree">${unused.map((r) => `<li>${esc(r.label || "（メモなし）")}<span class="mt">${fmt(r.created)}</span> <button class="go sm ghost" data-copy="${esc(kidURL(r.id))}">URL を コピー</button></li>`).join("")}</ul></div>`;
       const used = roots.filter((r) => kidsOf(r).length).sort((x, y) => (y.created?.seconds || 0) - (x.created?.seconds || 0));
       if (used.length) h += `<div class="rep"><h3>登録ずみ（しょうたいの つながり）</h3>${used.map((r) => `<p class="mt">${esc(r.label || "（メモなし）")}　${kidsOf(r).reduce((n, u) => n + countKids(u), 0)} 人</p><ul class="tree">${kidsOf(r).map((u) => node(u)).join("")}</ul>`).join("")}</div>`;
@@ -225,6 +276,17 @@ const CLOUD = (() => {
       a.querySelector("#tOut").onclick = () => auth.signOut();
       const bf = a.querySelector("#bFilter");
       if (bf) bf.onchange = () => a.querySelectorAll(".board tr[data-root]").forEach((tr) => (tr.hidden = !!bf.value && tr.dataset.root !== bf.value));
+      a.querySelectorAll("[data-merge]").forEach((btn) => (btn.onclick = async () => {
+        const k = +btn.dataset.merge, d = dups[k], box = btn.closest(".dup");
+        const v = box.querySelector(`input[name="dup${k}"]:checked`).value;
+        const nick = v === "new" ? box.querySelector(".dupnick").value.trim() : d.users[+v].nick;
+        if (!nick) { box.querySelector(".err").textContent = "ニックネームを 入れてください"; return; }
+        // のこす 記録：えらんだ子（べつの ニックネームの ときは いちばん 答えた 子）
+        const keep = v === "new" ? d.users.slice().sort((x, y) => (y.answers || 0) - (x.answers || 0))[0] : d.users[+v];
+        btn.disabled = true; btn.textContent = "まとめています…";
+        try { await mergeKids(d.iv, keep, d.users.filter((u) => u.id !== keep.id), nick); dashboard(); }
+        catch (e) { box.querySelector(".err").textContent = "まとめられませんでした：" + (e.code || e.message); btn.disabled = false; btn.textContent = "1人に まとめる"; }
+      }));
       a.querySelector("#tNew").onclick = async () => {
         const code = rnd(6), label = a.querySelector("#tLabel").value.trim();
         await db.collection(COL.invites).doc(code).set({ by: "teacher", label, root: code, nick: "先生", created: ts() });

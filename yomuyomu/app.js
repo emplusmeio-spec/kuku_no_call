@@ -8,10 +8,12 @@
   //   key … ことば "w:ue" ／ 読む型 "3:kakari:asonde"
   //   days[日付] = その日に こたえた数
   //   badges = 1回の れんしゅうの メダル（きん・ぎん・どう）、name = ライセンスに のせる なまえ
-  const fresh = () => ({ lv: 1, passed: {}, units: {}, days: {}, badges: { g: 0, s: 0, b: 0 }, name: "" });
+  //   hist[日付] = その日 いちばん 進んだ 位置（がんばりグラフ）、units[key].x = まちがえた 回数（つまずき）
+  const fresh = () => ({ lv: 1, passed: {}, units: {}, days: {}, hist: {}, badges: { g: 0, s: 0, b: 0 }, name: "" });
   let state = fresh();
   try { state = Object.assign(fresh(), JSON.parse(localStorage.getItem(STORE)) || {}); } catch (e) {}
   const save = () => {
+    INS.stamp(state);
     try { if (!CLOUD.online) localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
     CLOUD.save(state, summary());
   };
@@ -23,7 +25,7 @@
     const u = { ...U(key) };
     u.n++;
     state.days[today()] = (state.days[today()] || 0) + 1;
-    if (ok) { u.s++; if (u.s >= need(u)) u.m = true; } else { u.s = 0; u.w = true; }
+    if (ok) { u.s++; if (u.s >= need(u)) u.m = true; } else { u.s = 0; u.w = true; u.x = INS.wrongs(u) + 1; }
     state.units[key] = u;
     return u;
   }
@@ -83,8 +85,9 @@
       ladder.append(s);
     }
     app.append(ladder);
-    const mapRow = el(`<div class="pbar center top0"><button class="go sm ghost" id="mapBtn">ちず</button>${shelf()}</div>`);
+    const mapRow = el(`<div class="pbar center top0"><span><button class="go sm ghost" id="mapBtn">ちず</button> <button class="go sm ghost" id="grBtn">がんばり</button></span>${shelf()}</div>`);
     mapRow.querySelector("#mapBtn").onclick = () => map();
+    mapRow.querySelector("#grBtn").onclick = graph;
     app.append(mapRow);
 
     const cw = cnt(reqWords(lv)), cr = cnt(readUnits(lv));
@@ -309,6 +312,7 @@
     const top = el(`<div class="top"><button class="back">← もどる</button><span class="tag" style="--c:#8d6e63">レベル${lv}の　きろく</span></div>`);
     top.querySelector(".back").onclick = home;
     app.append(top);
+    app.append(el(`<div><h3 class="sec">がんばりグラフ</h3>${INS.chart(state)}<h3 class="sec">つまずき</h3>${INS.stumbleHTML(state)}</div>`));
     const st = (u) => (u.m ? `<b class="okc">◎ クリア</b>` : u.n ? `${dots(u)}${u.w ? ' <span class="ngc">まちがえ あり</span>' : ""}` : '<span class="sub">まだ</span>');
     const rows = (list, label) => list.map((x) => `<tr><td>${label(x)}</td><td>${U(x.key).n}</td><td>${st(U(x.key))}</td></tr>`).join("");
     const html = [`<p class="sub">◎＝クリア　●○＝いまの連続正解／必要回数（まちがえたことがあると3回）</p>`,
@@ -340,6 +344,21 @@
     app.append(reset);
   }
 
+
+  // ---------------- がんばりグラフ ----------------
+  function graph() {
+    app.innerHTML = "";
+    const top = el(`<div class="top"><button class="back">← もどる</button><span class="tag" style="--c:#ff7043">がんばり</span></div>`);
+    top.querySelector(".back").onclick = home;
+    app.append(top);
+    const d = Object.values(state.days).filter(Boolean).length;
+    app.append(el(`<div>
+      <p class="lead">${d ? `${d}にち　がんばったね！` : "きょうから　はじめよう！"}　いまは　レベル${state.lv}</p>
+      ${INS.chart(state)}
+      <p class="hint">オレンジの　せん＝どこまで　すすんだか（ほしを　あつめると　うえに　のびるよ）<br>あおい　ぼう＝その日に　こたえた　かず</p>
+      <details class="adultbox"><summary>おうちの方・先生へ：つまずき</summary>${INS.stumbleHTML(state)}</details>
+    </div>`));
+  }
 
   // ---------------- しまの ちず ----------------
   // がくねんごとの しま。ぜんぶの レベルに ごうかく すると しまの メダルと ライセンス
@@ -422,6 +441,8 @@
     return `<div class="sheet"><div class="sh"><h1>よむよむ チャレンジ　おうちへの おしらせ</h1><div class="meta">なまえ<span>${nm}</span>　${today().replace(/-/g, "/")}</div></div>
       <div class="rsec"><h2>いまの ようす</h2><table><tr><th>いまの レベル</th><td>${s.lv}（${L.grade}）　ほし ${s.done} / ${s.all}</td></tr><tr><th>ごうかく した レベル</th><td>${s.passed.length ? s.passed.join("・") : "まだ"}</td></tr><tr><th>この1週間</th><td>${s.week} もん</td></tr><tr><th>メダル</th><td>きん ${state.badges.g}　ぎん ${state.badges.s}　どう ${state.badges.b}</td></tr></table></div>
       <div class="rsec"><h2>このレベルの 分野べつ（クリアした 型 / 型の数）</h2><table>${fieldRows}</table></div>
+      <div class="rsec"><h2>がんばりグラフ（よこ＝日づけ、たて＝レベル、ぼう＝こたえた数）</h2>${INS.chart(state, { days: 35 })}</div>
+      <div class="rsec"><h2>つまずきが 多い ところ</h2>${INS.stumbles(state, 5).map((r) => `<div>・${esc(r.name)}　${r.x}回まちがい／${r.n}回中　${r.m ? "（いまは クリア）" : "（練習中）"}<br>　<small>${esc(r.note)}</small></div>`).join("") || "なし"}</div>
       <div class="rsec"><h2>まちがえて、まだ クリア していない ことば（いま 練習中）</h2>${pill(s.weak)}</div>
       <div class="rsec"><h2>クリアした ことば</h2>${pill(mastered)}</div>
       <div class="rsec"><h2>このアプリについて</h2>

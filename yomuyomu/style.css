@@ -278,3 +278,17 @@ table.rec th { background: #f6efe2; font-size: 13px; }
 .dupu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0; font-size: 16px; }
 .dupu .dupnick { font: inherit; font-size: 16px; padding: 4px 8px; border: 2px solid var(--line); border-radius: 8px; width: 9em; }
 .ver { text-align: center; font-size: 11px; color: var(--sub); margin-top: 14px; }
+
+/* ---- がんばりグラフ・つまずき ---- */
+svg.chart { width: 100%; height: auto; background: var(--card); border-radius: 12px; border: 2px solid var(--line); display: block; }
+.fbar { display: grid; grid-template-columns: 9em 1fr 6.5em; gap: 8px; align-items: center; font-size: 14px; margin: 4px 0; }
+.fbar .fn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fbar .ft { height: 12px; background: #f1e8d8; border-radius: 999px; overflow: hidden; }
+.fbar .ft i { display: block; height: 100%; background: #ff8a65; }
+.fbar .fv { font-variant-numeric: tabular-nums; text-align: right; }
+.fbar .fv small { color: var(--sub); }
+table.stum td small { color: var(--sub); line-height: 1.5; }
+.adultbox { margin-top: 14px; background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.adultbox summary { font-weight: bold; color: var(--sub); }
+.sheet svg.chart { border-color: #999; max-height: 70mm; }
+table.rec .nw { white-space: nowrap; }

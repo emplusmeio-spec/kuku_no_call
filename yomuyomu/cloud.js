@@ -268,11 +268,20 @@ const CLOUD = (() => {
       const used = roots.filter((r) => kidsOf(r).length).sort((x, y) => (y.created?.seconds || 0) - (x.created?.seconds || 0));
       if (used.length) h += `<div class="rep"><h3>登録ずみ（しょうたいの つながり）</h3>${used.map((r) => `<p class="mt">${esc(r.label || "（メモなし）")}　${kidsOf(r).reduce((n, u) => n + countKids(u), 0)} 人</p><ul class="tree">${kidsOf(r).map((u) => node(u)).join("")}</ul>`).join("")}</div>`;
       h += `<h3 class="sec">一覧（さいごに つかった順）</h3><div class="board"><table class="rec"><tr><th>ニックネーム</th><th>レベル</th><th>★</th><th>まちがえた ことば（まだ クリア していない）</th><th>この1週間</th><th>さいご</th><th>この子の URL</th></tr>
-        ${users.sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0)).map((u) => { const url = kidURL(codeOf(u)); return `<tr><td>${esc(u.nick)}</td><td>${u.lv || 1}</td><td>${u.done || 0}/${u.all || 0}</td><td>${esc((u.weak || []).join("・")) || "-"}</td><td>${u.week || 0}もん</td><td>${fmt(u.updated)}</td><td><button class="go sm ghost" data-copy="${esc(url)}">コピー</button> <a class="go sm ghost" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族いがいに おくらない）\n${url}`)}">LINE</a></td></tr>`; }).join("")}</table></div>
-        <p class="hint">この子の URL は その子の かぎ です。保護者本人にだけ おくってください。</p></div>`;
+        ${users.sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0)).map((u) => { const url = kidURL(codeOf(u)); return `<tr><td><button class="go sm ghost" data-kid="${esc(u.id)}">${esc(u.nick)}</button></td><td>${u.lv || 1}</td><td>${u.done || 0}/${u.all || 0}</td><td>${esc((u.weak || []).join("・")) || "-"}</td><td>${u.week || 0}もん</td><td>${fmt(u.updated)}</td><td><button class="go sm ghost" data-copy="${esc(url)}">コピー</button> <a class="go sm ghost" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族いがいに おくらない）\n${url}`)}">LINE</a></td></tr>`; }).join("")}</table></div>
+        <p class="hint">この子の URL は その子の かぎ です。保護者本人にだけ おくってください。名前を おすと、その子の がんばりグラフと つまずきが 出ます。</p>
+        <div id="kidDetail"></div>`;
+      const cs = INS.classStumbles(users.map((u) => u.progress));
+      h += `<h3 class="sec">クラスで つまずきが 多い ところ</h3>${cs.length ? `<table class="rec stum"><tr><th>ところ</th><th>つまずいた 子</th><th>まちがい／こたえた かず</th></tr>${cs.map((r) => `<tr><td><b>${esc(r.name)}</b>${r.note ? `<br><small>${esc(r.note)}</small>` : ""}</td><td>${r.kids}人</td><td>${r.x}／${r.n}</td></tr>`).join("")}</table>` : '<p class="hint">まだ まちがいの きろくは ありません。</p>'}</div>`;
       a.innerHTML = h;
       bindCopy(a);
       a.querySelector("#tReload").onclick = dashboard;
+      a.querySelectorAll("[data-kid]").forEach((btn) => (btn.onclick = () => {
+        const u = users.find((x) => x.id === btn.dataset.kid), p = u.progress || {};
+        const box = a.querySelector("#kidDetail");
+        box.innerHTML = `<div class="rep"><h3>${esc(u.nick)}　<span class="mt">Lv${u.lv || 1}　★${u.done || 0}/${u.all || 0}　この1週間 ${u.week || 0}もん</span></h3>${INS.chart(p)}${INS.stumbleHTML(p)}</div>`;
+        box.scrollIntoView({ behavior: "smooth", block: "start" });
+      }));
       a.querySelector("#tOut").onclick = () => auth.signOut();
       const bf = a.querySelector("#bFilter");
       if (bf) bf.onchange = () => a.querySelectorAll(".board tr[data-root]").forEach((tr) => (tr.hidden = !!bf.value && tr.dataset.root !== bf.value));

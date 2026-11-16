@@ -223,6 +223,12 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px;border:1px solid var(--line);background:var(--bg)}
 .legend i.d{background:var(--pB);border-color:var(--pB)}
 .legend i.cur{background:var(--paper);border:3px solid var(--accent)}
+/* がんばりグラフ */
+.ghchart{display:block;width:100%;max-width:560px;height:auto;margin:6px auto 8px;background:var(--paper);border:2px solid var(--line);border-radius:12px}
+.grlead{font-family:var(--font-display);font-weight:900;font-size:1.25rem;margin:4px 0 8px}
+.adultbox{margin-top:10px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--paper)}
+.adultbox summary{cursor:pointer;font-weight:800;color:var(--muted)}
+@media print{.ghchart{border-color:#999;max-width:150mm}}
 /* adult */
 .adult{margin-top:12px;font-size:.85rem;color:var(--muted)}
 .adult table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
@@ -284,11 +290,17 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
     <button class="btn" id="mapBack">もどる</button>
     <button class="btn ghost" id="licBtn" hidden>ライセンス</button>
     <span class="sp" style="flex:1"></span>
+    <button class="btn ghost" id="grBtn">がんばり</button>
     <button class="btn ghost" id="matesBtn">みんなの様子</button>
     <button class="btn ghost" id="invBtn">しょうたい</button>
     <a class="btn ghost" id="blogBtn" href="https://empmeio.blogspot.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">塾のブログ</a>
   </div>
   <div id="invBox" hidden></div>
+</div>
+
+<div class="card" id="gr" hidden>
+  <div id="grBody"></div>
+  <div class="mapbtns"><button class="btn" id="grBack">もどる</button></div>
 </div>
 
 <div class="card" id="mates" hidden>
@@ -329,7 +341,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='10/31d';
+const VER='11/16';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -345,7 +357,7 @@ function boardSave(){
   if(!db||!ME||!ME.code)return;
   db.collection('board').doc(ME.code).set({nick:ME.nick,root:ME.root||'',stage:Math.min(P.stage,STAGES.length-1),cl:P.cleared.slice(0,STAGES.length),seen:Math.min(seenCount(),81),updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
 }
-function showOnly(id){['play','map','rep','gate','teacher','mates'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
+function showOnly(id){['play','map','rep','gate','teacher','mates','gr'].forEach(x=>$('#'+x).hidden=x!==id);document.querySelector('.topbar').hidden=(id==='gate'||id==='teacher')}
 function gate(html){$('#gateBody').innerHTML=`<div class="gate">${html}<p class="note" style="margin-top:16px;font-size:.75rem;color:var(--muted)">版 ${VER}</p></div>`;showOnly('gate')}
 /* URL だけで決まる。?i=コード を開く → そのコードの子。まだ誰もいなければニックネーム登録 */
 let CUR=null; // いま開いている子のコード（URL の ?i=）
@@ -446,6 +458,15 @@ function boardHTML(users,roots,me){
   if(!sorted.length)h+=`<tr><td class="nm">まだ だれも いません</td></tr>`;
   return h+'</table></div></div>';
 }
+/* がんばり（子ども） */
+function renderGr(){
+  const d=Object.values(P.days||{}).filter(Boolean).length;
+  $('#grBody').innerHTML=`<p class="grlead">${d?`${d}にち がんばったね！`:'きょうから はじめよう！'}　いまは ステージ ${P.stage+1}</p>${ghChart(P)}
+  <p class="note">オレンジの せん＝どこまで すすんだか（ステージの 式に 合格すると うえに のびるよ）<br>あおい ぼう＝その日に こたえた かず</p>
+  <details class="adultbox"><summary>おうちの方・先生へ：つまずき</summary>${stumbleHTML(P)}</details>`;
+}
+$('#grBtn').onclick=()=>{try{stampGh(P)}catch(e){};renderGr();showOnly('gr')};
+$('#grBack').onclick=()=>{renderMap();showOnly('map')};
 /* 生徒用 みんなの様子 */
 async function renderMates(){
   const B=$('#matesBody');
@@ -471,7 +492,8 @@ async function teacherScreen(){
     if(!u)return;
     const pr=Object.assign(fresh(),u.progress||{});let cl=new Set(pr.cleared||[]),stg=pr.stage||0;
     const box=$('#kidEdit');
-    const draw=()=>{box.innerHTML=`<div class="rep" style="border-color:var(--accent)"><h3>${esc(u.nick)} さんの 記録を直す</h3>
+    const draw=()=>{box.innerHTML=`<div class="rep"><h3>${esc(u.nick)}　<span class="mt" style="font-weight:400;color:var(--muted)">ステージ ${(u.stage||0)+1}　ぱっと見 ${u.seen||0}/81</span></h3>${ghChart(pr)}${stumbleHTML(pr)}</div>
+      <div class="rep" style="border-color:var(--accent)"><h3>${esc(u.nick)} さんの 記録を直す</h3>
       <p class="mt" style="color:var(--muted);font-size:.85rem">クリアのマスを押すと 取り消し／もどし。取り消したステージは、そのステージの合格回数も 0 にもどります。</p>
       <div class="board"><table><tr>${STAGES.map((st,i)=>`<th class="n">${i+1}</th>`).join('')}</tr>
       <tr>${STAGES.map((st,i)=>`<td class="c${cl.has(i)?' d':''}${i===stg?' cur':''}" data-s="${i}" style="--pc:var(${PH[st.p][2]});cursor:pointer" title="${i+1} ${esc(st.name)}"></td>`).join('')}</tr></table></div>
@@ -531,6 +553,8 @@ async function teacherScreen(){
     const issuedCount=invites.filter(i=>i.kind==='issued').length;
     let html=`<div class="gate"><h2>先生画面</h2><p>登録 ${active.length} 人 ／ 枝 ${roots.length} 本 ／ 発行された招待 ${issuedCount}　<button class="btn ghost sm" id="tReload">更新</button> <button class="btn ghost sm" id="tOut">ログアウト</button></p>
     ${boardHTML(active,roots.map(r=>({id:r.id,label:r.label})))}
+    <p class="note" style="font-size:.8rem;color:var(--muted)">名前を 押すと、その子の がんばりグラフ・つまずき・記録を直す が 下に 出ます。</p>
+    ${(()=>{const cs=classStumbles(active.map(u=>u.progress));return `<div class="rep"><h3>クラスで つまずきが 多い 式</h3>${cs.length?`<table class="tt"><tr><th>しき</th><th>つまずいた 子</th><th>出なかった／こたえた</th></tr>${cs.map(r=>`<tr><td><b>${r.k.replace('x','×')}</b></td><td>${r.kids}人</td><td>${r.x}／${r.n}</td></tr>`).join('')}</table>`:'<p class="note">まだ きろくが ありません。</p>'}</div>`})()}
     <div class="rep"><h3>新しい招待コードを発行（最初の保護者用）</h3><div class="pbar"><input id="tLabel" placeholder="メモ（例: 2年A組 田中さん）" style="flex:1;font-size:1rem"><button class="btn sm" id="tNew">発行</button></div><div id="tNewOut"></div></div>`;
     roots.forEach(r=>{
       html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">${r.id}　${count(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${kidURL(r.id)}</div><ul class="tree">${node(r.id)}</ul></div>`});
@@ -551,7 +575,69 @@ let P=fresh();
 try{const s=JSON.parse(localStorage.getItem('kukulab-v6'));if(s&&s.sp)P=Object.assign(fresh(),s)}catch(e){}
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const seenCount=()=>{let n=0;for(let a=1;a<=9;a++)for(let b=1;b<=9;b++)if(P.seen[key(a,b)])n++;return n};
-function save(){try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){};cloudSave()}
+/* ===== がんばりグラフ と つまずき（よむよむ と おなじ形） =====
+   P.gh[日付]  = その日 いちばん 進んだ 位置（ステージ − 1 ＋ そのステージで 合格した 式の わりあい）
+   P.days[日付] = その日に こたえた 数
+   P.hist      = こたえた 記録（k=式, pass=ぱっと見で 合格） */
+const dstr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function posOf(p){
+  const st=p.stage||0,S=STAGES[st];if(!S)return 0;
+  if((p.cleared||[]).includes(st))return st+1;
+  const need=S.review?1:2,sp=p.sp||{};
+  const done=S.facts.filter(([a,b])=>(sp[st+':'+key(a,b)]||0)>=need).length;
+  return st+done/S.facts.length;
+}
+function stampGh(p){p.gh=p.gh||{};const v=Math.round(posOf(p)*100)/100,d=today();if(!(p.gh[d]>=v))p.gh[d]=v}
+function ghChart(p,opt={}){
+  const gh=p.gh||{},days=p.days||{},td=today();
+  const all=[...new Set([...Object.keys(gh),...Object.keys(days),td])].sort();
+  const DAYS=opt.days||42;let list=[];
+  for(let d=new Date(all[0]+'T00:00');dstr(d)<=td;d.setDate(d.getDate()+1))list.push(dstr(d));
+  if(list.length>DAYS)list=list.slice(-DAYS);
+  if(list.length<7){const f=new Date(list[0]+'T00:00');while(list.length<7){f.setDate(f.getDate()-1);list.unshift(dstr(f))}}
+  const W=480,H=280,L=40,R=10,T=24,B=30,BAR=46,plotH=H-T-B-BAR-10;
+  const vals=list.map(d=>gh[d]).filter(v=>v!=null);
+  const top=Math.min(STAGES.length,Math.max(3,Math.ceil(Math.max(0,...vals)+0.25)));
+  const x=i=>L+((W-L-R)*(i+0.5))/list.length,y=v=>T+plotH-(plotH*v)/top;
+  const every=top>15?5:top>8?2:1;
+  let s='';
+  for(let k=0;k<top;k++){
+    const ph=STAGES[k]?PH[STAGES[k].p][2]:'--line';
+    s+=`<rect x="${L}" y="${y(k+1)}" width="${W-L-R}" height="${plotH/top}" style="fill:var(${ph});opacity:${k%2?.13:.07}"/>`;
+    if((k+1)%every===0||k===0)s+=`<text x="${L-6}" y="${y(k+0.5)}" font-size="12" text-anchor="end" dominant-baseline="central" style="fill:var(--muted)">${k+1}</text>`;
+  }
+  s+=`<text x="${L-6}" y="${T-8}" font-size="11" text-anchor="start" style="fill:var(--muted)">ステージ</text>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" style="stroke:var(--line)"/>`;
+  const maxA=Math.max(1,...list.map(d=>days[d]||0)),bw=Math.max(3,((W-L-R)/list.length)*0.6),by=H-B;
+  list.forEach((d,i)=>{const c=days[d]||0;if(c)s+=`<rect x="${x(i)-bw/2}" y="${by-(BAR*c)/maxA}" width="${bw}" height="${(BAR*c)/maxA}" rx="2" style="fill:var(--dot);opacity:.55"><title>${d}　${c}もん</title></rect>`});
+  s+=`<text x="${L-6}" y="${by-BAR/2-7}" font-size="10" text-anchor="end" style="fill:var(--dot)">こたえ<tspan x="${L-6}" dy="12">た数</tspan></text>`;
+  let last=null,path='';const pts=[];
+  list.forEach((d,i)=>{if(gh[d]!=null)last=gh[d];if(last!=null){path+=`${path?'L':'M'}${x(i).toFixed(1)},${y(last).toFixed(1)}`;if(gh[d]!=null)pts.push([i,gh[d]])}});
+  if(path)s+=`<path d="${path}" fill="none" style="stroke:var(--accent)" stroke-width="3" stroke-linejoin="round"/>`;
+  pts.forEach(([i,v])=>{const st=Math.min(Math.floor(v)+1,STAGES.length);s+=`<circle cx="${x(i)}" cy="${y(v)}" r="4" style="fill:var(--accent)"><title>${list[i]}　ステージ${v%1===0&&v>0?v+'まで クリア':st+'（'+Math.round((v%1)*100)+'%）'}</title></circle>`});
+  const step=Math.ceil(list.length/7);
+  list.forEach((d,i)=>{if(i%step===0||i===list.length-1)s+=`<text x="${x(i)}" y="${H-12}" font-size="12" text-anchor="middle" style="fill:var(--muted)">${+d.slice(5,7)}/${+d.slice(8)}</text>`});
+  const empty=!vals.length?`<text x="${(W+L)/2}" y="${T+plotH/2}" font-size="15" text-anchor="middle" style="fill:var(--muted)">きょうから きろく します</text>`:'';
+  return `<svg class="ghchart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="がんばりグラフ">${s}${empty}</svg>`;
+}
+/* つまずき: ぱっと見で 出なかった 回数が 多い 式 */
+function stumbleRows(p){
+  const m=new Map();
+  (p.hist||[]).forEach(h=>{const r=m.get(h.k)||{k:h.k,n:0,x:0};r.n++;if(!h.pass)r.x++;m.set(h.k,r)});
+  return [...m.values()].filter(r=>r.x>0).sort((a,b)=>b.x-a.x||b.x/b.n-a.x/a.n);
+}
+function stumbleHTML(p,limit=8){
+  const rows=stumbleRows(p).slice(0,limit),seen=p.seen||{};
+  if(!(p.hist||[]).length)return '<p class="note">まだ こたえた きろくが ありません。</p>';
+  if(!rows.length)return '<p class="note">ぱっと見で 出なかった 式は まだ ありません。</p>';
+  return `<p class="note">ぱっと見で 出なかった 回数が 多い 式（出なかった／こたえた かず）</p><table class="tt"><tr><th>しき</th><th>出なかった</th><th>いま</th></tr>${rows.map(r=>`<tr><td><b>${r.k.replace('x','×')}</b></td><td>${r.x}／${r.n}</td><td>${seen[r.k]?'<b style="color:var(--ok)">ぱっと見 OK</b>':'<span style="color:var(--accent)">れんしゅう</span>'}</td></tr>`).join('')}</table>`;
+}
+function classStumbles(progs,limit=10){
+  const agg=new Map();
+  progs.forEach(p=>stumbleRows(p||{}).forEach(r=>{const a=agg.get(r.k)||{k:r.k,kids:0,x:0,n:0};a.kids++;a.x+=r.x;a.n+=r.n;agg.set(r.k,a)}));
+  return [...agg.values()].sort((a,b)=>b.kids-a.kids||b.x-a.x).slice(0,limit);
+}
+function save(){try{stampGh(P)}catch(e){};try{localStorage.setItem('kukulab-v6',JSON.stringify(P))}catch(e){};cloudSave()}
 const cur=()=>STAGES[P.stage];
 function sp(k){return P.sp[P.stage+':'+k]||0}
 function setSp(k,v){P.sp[P.stage+':'+k]=v}
@@ -820,6 +906,7 @@ function reportSheet(){
   const pills=(L,cls)=>L.map(k=>`<span class="pl ${cls}">${k.replace('x','×')}</span>`).join('')||'なし';
   return `<div class="sheet"><div class="sh"><h1>九九ラボ　おうちへの おしらせ</h1><div class="meta">なまえ<span>${esc(P.name)}</span>　${today().replace(/-/g,'/')}</div></div>
   <div class="rsec"><h2>いまの ようす</h2><table><tr><th>ステージ</th><td>${P.stage+1}「${cur().name}」（${P.cleared.length}/30 クリア）</td></tr><tr><th>ぱっと見で出せる式</th><td>${okL.length} / 81</td></tr><tr><th>この1週間</th><td>${weekCount()} 問（平均 ${avg} 秒）</td></tr></table></div>
+  <div class="rsec"><h2>がんばりグラフ（よこ＝日づけ、たて＝ステージ、ぼう＝こたえた数）</h2>${ghChart(P,{days:35})}</div>
   <div class="rsec"><h2>ぱっと見で 出せる式</h2>${pills(okL,'ok')}</div>
   <div class="rsec"><h2>かたまりを つくって 出した式（いま練習中）</h2>${pills(chL,'')}</div>
   <div class="rsec"><h2>このアプリについて</h2>

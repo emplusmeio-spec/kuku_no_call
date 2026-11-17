@@ -292,3 +292,4 @@ table.stum td small { color: var(--sub); line-height: 1.5; }
 .adultbox summary { font-weight: bold; color: var(--sub); }
 .sheet svg.chart { border-color: #999; max-height: 70mm; }
 table.rec .nw { white-space: nowrap; }
+.passage.upper { font-size: 19px; line-height: 1.95; letter-spacing: .02em; }

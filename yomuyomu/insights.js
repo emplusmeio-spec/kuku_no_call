@@ -18,7 +18,7 @@ const INS = (() => {
   function pos(p) {
     const lv = p.lv || 1;
     if ((p.passed || {})[lv]) return lv;
-    const words = termsAt(lv).filter((t) => t.lv === lv || !U(p, `w:${t.id}`).m).map((t) => `w:${t.id}`);
+    const words = termsAt(lv).filter((t) => t.lv === lv || (U(p, `w:${t.id}`).n > 0 && !U(p, `w:${t.id}`).m)).map((t) => `w:${t.id}`);
     const reads = templatesAt(lv).map((t) => unitKey(lv, t));
     const all = [...words, ...reads];
     const done = all.filter((k) => U(p, k).m).length;

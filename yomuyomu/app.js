@@ -36,7 +36,10 @@
   const readUnits = (lv, f) => templatesAt(lv, f).map((t) => ({ key: unitKey(lv, t), t }));
   const cnt = (list) => ({ done: list.filter((x) => U(x.key).m).length, all: list.length });
   const wordsTried = (lv) => newTermsAt(lv).every((t) => U(`w:${t.id}`).n > 0);
-  const levelDone = (lv) => [...wordUnits(lv), ...readUnits(lv)].every((x) => U(x.key).m);
+  // このレベルの 新しい ことば ＋ 前に 手を つけたのに まだ クリア していない ことば
+  //（下の レベルを とばして はじめた子が、やっていない 下の ことばで 止まらないように）
+  const reqWords = (lv) => wordUnits(lv).filter((x) => x.t.lv === lv || (U(x.key).n > 0 && !U(x.key).m));
+  const levelDone = (lv) => [...reqWords(lv), ...readUnits(lv)].every((x) => U(x.key).m);
   const isOpen = (lv) => { const i = levelNums.indexOf(lv); return i <= 0 || !!state.passed[levelNums[i - 1]]; };
   if (!levelNums.includes(state.lv)) state.lv = 1;
 
@@ -65,7 +68,6 @@
   const ustar = (u, big) => star(u.m, big, u.m ? 1 : u.s / need(u));
   const stars = (list) => `<span class="stars" role="img" aria-label="${list.filter((x) => U(x.key).m).length}/${list.length} クリア">${list.map((x) => ustar(U(x.key))).join("")}</span>`;
   // ことばは、このレベルの新しい ことば と、まだ クリアして いない 前の ことば
-  const reqWords = (lv) => wordUnits(lv).filter((x) => x.t.lv === lv || !U(x.key).m);
   const bar = (c) => `<div class="bar"><i style="width:${c.all ? (100 * c.done) / c.all : 0}%"></i></div>`;
 
   // ---------------- ホーム ----------------
@@ -177,13 +179,14 @@
   function startWords(lv) {
     const all = wordUnits(lv);
     const fresh = all.filter((x) => x.t.lv === lv && !U(x.key).m);
-    const old = all.filter((x) => x.t.lv < lv && !U(x.key).m);
-    const p = plan(fresh.length ? [...fresh, ...old] : all, Math.max(WORD_SESSION, fresh.length));
+    const old = all.filter((x) => x.t.lv < lv && U(x.key).n > 0 && !U(x.key).m); // 前に 手を つけて まだの ことばだけ
+    // のこりが なければ、このレベルの ことばを ふくしゅう
+    const p = plan(fresh.length || old.length ? [...fresh, ...old] : all.filter((x) => x.t.lv === lv), Math.max(WORD_SESSION, fresh.length));
     begin(lv, "ことばチェック", p);
   }
   const startField = (lv, f) => begin(lv, fieldOf(f).kid, plan(readUnits(lv, f), PRACTICE_COUNT));
   function startMix(lv) {
-    const words = wordUnits(lv).filter((x) => !U(x.key).m);
+    const words = reqWords(lv).filter((x) => !U(x.key).m);
     const p = plan(readUnits(lv), MIX_COUNT);
     // まだ おぼえて いない ことばを 2つまで まぜる
     sample(words, 2).forEach((w) => p.list.splice(rand(p.list.length + 1), 0, w));
@@ -216,9 +219,10 @@
     if (q.scene) app.append(el(`<div class="passage scene">${q.scene}</div>`));
     if (q.passage) {
       if (q.passage2) {
-        app.append(el(`<div class="passage"><span class="lbl">ア</span>${rb(q.passage)}</div>`));
-        app.append(el(`<div class="passage"><span class="lbl">イ</span>${rb(q.passage2)}</div>`));
-      } else app.append(el(`<div class="passage">${rb(q.passage)}</div>`));
+        const up = q.level >= 19 ? " upper" : "";
+        app.append(el(`<div class="passage${up}"><span class="lbl">ア</span>${rb(q.passage)}</div>`));
+        app.append(el(`<div class="passage${up}"><span class="lbl">イ</span>${rb(q.passage2)}</div>`));
+      } else app.append(el(`<div class="passage${q.level >= 19 ? " upper" : ""}">${rb(q.passage)}</div>`));
     }
     const ask = el(`<div class="ask${isWord ? " big" : ""}"><button class="speak" aria-label="よみあげ">🔊</button><span>${rb(q.ask)}</span></div>`);
     ask.querySelector(".speak").onclick = () => speak(q.ask);

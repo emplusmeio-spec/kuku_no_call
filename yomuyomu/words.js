@@ -31,17 +31,18 @@ const term = (id, lv, word, card, gen) => TERMS.push({ id, lv, word, card, gen }
 // レベル1
 // ================================================================
 // うえ・した・なか・よこ（はこ と もの）
-const boxScene = (e, where) => {
-  const box = (op) => `<rect x="35" y="44" width="50" height="34" rx="3" fill="${BOXC}" stroke="#8d6e3f" stroke-width="2" opacity="${op}"/>`;
+const BOXCS = [BOXC, "#90caf9", "#ef9a9a", "#a5d6a7"];
+const boxScene = (e, where, bc = BOXC) => {
+  const box = (op) => `<rect x="35" y="44" width="50" height="34" rx="3" fill="${bc}" stroke="#8d6e3f" stroke-width="2" opacity="${op}"/>`;
   const pos = { うえ: [60, 28], した: [60, 96], なか: [60, 62], よこ: [104, 62] }[where];
   if (where === "なか") return svg(120, 120, emo(e, pos[0], pos[1], 24) + box(0.55));
   return svg(120, 120, box(1) + emo(e, pos[0], pos[1], 28));
 };
 const placeTerm = (where) => () => {
-  const [n, e] = pick(ANI);
+  const [n, e] = pick(ANI), bc = pick(BOXCS);
   return W({
     ask: `${n}が　はこの　${where}に　いる　えは　どれ？`,
-    choices: ["うえ", "した", "なか", "よこ"].map((w) => ({ svg: boxScene(e, w), ok: w === where })),
+    choices: ["うえ", "した", "なか", "よこ"].map((w) => ({ svg: boxScene(e, w, bc), ok: w === where })),
   });
 };
 term("ue", 1, "うえ", "「うえ」は　たかい　ほう。あたまの　ほう　だよ。", placeTerm("うえ"));
@@ -70,12 +71,13 @@ term("chiisai", 1, "ちいさい", "「ちいさい」は、くらべて　か�
 term("onaji", 1, "おなじ", "「おなじ」は、かたちも　いろも　ならびかたも　ぜんぶ　いっしょ　と　いう　こと。", () => {
   const [a, b] = sample(["まる", "さんかく", "しかく"], 2);
   const pic = (x, y) => svg(120, 60, x + y);
-  const L = (t, c) => fillShape(t, 35, 30, 16, c), R = (t, c) => fillShape(t, 85, 30, 16, c);
+  const base = pick(["#ef5350", "#42a5f5", "#fbc02d", "#ab47bc"]);
+  const L = (t, c = base) => fillShape(t, 35, 30, 16, c), R = (t, c = base) => fillShape(t, 85, 30, 16, c);
   const other = ["まる", "さんかく", "しかく"].find((t) => t !== a && t !== b);
   return W({
     scene: pic(L(a), R(b)),
     ask: "うえの　えと　おなじ　えは　どれ？",
-    choices: [{ svg: pic(L(a), R(b)), ok: true }, { svg: pic(L(b), R(a)), ok: false }, { svg: pic(L(a), R(other)), ok: false }, { svg: pic(L(a, "#66bb6a"), R(b)), ok: false }],
+    choices: [{ svg: pic(L(a), R(b)), ok: true }, { svg: pic(L(b), R(a)), ok: false }, { svg: pic(L(a), R(other)), ok: false }, { svg: pic(L(a, base === "#66bb6a" ? "#ef5350" : "#66bb6a"), R(b)), ok: false }],
   });
 });
 term("dake", 1, "だけ", "「〜だけ」は、ほかの　ものは　ない　と　いう　こと。「あかい　まる　だけ」なら、あかい　まるの　ほかは　ない。", () => {
@@ -120,10 +122,11 @@ term("migi", 2, "みぎ", "「みぎ」は、おはしを　もつ　ての　�
 term("hidari", 2, "ひだり", "「ひだり」は、おちゃわんを　もつ　ての　ほう（ひだりての　ほう）。", lrTerm(false));
 const lenTerm = (long) => () => {
   const [c1, c2] = sample(COLS, 2);
-  const rope = (col, len) => svg(130, 40, `<line x1="${65 - len / 2}" y1="20" x2="${65 + len / 2}" y2="20" stroke="${col}" stroke-width="9" stroke-linecap="round"/>`);
+  const lg = 96 + rand(18), sh = 26 + rand(20), y = 14 + rand(12);
+  const rope = (col, len) => svg(130, 40, `<line x1="${65 - len / 2}" y1="${y}" x2="${65 + len / 2}" y2="${y}" stroke="${col}" stroke-width="9" stroke-linecap="round"/>`);
   return W({
     ask: `${c1[1]}　${long ? "ながい" : "みじかい"}　ひもは　どれ？`,
-    choices: [{ svg: rope(c1[2], 110), ok: long }, { svg: rope(c1[2], 36), ok: !long }, { svg: rope(c2[2], 110), ok: false }, { svg: rope(c2[2], 36), ok: false }],
+    choices: [{ svg: rope(c1[2], lg), ok: long }, { svg: rope(c1[2], sh), ok: !long }, { svg: rope(c2[2], lg), ok: false }, { svg: rope(c2[2], sh), ok: false }],
   });
 };
 term("nagai", 2, "ながい", "「ながい」は、はしから　はしまでが　とおい　こと。ひもや　えんぴつに　つかうよ。", lenTerm(true));
@@ -164,14 +167,17 @@ term("kara", 2, "〜から（わけ）", "「〜から」は　わけを　い�
 // ================================================================
 // レベル3
 // ================================================================
+const FISHC = ["#ff8a65", "#4fc3f7", "#81c784", "#ba68c8", "#ffb74d"];
+const MARK = [["ほし", null], ["りんご", "🍎"], ["はな", "🌸"], ["いちご", "🍓"], ["ボール", "⚽"], ["ハート", "❤️"]];
 const maeTerm = (mae) => () => {
-  const faceR = coin();
-  const pic = (fr, starR, above) => svg(140, 90, fish(70, 50, fr ? 0 : 180) + star(above ? 70 : starR ? 118 : 22, above ? 16 : 50, 11));
+  const faceR = coin(), [mn, me] = pick(MARK), col = pick(FISHC), fy = 44 + rand(14), gap = 44 + rand(10);
+  const mk = (x, y) => (me ? emo(me, x, y, 22) : star(x, y, 11));
+  const pic = (fr, starR, above) => svg(140, 90, fish(70, fy, fr ? 0 : 180, col) + mk(above ? 70 : starR ? 70 + gap : 70 - gap, above ? 12 : fy));
   const front = faceR; // まえ が みぎ
   const goodR = mae ? front : !front;
   return W({
     scene: null,
-    ask: `さかなの　${mae ? "まえ" : "うしろ"}に　ほしが　ある　えは　どれ？`,
+    ask: `さかなの　${mae ? "まえ" : "うしろ"}に　${mn}が　ある　えは　どれ？`,
     choices: [{ svg: pic(faceR, goodR), ok: true }, { svg: pic(!faceR, goodR), ok: false }, { svg: pic(faceR, !goodR), ok: false }, { svg: pic(faceR, false, true), ok: false }],
   });
 };
@@ -240,7 +246,9 @@ term("deru", 3, "でる・はいる", "「でる」は　なかから　そと�
     choices: [{ svg: pic(1), ok: out }, { svg: pic(-1), ok: !out }, { svg: pic(0), ok: false }],
   });
 });
-const DEMO = [["おなかが　いっぱい。", "ケーキを　たべた。", "でも"], ["あめが　ふって　いる。", "そとで　あそんだ。", "でも"], ["ねむい。", "まだ　おきて　いた。", "でも"], ["あさ　おきた。", "かおを　あらった。", "そして"], ["てを　あらった。", "おやつを　たべた。", "そして"]];
+const DEMO = [["おなかが　いっぱい。", "ケーキを　たべた。", "でも"], ["あめが　ふって　いる。", "そとで　あそんだ。", "でも"], ["ねむい。", "まだ　おきて　いた。", "でも"], ["あさ　おきた。", "かおを　あらった。", "そして"], ["てを　あらった。", "おやつを　たべた。", "そして"],
+  ["いっしょうけんめい　はしった。", "まけて　しまった。", "でも"], ["さむい。", "はだしで　あそんだ。", "でも"], ["にがてな　やさいだ。", "ぜんぶ　たべた。", "でも"], ["こわい　ゆめを　みた。", "なかなかった。", "でも"],
+  ["こうえんに　いった。", "すなばで　あそんだ。", "そして"], ["はを　みがいた。", "ふとんに　はいった。", "そして"], ["えを　かいた。", "いろを　ぬった。", "そして"], ["くつを　はいた。", "そとに　でた。", "そして"]];
 term("demo", 3, "でも", "「でも」は、まえと　はんたいの　ことや、おもって　いたのと　ちがう　ことを　いう　ときに　つかうよ。", () => {
   const [a, b, ans] = pick(DEMO);
   return textItem(`「${a}（　　）、${b}」。（　　）に　あう　ことばは？`, ["でも", "そして"], ans, { fixed: true });
@@ -272,9 +280,9 @@ term("hashi", 4, "はし", "「はし」は、ならびの　いちばん　さ�
 });
 term("takai", 4, "たかい・ひくい", "「たかい」は　したから　うえまでが　ながい　こと。よこに　ひろくても　たかいとは　かぎらないよ。", () => {
   const tall = coin();
-  const specs = shuffle([[24, 90], [60, 46], [36, 68], [30, 30]]); // [はば, たかさ]
+  const specs = shuffle([[20 + rand(14), 84 + rand(8)], [56 + rand(12), 40 + rand(14)], [28 + rand(12), 60 + rand(14)], [24 + rand(16), 20 + rand(12)]]); // [はば, たかさ]（せが ひくくて はばの ひろい ビルを まぜる）
   const bld = ([w, h]) => svg(100, 100, `<rect x="${50 - w / 2}" y="${96 - h}" width="${w}" height="${h}" fill="#90a4ae" stroke="#455a64" stroke-width="2"/><line x1="0" y1="96" x2="100" y2="96" stroke="#6d4c41" stroke-width="3"/>`);
-  const goal = tall ? 90 : 30;
+  const hs = specs.map((s) => s[1]), goal = tall ? Math.max(...hs) : Math.min(...hs);
   return W({ ask: `いちばん　${tall ? "たかい" : "ひくい"}　ビルは　どれ？`, choices: specs.map((s) => ({ svg: bld(s), ok: s[1] === goal })) });
 });
 term("awasete", 4, "あわせて", "「あわせて」は、ぜんぶ　いっしょに　すると　いくつ　かを　かんがえる　こと（たしざん）。", () => {
@@ -317,7 +325,8 @@ term("nakama", 4, "なかま", "「なかま」は、おなじ　しゅるいの
   });
 });
 term("tabun", 4, "たぶん・かならず", "「かならず」は　ぜったい　そう　なる　こと。「たぶん」は　そう　なりそう　だけど、ちがう　ことも　ある。", () => {
-  const [s, yes, no] = pick([["あしたは", "はれる", "はれない"], ["けんくんは", "くる", "こない"], ["バスは", "8じに　つく", "8じに　つかない"]]);
+  const [s, yes, no] = pick([["あしたは", "はれる", "はれない"], ["けんくんは", "くる", "こない"], ["バスは", "8じに　つく", "8じに　つかない"],
+    ["こんやは", "ゆきが　ふる", "ふらない"], ["おかあさんは", "6じに　かえる", "6じに　かえらない"], ["この　たまごは", "あしたには　かえる", "かえらない"], ["にじは", "また　でる", "でない"], ["その　おみせは", "あいて　いる", "あいて　いない"]]);
   return coin()
     ? textItem(`「${s}　たぶん　${yes}」。ほんとうに　${yes}？`, [`${yes}と　おもうけど、${no}　ことも　ある`, "ぜったいに　" + yes, "ぜったいに　" + no], `${yes}と　おもうけど、${no}　ことも　ある`)
     : textItem(`「${s}　かならず　${yes}」。ほんとうに　${yes}？`, [`${yes}と　おもうけど、${no}　ことも　ある`, "ぜったいに　" + yes, "ぜったいに　" + no], "ぜったいに　" + yes);
@@ -334,8 +343,10 @@ term("kinou", 4, "きのう・あした", "「きのう」は　きょうの　1
 // ================================================================
 const tateyoko = (tate) => () => {
   const S = pick(["まる", "さんかく", "しかく"]);
-  const line = (d) => svg(120, 120, [0, 1, 2].map((i) => { const o = (i - 1) * 30; const [x, y] = d === "たて" ? [60, 60 + o] : d === "よこ" ? [60 + o, 60] : [60 + o, 60 - o]; return fillShape(S, x, y, 11); }).join(""));
-  const rect = (wide) => svg(120, 120, `<rect x="${wide ? 14 : 42}" y="${wide ? 42 : 14}" width="${wide ? 92 : 36}" height="${wide ? 36 : 92}" fill="#80cbc4" stroke="#00796b" stroke-width="3"/>`);
+  const gap = 26 + rand(8);
+  const line = (d) => svg(120, 120, [0, 1, 2].map((i) => { const o = (i - 1) * gap; const [x, y] = d === "たて" ? [60, 60 + o] : d === "よこ" ? [60 + o, 60] : [60 + o, 60 - o]; return fillShape(S, x, y, 11); }).join(""));
+  const L = 82 + rand(16), Sh = 28 + rand(14);
+  const rect = (wide) => svg(120, 120, `<rect x="${60 - (wide ? L : Sh) / 2}" y="${60 - (wide ? Sh : L) / 2}" width="${wide ? L : Sh}" height="${wide ? Sh : L}" fill="#80cbc4" stroke="#00796b" stroke-width="3"/>`);
   const w = tate ? "たて" : "よこ";
   return coin()
     ? W({ ask: `${S}が　${w}に　ならんで　いる　えは　どれ？`, choices: [{ svg: line(w), ok: true }, { svg: line(tate ? "よこ" : "たて"), ok: false }, { svg: line("ななめ"), ok: false }] })
@@ -379,16 +390,25 @@ term("kasu", 5, "かす・かりる", "「かす」は　じぶんの　もの�
   return W({ ask: `「${nA}は　${nB}に　${O}を　かしました」。${ask}`, choices: [{ text: nA, emoji: eA, ok: ans === nA }, { text: nB, emoji: eB, ok: ans === nB }] });
 });
 term("kureru", 5, "くれる", "「〜が　わたしに　くれる」は、あいてが　じぶんに　ものを　わたす　こと。もらうのは　じぶん。", () => {
-  const P = pick(["おばあちゃん", "おとうさん", "ともだち"]);
-  const O = pick(["あめ", "えほん", "シール"]);
+  const P = pick(["おばあちゃん", "おとうさん", "ともだち", "おかあさん", "おにいさん", "せんせい"]);
+  const O = pick(["あめ", "えほん", "シール", "おりがみ", "クッキー", "えんぴつ"]);
   return textItem(`「${P}が　わたしに　${O}を　くれました」。${O}を　もらったのは　だれ？`, ["わたし", P], "わたし", { fixed: true });
 });
 term("mouhitotsu", 5, "もう{一|ひと}つ", "「もう{一|ひと}つ」は、ふたつ　あるうちの　まだ　いって　いない　ほう。", () => {
-  const [c1, c2] = sample(COLS, 2);
-  const ball = (c) => svg(80, 80, `<circle cx="40" cy="40" r="26" fill="${c}"/>`);
-  return W({ ask: `${c1[1]}　ボールと　${c2[1]}　ボールが　あります。${c1[1]}　ほうを　とりました。もう{一|ひと}つは　どれ？`, choices: [{ svg: ball(c2[2]), ok: true }, { svg: ball(c1[2]), ok: false }] });
+  const [c1, c2] = sample([...COLS, ["みどり", "みどりの", "#66bb6a"], ["ピンク", "ピンクの", "#f48fb1"]], 2);
+  const [on, draw] = pick([
+    ["ボール", (c) => `<circle cx="40" cy="40" r="26" fill="${c}"/>`],
+    ["ふうせん", (c) => `<ellipse cx="40" cy="32" rx="20" ry="24" fill="${c}"/><path d="M40,56 Q34,66 42,76" stroke="#555" fill="none"/>`],
+    ["はこ", (c) => `<rect x="16" y="22" width="48" height="40" rx="4" fill="${c}"/>`],
+    ["コップ", (c) => `<path d="M22,18 L58,18 L52,66 L28,66 Z" fill="${c}"/>`],
+  ]);
+  const it2 = (c) => svg(80, 80, draw(c));
+  const first = coin();
+  return W({ ask: `${c1[1]}　${on}と　${c2[1]}　${on}が　あります。${(first ? c1 : c2)[1]}　ほうを　とりました。もう{一|ひと}つは　どれ？`, choices: [{ svg: it2((first ? c2 : c1)[2]), ok: true }, { svg: it2((first ? c1 : c2)[2]), ok: false }] });
 });
-const DAKARA = [["{雨|あめ}が　ふって　きた。", "かさを　さした。", "だから"], ["おなかが　すいた。", "ごはんを　たくさん　たべた。", "だから"], ["さむい。", "セーターを　きた。", "だから"], ["おなかが　いっぱい。", "ケーキを　たべた。", "でも"], ["{雨|あめ}が　ふって　いる。", "そとで　あそんだ。", "でも"]];
+const DAKARA = [["{雨|あめ}が　ふって　きた。", "かさを　さした。", "だから"], ["おなかが　すいた。", "ごはんを　たくさん　たべた。", "だから"], ["さむい。", "セーターを　きた。", "だから"], ["おなかが　いっぱい。", "ケーキを　たべた。", "でも"], ["{雨|あめ}が　ふって　いる。", "そとで　あそんだ。", "でも"],
+  ["のどが　かわいた。", "{水|みず}を　のんだ。", "だから"], ["ねむく　なった。", "はやく　ねた。", "だから"], ["くつが　ぬれた。", "あたらしい　くつに　はきかえた。", "だから"], ["テストで　100てんを　とった。", "ほめられた。", "だから"],
+  ["たくさん　れんしゅうした。", "まけて　しまった。", "でも"], ["ねむい。", "しゅくだいを　さいごまで　やった。", "でも"], ["にがてな　ピーマンだ。", "ぜんぶ　たべた。", "でも"]];
 term("dakara", 5, "だから", "「だから」は、まえの　ことが　わけで、あとの　ことが　おきる　ときに　つかうよ。", () => {
   const [a, b, ans] = pick(DAKARA);
   return textItem(`「${a}（　　）、${b}」。（　　）に　あう　ことばは？`, ["だから", "でも"], ans, { fixed: true });
@@ -399,18 +419,20 @@ term("dakara", 5, "だから", "「だから」は、まえの　ことが　わ
 // ================================================================
 term("naname", 6, "ななめ", "「ななめ」は、たてでも　よこでも　なく　かたむいて　いる　むき。", () => {
   const ln = (x1, y1, x2, y2) => svg(100, 100, `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#37474f" stroke-width="7" stroke-linecap="round"/>`);
-  const diag = coin() ? ln(18, 82, 82, 18) : ln(18, 18, 82, 82);
-  return W({ ask: "ななめの　せんは　どれ？", choices: [{ svg: diag, ok: true }, { svg: ln(50, 12, 50, 88), ok: false }, { svg: ln(12, 50, 88, 50), ok: false }] });
+  const a = 10 + rand(20), b = 70 + rand(20), c = 10 + rand(25), d = 65 + rand(25);
+  const diag = coin() ? ln(a, d, b, c) : ln(a, c, b, d);
+  const vx = 30 + rand(40), hy = 30 + rand(40);
+  return W({ ask: "ななめの　せんは　どれ？", choices: [{ svg: diag, ok: true }, { svg: ln(vx, 10 + rand(10), vx, 80 + rand(10)), ok: false }, { svg: ln(10 + rand(10), hy, 80 + rand(10), hy), ok: false }] });
 });
 term("sakasama", 6, "さかさま", "「さかさま」は　{上|うえ}と　{下|した}が　ぎゃくに　なる　こと。", () => {
-  const e = pick(["🏠", "🌳", "🍦", "🚗", "⛄"]);
-  const rot = (deg) => svg(100, 100, `<g transform="rotate(${deg} 50 50)">${emo(e, 50, 50, 54)}</g>`);
-  return W({ ask: "さかさまに　なって　いる　えは　どれ？", choices: [{ svg: rot(180), ok: true }, { svg: rot(0), ok: false }, { svg: rot(90), ok: false }] });
+  const e = pick(["🏠", "🌳", "🍦", "🚗", "⛄", "🌷", "🏆", "🍄", "🗼", "⛪"]), sz = 46 + rand(14);
+  const rot = (deg) => svg(100, 100, `<g transform="rotate(${deg} 50 50)">${emo(e, 50, 50, sz)}</g>`);
+  return W({ ask: "さかさまに　なって　いる　えは　どれ？", choices: [{ svg: rot(180), ok: true }, { svg: rot(0), ok: false }, { svg: rot(pick([90, 270])), ok: false }] });
 });
 term("muki", 6, "むき", "「みぎを　むく」は、かおが　みぎの　ほうに　ある　こと。", () => {
   const dirs = [["みぎ", 0], ["ひだり", 180], ["うえ", 270], ["した", 90]];
   const [w] = pick(dirs);
-  return W({ ask: `${w}を　むいて　いる　さかなは　どれ？`.replace("みぎ", "{右|みぎ}").replace("ひだり", "{左|ひだり}").replace("うえ", "{上|うえ}").replace("した", "{下|した}"), choices: dirs.map(([n, d]) => ({ svg: svg(100, 100, fish(50, 50, d)), ok: n === w })) });
+  return W({ ask: `${w}を　むいて　いる　さかなは　どれ？`.replace("みぎ", "{右|みぎ}").replace("ひだり", "{左|ひだり}").replace("うえ", "{上|うえ}").replace("した", "{下|した}"), choices: (() => { const col = pick(FISHC); return dirs.map(([n, d]) => ({ svg: svg(100, 100, fish(44 + rand(12), 44 + rand(12), d, col)), ok: n === w })); })() });
 });
 term("omoi", 6, "おもい・かるい", "「おもい」は　もちあげるのに　ちからが　いる　こと。おおきくても　かるい　ものも　あるよ。シーソーは　おもい　ほうが　{下|さ}がる。", () => {
   // じっさいの おもさと あう くみだけ（おおきいのに かるい くみ／おおきくて おもい くみ を まぜる）
@@ -437,7 +459,9 @@ term("ya", 6, "や（〜など）", "「Aや　B」は、Aと　Bの　ほかに
   return textItem(`「${x}${ya ? "や" : "と"}　${y}を　かいました」。かった　ものは？`, [`${x}と　${y}　だけ`, `${x}と　${y}。ほかにも　かったか　どうかは　わからない`], ya ? `${x}と　${y}。ほかにも　かったか　どうかは　わからない` : `${x}と　${y}　だけ`, { fixed: true });
 });
 term("tara", 6, "〜たら", "「Aたら　B」は、Aに　なった　ときに　Bに　なる　と　いう　きまり。", () => {
-  const [c, r, ok] = pick([["{雨|あめ}が　ふったら", "えんそくは　ちゅうし", "{雨|あめ}が　ふりました"], ["ベルが　なったら", "きょうしつに　もどる", "ベルが　なりました"], ["{手|て}を　あらったら", "おやつを　たべて　いい", "{手|て}を　あらいました"]]);
+  const [c, r, ok] = pick([["{雨|あめ}が　ふったら", "えんそくは　ちゅうし", "{雨|あめ}が　ふりました"], ["ベルが　なったら", "きょうしつに　もどる", "ベルが　なりました"], ["{手|て}を　あらったら", "おやつを　たべて　いい", "{手|て}を　あらいました"],
+    ["しゅくだいが　おわったら", "テレビを　みて　いい", "しゅくだいが　おわりました"], ["くらく　なったら", "いえに　かえる", "くらく　なりました"], ["{青|あお}に　なったら", "みちを　わたる", "しんごうが　{青|あお}に　なりました"],
+    ["{雪|ゆき}が　つもったら", "ゆきだるまを　つくる", "{雪|ゆき}が　つもりました"], ["ごはんを　たべたら", "はを　みがく", "ごはんを　たべました"], ["{九|く}じに　なったら", "ねる", "{九|く}じに　なりました"]]);
   return textItem(`「${c}、${r}」。${ok}。どう　なる？`, [r, `${r}に　ならない`], r, { fixed: true });
 });
 term("ototoi", 6, "おととい・あさって", "「おととい」は　きのうの　まえの　日（2日　まえ）、「あさって」は　あしたの　つぎの　日（2日　あと）。", () => {
@@ -452,7 +476,7 @@ term("ototoi", 6, "おととい・あさって", "「おととい」は　きの
 // ================================================================
 const depthTerm = (back) => () => {
   const [, e] = pick(FRU);
-  const box = `<rect x="35" y="48" width="50" height="40" fill="${BOXC}" stroke="#8d6e3f" stroke-width="2"/>`;
+  const box = `<rect x="35" y="48" width="50" height="40" fill="${pick(BOXCS)}" stroke="#8d6e3f" stroke-width="2"/>`;
   const behind = svg(120, 120, emo(e, 60, 40, 32) + box);
   const front = svg(120, 120, box + emo(e, 60, 90, 32));
   const top = svg(120, 120, box + emo(e, 60, 30, 28).replace('y="30"', 'y="32"'));
@@ -465,7 +489,7 @@ const depthTerm = (back) => () => {
 term("temae", 7, "てまえ", "「てまえ」は　じぶんに　ちかい　ほう。えでは　{下|した}の　ほうに　かかれ、ものに　かさなって　みえる。", depthTerm(false));
 term("oku", 7, "おく", "「おく」は　じぶんから　とおい　ほう。えでは　{上|うえ}の　ほうに　かかれ、ほかの　ものに　かくれて　みえる。", depthTerm(true));
 term("hiroi", 7, "ひろい・せまい", "「ひろい」は　めんせき（ばしょの　おおきさ）が　おおきい　こと。ながくても　ほそければ　ひろく　ない。", () => {
-  const specs = shuffle([[80, 70], [100, 18], [40, 40], [24, 90]]);
+  const specs = shuffle([[72 + rand(14), 60 + rand(14)], [96 + rand(10), 16 + rand(4)], [28 + rand(8), 28 + rand(8)], [20 + rand(6), 86 + rand(8)]]); // ながくて ほそい へやを まぜる
   const wide = coin();
   const area = (s) => s[0] * s[1];
   const best = specs.reduce((a, b) => ((wide ? area(b) > area(a) : area(b) < area(a)) ? b : a));
@@ -473,8 +497,8 @@ term("hiroi", 7, "ひろい・せまい", "「ひろい」は　めんせき（�
 });
 term("futoi", 7, "ふとい・ほそい", "「ふとい」は　はばが　ある　こと。ながさとは　ちがうよ。", () => {
   const thick = coin();
-  const specs = shuffle([[14, 50], [3, 110], [8, 80], [5, 40]]); // [ふとさ, ながさ]
-  const goal = thick ? 14 : 3;
+  const specs = shuffle([[12 + rand(5), 36 + rand(25)], [2 + rand(2), 100 + rand(16)], [7 + rand(2), 60 + rand(30)], [5, 30 + rand(25)]]); // [ふとさ, ながさ]
+  const goal = thick ? Math.max(...specs.map((x) => x[0])) : Math.min(...specs.map((x) => x[0]));
   return W({ ask: `いちばん　${thick ? "ふとい" : "ほそい"}　せんは　どれ？`, choices: specs.map(([w, l]) => ({ svg: svg(130, 40, `<line x1="${65 - l / 2}" y1="20" x2="${65 + l / 2}" y2="20" stroke="#5d4037" stroke-width="${w}" stroke-linecap="round"/>`), ok: w === goal })) });
 });
 term("shika", 7, "しか〜ない", "「〜しか　ない」は「それだけ　ある」と　いう　いみ。すくない　かんじを　あらわすよ。", () => {
@@ -483,7 +507,8 @@ term("shika", 7, "しか〜ない", "「〜しか　ない」は「それだけ�
   return W({ ask: `「${n}が　${k}こしか　ない」　えは　どれ？`, choices: [k, k + 2, k + 4, 0].map((m) => ({ svg: countSvg(e, m || 0) , ok: m === k })).filter((c, i, a) => a.findIndex((x) => x.svg === c.svg) === i) });
 });
 term("kamo", 7, "かもしれない", "「かもしれない」は、そう　なる　ことも、ならない　ことも　ある　いいかた。", () => {
-  const [s, x, y] = pick([["あしたは", "{雨|あめ}が　ふる", "ふらない"], ["けんたさんは", "おくれて　くる", "おくれない"], ["この　はこには", "おかしが　{入|はい}って　いる", "{入|はい}って　いない"]]);
+  const [s, x, y] = pick([["あしたは", "{雨|あめ}が　ふる", "ふらない"], ["けんたさんは", "おくれて　くる", "おくれない"], ["この　はこには", "おかしが　{入|はい}って　いる", "{入|はい}って　いない"],
+    ["こんやは", "{雪|ゆき}が　つもる", "つもらない"], ["その　みせは", "もう　しまって　いる", "しまって　いない"], ["ねこは", "にわに　いる", "いない"], ["この　バスは", "こんで　いる", "こんで　いない"], ["あしたの　しあいは", "ちゅうしに　なる", "ちゅうしに　ならない"]]);
   return textItem(`「${s}　${x}かもしれない」。どう　いう　いみ？`, [`${x}か　どうか、まだ　わからない`, `かならず　${x}`, `ぜったいに　${y}`], `${x}か　どうか、まだ　わからない`);
 });
 term("oshieru", 7, "おしえる・おそわる", "「おしえる」は　しって　いる　ことを　あいてに　つたえる　こと。「おそわる」は　あいてから　ならう　こと。", () => {

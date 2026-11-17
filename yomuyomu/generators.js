@@ -367,6 +367,38 @@ const SHOOU_FIXED = [
     explain: "おだんごみたいに　まるいのは　{月|つき}。「それ」は　{月|つき}の　ことだね。", note: "指示語の後に出てくる語に引っぱられず、前の語を指すと判断できるか。",
   }),
 ];
+SHOOU_FIXED.push(
+  () => build({
+    passage: "ゆいさんは　{先|せん}{生|せい}に　{本|ほん}を　かりました。いえに　かえって　すぐに　それを　よみました。",
+    ask: SORE, choices: opts(["{先|せん}{生|せい}", "{本|ほん}", "いえ", "ゆいさん"], "{本|ほん}"),
+    explain: "よむ　ことが　できるのは　{本|ほん}。「それ」は　{本|ほん}の　ことだね。", note: "述語（よむ）と意味が合うものを、指示語の指す先として選べるか。",
+  }),
+  () => build({
+    passage: "おじいさんの　はたけには　トマトが　たくさん　なって　います。ぼくは　そこで　トマトを　とりました。",
+    ask: "「そこ」は　どこですか。", choices: opts(["おじいさんの　いえ", "はたけ", "トマト", "ぼく"], "はたけ"),
+    explain: "トマトを　とったのは　はたけ。「そこ」は　はたけの　ことだね。", note: "場所を指す「そこ」を、前の文の場所（はたけ）と結びつけられるか。",
+  }),
+  () => build({
+    passage: "{森|もり}の　なかに　{大|おお}きな　{木|き}が　あります。その　{木|き}の　{上|うえ}に　とりの　すが　あります。",
+    ask: "「その　{木|き}」は　どんな　{木|き}ですか。", choices: opts(["{森|もり}の　なかに　ある　{大|おお}きな　{木|き}", "こうえんの　{木|き}", "{小|ちい}さな　{木|き}"], "{森|もり}の　なかに　ある　{大|おお}きな　{木|き}"),
+    explain: "「その　{木|き}」は、まえの　ぶんに　でて　きた　{森|もり}の　なかの　{大|おお}きな　{木|き}。", note: "「その＋名詞」が、前に出た名詞（説明つき）を指すことを読み取れるか。",
+  }),
+  () => build({
+    passage: "あかい　ぼうしと　あおい　ぼうしが　あります。あめの　{日|ひ}は　あおい　ほうを　かぶります。はれの　{日|ひ}は　もう　ひとつの　ほうを　かぶります。",
+    ask: "はれの　{日|ひ}に　かぶる　ぼうしは　どれですか。", choices: opts(["あかい　ぼうし", "あおい　ぼうし", "どちらも"], "あかい　ぼうし"),
+    explain: "「もう　ひとつ」は、ふたつの　うち　まだ　いって　いない　ほう。あおい　ほうでは　ない　あかい　ぼうしだね。", note: "「もう一つ」が、二つのうち残りの方を指すことを読み取れるか。",
+  }),
+  () => build({
+    passage: "ねこが　まどの　そばで　ねて　います。{子|こ}どもたちは　それを　おこさないように、しずかに　あるきました。",
+    ask: SORE, choices: opts(["ねこ", "まど", "{子|こ}どもたち", "そば"], "ねこ"),
+    explain: "おこさないように　したのは、ねて　いる　ねこ。", note: "述語（おこす）と意味が合うものを選べるか。",
+  }),
+  () => build({
+    passage: "わたしは　まいにち　{学|がっ}{校|こう}で　{花|はな}に　{水|みず}を　やります。これが　わたしの　かかりの　しごとです。",
+    ask: "「これ」は　なんですか。", choices: opts(["{花|はな}に　{水|みず}を　やる　こと", "{花|はな}", "{水|みず}", "{学|がっ}{校|こう}"], "{花|はな}に　{水|みず}を　やる　こと"),
+    explain: "「これ」は　ものでは　なく、まえの　ぶんの「{花|はな}に　{水|みず}を　やる　こと」を　さして　いるよ。", note: "指示語が前の文の内容（〜すること）全体を指す場合を読み取れるか。",
+  }),
+);
 tpl("shoou", "tezukuri", 5, 7, () => pick(SHOOU_FIXED)());
 tpl("shoou", "koto", 6, 7, (lv) => {
   const A = pick(names(lv));
@@ -750,10 +782,11 @@ tpl("image", "ichi", 1, 4, (lv) => {
 });
 tpl("image", "nakasoto", 1, 4, () => {
   const [C, I, S] = shuffle(["まる", "さんかく", "しかく"]);
+  const jx = rand(8) - 4, jy = rand(8) - 4, oy = pick([20, 28, 36]);
   const draw = (iIn, sIn) => {
     let s = lineShape(C, 52, 60, 34);
-    s += fillShape(I, iIn ? 46 : 104, iIn ? 66 : 28, 10);
-    s += fillShape(S, sIn ? 60 : 104, sIn ? 56 : 92, 10);
+    s += fillShape(I, iIn ? 46 + jx : 106, iIn ? 66 + jy : oy, 10);
+    s += fillShape(S, sIn ? 60 - jx : 106, sIn ? 54 - jy : oy + 58, 10);
     return svg(120, 120, s);
   };
   return build({
@@ -845,10 +878,12 @@ tpl("image", "narabi", 5, 7, (lv) => {
 tpl("image", "sakana", 6, 7, () => {
   const faceR = coin();
   const where = pick(["まえ", "うしろ"]);
-  const draw = (fr, starRight) => svg(140, 80, fish(70, 40, fr ? 0 : 180) + star(starRight ? 118 : 22, 40, 11));
+  const [mn, me] = pick([["ほし", null], ["{花|はな}", "🌸"], ["いちご", "🍓"], ["ボール", "⚽"], ["ハート", "❤️"]]), col = pick(FISHC), fy = 34 + rand(12);
+  const mk = (x) => (me ? emo(me, x, fy, 22) : star(x, fy, 11));
+  const draw = (fr, starRight) => svg(140, 80, fish(70, fy, fr ? 0 : 180, col) + mk(starRight ? 118 : 22));
   const goodStarRight = (where === "まえ") === faceR;
   return build({
-    passage: `さかなが　${faceR ? "{右|みぎ}" : "{左|ひだり}"}を　むいて　います。さかなの　${where}に　ほしが　あります。`,
+    passage: `さかなが　${faceR ? "{右|みぎ}" : "{左|ひだり}"}を　むいて　います。さかなの　${where}に　${mn}が　あります。`,
     ask: "ぶんに　あう　えを　ひとつ　えらびましょう。",
     choices: [{ svg: draw(faceR, goodStarRight), ok: true }, { svg: draw(faceR, !goodStarRight), ok: false }, { svg: draw(!faceR, goodStarRight), ok: false }, { svg: draw(!faceR, !goodStarRight), ok: false }],
     explain: "まず　さかなの　むきを　たしかめよう。「まえ」は　かおが　むいて　いる　ほう、「うしろ」は　しっぽの　ほう　だよ。",
@@ -857,7 +892,7 @@ tpl("image", "sakana", 6, 7, () => {
 });
 tpl("image", "okuni", 7, 7, () => {
   const [A, B] = sample(["まる", "さんかく", "しかく"], 2);
-  const box = `<rect x="35" y="48" width="50" height="40" fill="#bcaaa4" stroke="#6d4c41" stroke-width="2"/>`;
+  const box = `<rect x="35" y="48" width="50" height="40" fill="${pick(["#bcaaa4", "#90caf9", "#ffcc80", "#c5e1a5"])}" stroke="#6d4c41" stroke-width="2"/>`;
   const back = (t, x = 60) => fillShape(t, x, 42, 14);  // はこの うしろ：うえに すこし みえる（はこに かくれる）
   const front = (t, x = 60) => fillShape(t, x, 90, 14); // はこの てまえ：はこに かさなって まえに みえる
   const draw = (parts) => svg(120, 120, parts.filter((p) => p.z === 0).map((p) => p.s).join("") + box + parts.filter((p) => p.z === 1).map((p) => p.s).join(""));

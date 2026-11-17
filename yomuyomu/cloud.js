@@ -184,8 +184,9 @@ const CLOUD = (() => {
   // ---------- せいせきを あわせる ----------
   //   ことば・型ごと：クリアは どれかで クリアなら クリア、回答数は たす、連続正解は 大きい ほう
   function mergeProgress(list) {
-    const out = { lv: 1, passed: {}, units: {}, days: {}, badges: { g: 0, s: 0, b: 0 }, name: "" };
+    const out = { lv: 1, passed: {}, units: {}, days: {}, badges: { g: 0, s: 0, b: 0 }, name: "", seen: {} };
     for (const p of list) {
+      Object.entries(p.seen || {}).forEach(([k, a]) => (out.seen[k] = [...new Set([...(out.seen[k] || []), ...a])].slice(-30)));
       out.lv = Math.max(out.lv, p.lv || 1);
       Object.entries(p.passed || {}).forEach(([k, v]) => { if (v) out.passed[k] = true; });
       Object.entries(p.units || {}).forEach(([k, u]) => {

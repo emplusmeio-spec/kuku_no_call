@@ -12,7 +12,7 @@
   //   days[日付] = その日に こたえた数
   //   badges = 1回の れんしゅうの メダル（きん・ぎん・どう）、name = ライセンスに のせる なまえ
   //   hist[日付] = その日 いちばん 進んだ 位置（がんばりグラフ）、units[key].x = まちがえた 回数（つまずき）
-  const fresh = () => ({ lv: 1, passed: {}, units: {}, days: {}, hist: {}, badges: { g: 0, s: 0, b: 0 }, name: "" });
+  const fresh = () => ({ lv: 1, passed: {}, units: {}, days: {}, hist: {}, badges: { g: 0, s: 0, b: 0 }, name: "", seen: {} });
   let state = fresh();
   try { state = Object.assign(fresh(), JSON.parse(localStorage.getItem(STORE)) || {}); } catch (e) {}
   const save = () => {
@@ -183,7 +183,23 @@
     }
     return { list: out, review: !todo.length };
   }
-  const makeQ = (lv, x) => (x.key.startsWith("w:") ? drawWord(x.t) : drawFromTemplate(x.t, lv));
+  // 同じ 問題を さける：その子が 前に 見た 問題（型ごとに さいごの 30もん）を おぼえておき、
+  // まだ 見ていない 問題を さがす。ぜんぶ 見たことが あれば、いちばん 前に 見た 問題に する。
+  const SEEN_MAX = 30;
+  const sigHash = (q) => { const t = [q.passage, q.passage2, q.ask, ...q.choices.map((c) => c.svg || (c.emoji || "") + c.text).sort()].join("|"); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; return h.toString(36); };
+  function makeQ(lv, x) {
+    const draw = () => (x.key.startsWith("w:") ? drawWord(x.t) : drawFromTemplate(x.t, lv));
+    state.seen = state.seen || {};
+    const seen = state.seen[x.key] || [];
+    let best = null, bestAge = Infinity;
+    for (let i = 0; i < 40; i++) {
+      const q = draw(), h = sigHash(q), at = seen.indexOf(h);
+      if (at < 0) { best = q; best.__h = h; break; }
+      if (at < bestAge) { best = q; best.__h = h; bestAge = at; }
+    }
+    state.seen[x.key] = [...seen.filter((h) => h !== best.__h), best.__h].slice(-SEEN_MAX);
+    return best;
+  }
 
   let S = null; // いまの セッション
   function startWords(lv) {

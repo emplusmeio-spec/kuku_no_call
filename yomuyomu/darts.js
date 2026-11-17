@@ -6,10 +6,11 @@
 //   子どもの記録（users / rst_users）に wid を入れて つなぐ。九九とよむよむの 財布は、先生画面で 1つにまとめる。
 //
 // もらい方
-//   ログイン          … 1日 1本（九九・よむよむ 共通）
-//   銅（初めて）       … そのステージ／レベルで 1本
-//   銀（初めて）       … さらに 1本 ＋ ルーレット（銀）
-//   金（初めて）       … ルーレット（金＝銀の2倍）。初めての メダルが 金なら、銀ルーレットの かわりに 金ルーレット
+//   ログイン          … 1日 1本（九九で 1本、よむよむで 1本）
+//   銅（その日 初めて） … 1本
+//   銀（その日 初めて） … さらに 1本 ＋ ルーレット（銀）
+//   金（その日 初めて） … ルーレット（金＝銀の2倍）。その日 初めての メダルが 金なら、銀ルーレットの かわりに 金ルーレット
+//   「その日 初めて」は アプリごと（九九と よむよむで べつべつ）
 //   ルーレット         … 12マス。銀：1本×8・2本×3・5本×1 ／ 金：その2倍
 // 子どもが 自分で ふやせるのは 1回に 12本まで、もらった記録（claims）が ふえる ときだけ（ルールで 制限）。
 // 支払い（へらす）は 先生だけ。
@@ -72,17 +73,18 @@ const DARTS = (() => {
     return n;
   }
 
-  // ログイン：1日1本（九九・よむよむ 共通）
+  // ログイン：アプリごとに 1日1本
   async function login() {
-    const k = "login_" + today();
+    const k = "login_" + ctx.app + "_" + today();
     if (!wallet || has(k)) return 0;
     return Math.max(0, await give(1, [k], "ログイン"));
   }
 
-  // メダル：unit はステージ／レベル（例 "kuku_5"、"yomu_19"）。kind は "g" | "s" | "b"
-  //   銅（初）+1、銀（初）+1 と 銀ルーレット、金（初）金ルーレット（銀と同時に初めてなら 銀ルーレットの かわり）
-  async function medal(unit, kind) {
+  // メダル：kind は "g" | "s" | "b"。その日・その アプリで 初めての 銅・銀・金だけ
+  //   銅 +1、銀 +1 と 銀ルーレット、金 金ルーレット（銀と同時に初めてなら 銀ルーレットの かわり）
+  async function medal(kind) {
     if (!wallet) return { gained: 0, roulette: null };
+    const unit = ctx.app + "_" + today();
     let n = 0; const keys = []; let roulette = null;
     if (!has(unit + "_b")) { n++; keys.push(unit + "_b"); }
     if ((kind === "s" || kind === "g") && !has(unit + "_s")) {
@@ -135,10 +137,10 @@ const DARTS = (() => {
   }
 
   // 演習の おわりに：メダルの 下に もらった本数と いまの本数、ルーレット
-  async function resultBox(box, unit, kind) {
+  async function resultBox(box, kind) {
     if (!wallet) { box.innerHTML = ""; return; }
     box.innerHTML = '<div class="dt-box">…</div>';
-    const r = await medal(unit, kind);
+    const r = await medal(kind);
     const show = () => {
       const pend = pending();
       box.innerHTML = `<div class="dt-box">${r.gained ? `<div class="dt-get">🎯 ダーツ ＋${r.gained}本！</div>` : ""}<div class="dt-now">いま もっている ダーツ 🎯 <b>${balance()}</b>本</div>${pend.length ? `<button class="dt-btn">ルーレットに チャレンジ（${pend.length}）</button>` : ""}</div>`;

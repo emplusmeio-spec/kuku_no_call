@@ -319,6 +319,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="darts.js?v=1117"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -341,7 +342,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='11/16';
+const VER='11/17';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -367,7 +368,14 @@ async function loadKid(token,code){
   if(!d.exists)return false;
   TOKEN=token;ME=d.data();CUR=code||ME.inv;
   P=(ME.progress&&ME.progress.sp)?Object.assign(fresh(),ME.progress):fresh();setRes=[];
-  showOnly('play');start();boardSave();return true;
+  showOnly('play');start();boardSave();dartsStart();return true;
+}
+/* ダーツ（ごほうび。よむよむと 共通の 財布）: ログインで 1日1本 */
+function dartsStart(){
+  if(!window.DARTS||!db||!TOKEN)return;
+  DARTS.init({db,col:'users',token:TOKEN,me:ME,app:'kuku'}).then(()=>DARTS.login()).then(n=>{
+    if(n){const t=document.createElement('div');t.className='dt-box';t.style.cssText='position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:50;margin:0;white-space:nowrap;max-width:none';t.innerHTML=`<div class="dt-get">ログイン ボーナス 🎯 ＋${n}本！</div><div class="dt-now">いま もっている ダーツ <b>${DARTS.balance()}</b>本</div>`;document.body.appendChild(t);setTimeout(()=>t.remove(),3500)}
+  }).catch(()=>{});
 }
 async function boot(){
   const q=new URLSearchParams(location.search);
@@ -419,7 +427,7 @@ function registerScreen(code,inv,claimed){
       await db.collection('invites').doc(my).set({by:'user',parent:code,root,nick,created:ts}); // みんなの様子 用
     }catch(e){claimed=token;$('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     TOKEN=token;ME={nick,code:my,inv:code,root};CUR=code;setRes=[];
-    save();boardSave();showOnly('play');start();
+    save();boardSave();showOnly('play');start();dartsStart();
   };
 }
 /* しょうたい: 押すたびに 新しいコードを 1つ つくって 記録する */
@@ -560,7 +568,8 @@ async function teacherScreen(){
       html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">${r.id}　${count(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${kidURL(r.id)}</div><ul class="tree">${node(r.id)}</ul></div>`});
     html+=`<div class="rep"><h3>一覧（最終利用順）</h3><table class="tt"><tr><th>ニックネーム</th><th>コード</th><th>枝</th><th>ステージ</th><th>ぱっと見</th><th>最終</th><th>URL</th></tr>${active.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>{const c=codeOf(u);return `<tr><td>${esc(u.nick)}</td><td>${esc(c||'（以前の方式）')}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/81</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-u="${esc(urlOf(u))}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`九九ラボ ${u.nick} さんの URL\n${urlOf(u)}`)}">LINE</a></td></tr>`}).join('')}</table></div>
     <div class="rep"><h3>発行された招待の記録</h3><table class="tt"><tr><th>コード</th><th>発行した人</th><th>日付</th><th>使った子</th></tr>${invites.filter(i=>i.kind==='issued').sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0)).map(i=>{const u=userOf(i.id);return `<tr><td>${i.id}</td><td>${esc(i.nick||'')}（${esc(i.parent||'')}）</td><td>${fmt(i.created)}</td><td>${u?esc(u.nick):'未使用'}</td></tr>`}).join('')||'<tr><td colspan="4">まだ ありません</td></tr>'}</table></div></div>`;
-    T.innerHTML=html+'<div id="kidEdit"></div>';
+    T.innerHTML=html+'<div id="kidEdit"></div><div class="rep" id="dtPanel"></div>';
+    if(window.DARTS)DARTS.teacherPanel($('#dtPanel'),db).catch(e=>$('#dtPanel').innerHTML=`<p class="err">ダーツを よみこめません（ルールに darts を 追加したか たしかめてください）: ${esc(e.code||e.message)}</p>`);
     $('#tReload').onclick=dashboard;$('#tOut').onclick=()=>fbAuth.signOut();
     document.querySelectorAll('.board tr[data-id] td.nm').forEach(td=>td.onclick=()=>editKid(users.find(u=>u.id===td.parentElement.dataset.id)));
     document.querySelectorAll('.hoBtn').forEach(b=>b.onclick=()=>{navigator.clipboard?.writeText(b.dataset.u).then(()=>{b.textContent='コピーしました';setTimeout(()=>b.textContent='コピー',1500)}).catch(()=>{})});
@@ -817,8 +826,9 @@ function showResult(){
   const islandDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i));
   r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>ステージ ${P.stage+1} クリア！</h2><p>${cur().name} が じぶんのものに なった。</p>${islandDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}<p>ぱっと見で 見えた しき　${seenCount()} / 81</p><hr style="border:none;border-top:2px dashed var(--line)">`:'')+
   `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ かたまり ${SET-n} こ</p>
-  <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div>
+  <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの ステージへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}`;
+  if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'kuku_'+P.stage,kind);
   $('#nextSet').onclick=()=>{if(canNext){P.stage++;save()}setRes=[];start()};
   const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];start()};
 }

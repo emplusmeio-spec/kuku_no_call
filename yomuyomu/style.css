@@ -293,3 +293,5 @@ table.stum td small { color: var(--sub); line-height: 1.5; }
 .sheet svg.chart { border-color: #999; max-height: 70mm; }
 table.rec .nw { white-space: nowrap; }
 .passage.upper { font-size: 19px; line-height: 1.95; letter-spacing: .02em; }
+.testbar{background:#fff3cd;border:2px dashed #e0a800;border-radius:12px;padding:8px 10px;margin:6px 0;font-size:14px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.dtlogin{color:#e65100;font-weight:800}

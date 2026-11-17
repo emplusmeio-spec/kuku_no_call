@@ -1,7 +1,10 @@
 (() => {
   const app = document.getElementById("app");
   const fieldOf = (id) => FIELDS.find((f) => f.id === id);
-  const STORE = "rst-kids-progress-v3";
+  // ?test … テストプレイ：全レベル ひらく、記録は この端末の べつの 場所（本番の 記録・サーバーには さわらない）
+  const TEST = CLOUD.test;
+  const STORE = TEST ? "rst-kids-test" : "rst-kids-progress-v3";
+  let dartsLogin = 0; // きょう ログインで もらった ダーツ
 
   // ---------------- 記録 ----------------
   //   units[key] = { s: いまの連続正解, w: 一度でもまちがえた, m: マスター, n: こたえた回数 }
@@ -40,7 +43,7 @@
   //（下の レベルを とばして はじめた子が、やっていない 下の ことばで 止まらないように）
   const reqWords = (lv) => wordUnits(lv).filter((x) => x.t.lv === lv || (U(x.key).n > 0 && !U(x.key).m));
   const levelDone = (lv) => [...reqWords(lv), ...readUnits(lv)].every((x) => U(x.key).m);
-  const isOpen = (lv) => { const i = levelNums.indexOf(lv); return i <= 0 || !!state.passed[levelNums[i - 1]]; };
+  const isOpen = (lv) => { if (TEST) return true; const i = levelNums.indexOf(lv); return i <= 0 || !!state.passed[levelNums[i - 1]]; };
   if (!levelNums.includes(state.lv)) state.lv = 1;
 
   // ---------------- 表示の道具 ----------------
@@ -76,7 +79,14 @@
     const L = LEVELS.find((l) => l.lv === lv);
     app.innerHTML = "";
     app.append(el(`<h1 class="title">よむよむ　チャレンジ</h1>`));
-    if (CLOUD.nick) app.append(el(`<p class="lead who">${esc(CLOUD.nick)}　さん</p>`));
+    if (TEST) {
+      const tb = el(`<div class="testbar">テストプレイ（全レベル ひらいています・記録は この端末だけ）<button class="go sm ghost">記録を けす</button></div>`);
+      tb.querySelector("button").onclick = () => ask("テストの 記録を ぜんぶ けしますか？", "けす", () => { state = fresh(); save(); home(); });
+      app.append(tb);
+    }
+    if (CLOUD.nick) app.append(el(`<p class="lead who">${esc(CLOUD.nick)}　さん　${window.DARTS ? DARTS.chipHTML() : ""}</p>`));
+    if (dartsLogin) { app.append(el(`<p class="lead dtlogin">ログイン ボーナス　🎯 ＋${dartsLogin}本！</p>`)); dartsLogin = 0; }
+    if (CLOUD.online && window.DARTS) { const db = el(`<div></div>`); app.append(db); DARTS.homeBox(db, home); }
 
     const ladder = el(`<div class="ladder"></div>`);
     for (let n = 1; n <= MAX_LEVEL; n++) {
@@ -295,9 +305,11 @@
       <h2>${S.list.length}もん　ちゅう　${S.score}もん　せいかい！</h2>
       <p class="lead">${{ g: "ぜんぶ　せいかい！", s: "よく　よめて　いるね。", b: "まちがえた　ところが　つぎの　れんしゅう。" }[kind]}</p>
       ${shelf()}
+      <div id="dtBox"></div>
       ${S.newly.length ? `<p class="lead">${S.newly.map(() => star(true, true)).join("")}<br>ほしを　${S.newly.length}こ　ゲット！</p>` : ""}
       <p class="lead">${passedNow ? (next ? `レベル${next}に　すすめるよ。` : "つぎの　レベルは　じゅんびちゅう。") : S.review ? "ぜんぶ　クリアずみ。ふくしゅう　できたね。" : "この　ちょうしで　つづけよう。"}</p>
     </div>`));
+    if (CLOUD.online && window.DARTS) DARTS.resultBox(app.querySelector("#dtBox"), "yomu_" + lv, kind);
     if (passedNow && next) {
       const n = el(`<button class="allbtn">レベル${next}へ　すすむ</button>`);
       n.onclick = () => { state.lv = next; save(); home(); };
@@ -520,5 +532,8 @@
     if (!levelNums.includes(state.lv)) state.lv = 1;
     home();
     if (CLOUD.online) save(); // 先生画面・みんなの様子の ★の数を すぐ そろえる
+    // ダーツ：財布を よみこんで、きょうの ログイン ボーナス
+    const dc = CLOUD.dartsCtx && CLOUD.dartsCtx();
+    if (dc && window.DARTS) DARTS.init(dc).then(() => DARTS.login()).then((n) => { dartsLogin = n || 0; if (app.querySelector(".lvhead")) home(); }).catch(() => {});
   });
 })();

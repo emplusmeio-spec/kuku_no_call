@@ -90,10 +90,10 @@ const CLOUD = (() => {
       }
       const root = inv.by === "teacher" ? code : inv.root || code;
       try {
-        await db.collection(COL.users).doc(token).set({ nick, code: my, inv: code, root, progress: null, lv: 1, passed: [], created: ts(), updated: ts() });
+        await db.collection(COL.users).doc(token).set({ nick, code: my, inv: code, root, progress: null, lv: 1, passed: [], ...(inv.wid ? { wid: inv.wid } : {}), created: ts(), updated: ts() });
         await db.collection(COL.invites).doc(my).set({ by: "user", parent: code, root, nick, created: ts() }); // みんなの様子 用
       } catch (e) { claimed = token; return err("とうろくに しっぱいしました。電波を たしかめて もういちど。"); }
-      TOKEN = token; ME = { nick, code: my, inv: code, root }; CUR = code;
+      TOKEN = token; ME = { nick, code: my, inv: code, root, ...(inv.wid ? { wid: inv.wid } : {}) }; CUR = code;
       history.replaceState(null, "", `${location.pathname}?i=${code}`);
       onReadyCb(null);
       boardSave(null);
@@ -104,6 +104,7 @@ const CLOUD = (() => {
     onReadyCb = onReady;
     const q = new URLSearchParams(location.search);
     if (q.has("teacher")) return teacherScreen();
+    if (q.has("test")) return onReady(null); // テストプレイ：端末の中だけ（本番の 記録には さわらない）
     if (!db) return onReady(null); // 端末の中だけで動く
     const code = (q.get("i") || "").toUpperCase();
     try {
@@ -270,12 +271,15 @@ const CLOUD = (() => {
       h += `<h3 class="sec">一覧（さいごに つかった順）</h3><div class="board"><table class="rec"><tr><th>ニックネーム</th><th>レベル</th><th>★</th><th>まちがえた ことば（まだ クリア していない）</th><th>この1週間</th><th>さいご</th><th>この子の URL</th></tr>
         ${users.sort((x, y) => (y.updated?.seconds || 0) - (x.updated?.seconds || 0)).map((u) => { const url = kidURL(codeOf(u)); return `<tr><td><button class="go sm ghost" data-kid="${esc(u.id)}">${esc(u.nick)}</button></td><td>${u.lv || 1}</td><td>${u.done || 0}/${u.all || 0}</td><td>${esc((u.weak || []).join("・")) || "-"}</td><td>${u.week || 0}もん</td><td>${fmt(u.updated)}</td><td><button class="go sm ghost" data-copy="${esc(url)}">コピー</button> <a class="go sm ghost" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族いがいに おくらない）\n${url}`)}">LINE</a></td></tr>`; }).join("")}</table></div>
         <p class="hint">この子の URL は その子の かぎ です。保護者本人にだけ おくってください。名前を おすと、その子の がんばりグラフと つまずきが 出ます。</p>
-        <div id="kidDetail"></div>`;
+        <div id="kidDetail"></div>
+        <div id="dtPanel" class="rep"></div>
+        <p class="hint"><a href="${SITE}?test" target="_blank" rel="noopener">テストプレイ（全レベル ひらく・記録は この端末だけ）</a></p>`;
       const cs = INS.classStumbles(users.map((u) => u.progress));
       h += `<h3 class="sec">クラスで つまずきが 多い ところ</h3>${cs.length ? `<table class="rec stum"><tr><th>ところ</th><th>つまずいた 子</th><th>まちがい／こたえた かず</th></tr>${cs.map((r) => `<tr><td><b>${esc(r.name)}</b>${r.note ? `<br><small>${esc(r.note)}</small>` : ""}</td><td>${r.kids}人</td><td>${r.x}／${r.n}</td></tr>`).join("")}</table>` : '<p class="hint">まだ まちがいの きろくは ありません。</p>'}</div>`;
       a.innerHTML = h;
       bindCopy(a);
       a.querySelector("#tReload").onclick = dashboard;
+      if (window.DARTS) DARTS.teacherPanel(a.querySelector("#dtPanel"), db).catch((e) => (a.querySelector("#dtPanel").innerHTML = `<p class="err">ダーツを よみこめません：${esc(e.code || e.message)}（ルールに darts を 追加したか たしかめてください）</p>`));
       a.querySelectorAll("[data-kid]").forEach((btn) => (btn.onclick = () => {
         const u = users.find((x) => x.id === btn.dataset.kid), p = u.progress || {};
         const box = a.querySelector("#kidDetail");
@@ -308,6 +312,8 @@ const CLOUD = (() => {
   return {
     get online() { return !!(db && TOKEN); },
     get nick() { return ME ? ME.nick : ""; },
+    get test() { return new URLSearchParams(location.search).has("test"); },
+    dartsCtx: () => (db && TOKEN ? { db, col: COL.users, token: TOKEN, me: ME, app: "yomu" } : null),
     boot, save, renderMates, renderInvite, handoverHTML, bindCopy,
   };
 })();

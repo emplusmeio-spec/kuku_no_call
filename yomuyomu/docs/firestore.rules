@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function teacher() {
+      return request.auth != null && request.auth.token.email == 'terauchi@em-plus.net';
+    }
+
+    // ================= 九九ラボ（ここは いまの ルールと 同じ。かえない） =================
+    // 子どもの記録。ドキュメントIDが秘密のトークン（ひきつぎURL）。IDを知っている人だけが読み書きできる
+    match /users/{token} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if request.resource.data.keys().hasAll(['nick','code','inv','root','progress'])
+                    && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
+                    && request.resource.data.code is string && request.resource.data.code.size() == 6;
+      allow update: if request.resource.data.code == resource.data.code
+                    && request.resource.data.inv == resource.data.inv
+                    && request.resource.data.root == resource.data.root;
+      allow delete: if teacher();
+    }
+    // みんなの様子（生徒も読める表示用）。ドキュメントIDは公開の招待コード。鍵（ひきつぎURL）は入らない
+    match /board/{code} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['nick','root','stage','cl','seen','updated'])
+                    && exists(/databases/$(database)/documents/invites/$(code))
+                    && get(/databases/$(database)/documents/invites/$(code)).data.by == 'user'
+                    && request.resource.data.nick == get(/databases/$(database)/documents/invites/$(code)).data.nick
+                    && request.resource.data.root == get(/databases/$(database)/documents/invites/$(code)).data.root
+                    && request.resource.data.stage is int && request.resource.data.stage >= 0 && request.resource.data.stage < 30
+                    && request.resource.data.cl is list && request.resource.data.cl.size() <= 30
+                    && request.resource.data.seen is int && request.resource.data.seen >= 0 && request.resource.data.seen <= 81;
+      allow delete: if teacher();
+    }
+    // 招待コード。先生が発行するもの(by: teacher)と、登録した人が自動で持つもの(by: user)
+    match /invites/{code} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if (request.resource.data.by == 'user'
+                        && request.resource.data.keys().hasAll(['by','parent','root','nick'])
+                        && request.resource.data.nick is string && request.resource.data.nick.size() <= 20)
+                    || (teacher() && request.resource.data.by == 'teacher');
+      // その URL を はじめて開いた子が 登録するとき、先に コードを 押さえる（1コード 1人。2人目は 通らない）
+      allow update: if teacher()
+                    || (resource.data.get('uid', null) == null
+                        && resource.data.get('cands', null) == null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid','usedAt'])
+                        && request.resource.data.uid is string);
+      allow delete: if teacher();
+    }
+
+    // ================= よむよむ チャレンジ（ここから 追加） =================
+    // 子どもの記録。九九ラボと同じく、ドキュメントIDが ひきつぎURL の鍵
+    match /rst_users/{token} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if request.resource.data.keys().hasAll(['nick','code','inv','root','progress'])
+                    && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
+                    && request.resource.data.code is string && request.resource.data.code.size() == 6
+                    && exists(/databases/$(database)/documents/rst_invites/$(request.resource.data.inv));
+      allow update: if request.resource.data.code == resource.data.code
+                    && request.resource.data.inv == resource.data.inv
+                    && request.resource.data.root == resource.data.root;
+      allow delete: if teacher();
+    }
+    // みんなの様子（ニックネーム・レベル・★の数だけ。鍵は入らない）
+    match /rst_board/{code} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['nick','root','lv','passed','done','all','updated'])
+                    && exists(/databases/$(database)/documents/rst_invites/$(code))
+                    && get(/databases/$(database)/documents/rst_invites/$(code)).data.by == 'user'
+                    && request.resource.data.nick == get(/databases/$(database)/documents/rst_invites/$(code)).data.nick
+                    && request.resource.data.root == get(/databases/$(database)/documents/rst_invites/$(code)).data.root
+                    && request.resource.data.lv is int && request.resource.data.lv >= 1 && request.resource.data.lv <= 30
+                    && request.resource.data.passed is list && request.resource.data.passed.size() <= 30
+                    && request.resource.data.done is int && request.resource.data.all is int;
+      allow delete: if teacher();
+    }
+    // しょうたいコード（先生が発行する by: teacher ／ 登録した子が持つ by: user）
+    match /rst_invites/{code} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if (request.resource.data.by == 'user'
+                        && request.resource.data.keys().hasAll(['by','parent','root','nick'])
+                        && request.resource.data.nick is string && request.resource.data.nick.size() <= 20)
+                    || (teacher() && request.resource.data.by == 'teacher');
+      // その URL を はじめて ひらいた子が 登録するとき、さきに コードを おさえる（1コード 1人。2人目は とおらない）
+      allow update: if teacher()
+                    || (resource.data.get('uid', null) == null
+                        && resource.data.get('cands', null) == null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid','usedAt'])
+                        && request.resource.data.uid is string);
+      allow delete: if teacher();
+    }
+
+    // ================= ダーツ（ごほうび。九九ラボ・よむよむ 共通） =================
+    // 財布の ID（wid）は 子どもの 記録（users / rst_users）の 中だけに ある ひみつの ID
+    match /darts/{wid} {
+      allow get: if true;
+      allow list, delete: if teacher();
+      // 子どもが はじめて ひらいた とき、からの 財布を つくる
+      allow create: if teacher()
+                    || (request.resource.data.balance == 0 && request.resource.data.earned == 0 && request.resource.data.paid == 0
+                        && request.resource.data.claims.size() == 0 && request.resource.data.log.size() == 0);
+      // 子どもは もらう だけ：1回に 0〜12本、もらった記録（claims）が ふえる ときだけ。へらす（支払い）は 先生だけ
+      allow update: if teacher()
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance','earned','claims','log','updated'])
+                        && request.resource.data.balance - resource.data.balance >= 0
+                        && request.resource.data.balance - resource.data.balance <= 12
+                        && request.resource.data.earned - resource.data.earned == request.resource.data.balance - resource.data.balance
+                        && request.resource.data.claims.keys().hasAll(resource.data.claims.keys())
+                        && request.resource.data.claims.size() > resource.data.claims.size()
+                        && request.resource.data.claims.size() <= resource.data.claims.size() + 4
+                        && request.resource.data.log.size() <= resource.data.log.size() + 1);
+    }
+  }
+}

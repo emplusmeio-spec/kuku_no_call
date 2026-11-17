@@ -319,7 +319,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="darts.js?v=1117c"></script>
+<script src="darts.js?v=1117e"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -828,7 +828,7 @@ function showResult(){
   `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ かたまり ${SET-n} こ</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの ステージへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}`;
-  if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),kind);
+  if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'kuku_'+P.stage,kind);
   $('#nextSet').onclick=()=>{if(canNext){P.stage++;save()}setRes=[];start()};
   const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];start()};
 }

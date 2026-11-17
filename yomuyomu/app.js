@@ -325,7 +325,7 @@
       ${S.newly.length ? `<p class="lead">${S.newly.map(() => star(true, true)).join("")}<br>ほしを　${S.newly.length}こ　ゲット！</p>` : ""}
       <p class="lead">${passedNow ? (next ? `レベル${next}に　すすめるよ。` : "つぎの　レベルは　じゅんびちゅう。") : S.review ? "ぜんぶ　クリアずみ。ふくしゅう　できたね。" : "この　ちょうしで　つづけよう。"}</p>
     </div>`));
-    if (CLOUD.online && window.DARTS) DARTS.resultBox(app.querySelector("#dtBox"), kind);
+    if (CLOUD.online && window.DARTS) DARTS.resultBox(app.querySelector("#dtBox"), "yomu_" + lv, kind);
     if (passedNow && next) {
       const n = el(`<button class="allbtn">レベル${next}へ　すすむ</button>`);
       n.onclick = () => { state.lv = next; save(); home(); };

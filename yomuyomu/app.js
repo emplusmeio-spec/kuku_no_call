@@ -41,7 +41,8 @@
   const wordsTried = (lv) => newTermsAt(lv).every((t) => U(`w:${t.id}`).n > 0);
   // このレベルの 新しい ことば ＋ 前に 手を つけたのに まだ クリア していない ことば
   //（下の レベルを とばして はじめた子が、やっていない 下の ことばで 止まらないように）
-  const reqWords = (lv) => wordUnits(lv).filter((x) => x.t.lv === lv || (U(x.key).n > 0 && !U(x.key).m));
+  // テストプレイ（?test）では 持ちこさない（レベルを とびとびに 見るので、前に さわった ことばが まざらないように）
+  const reqWords = (lv) => wordUnits(lv).filter((x) => x.t.lv === lv || (!TEST && U(x.key).n > 0 && !U(x.key).m));
   const levelDone = (lv) => [...reqWords(lv), ...readUnits(lv)].every((x) => U(x.key).m);
   const isOpen = (lv) => { if (TEST) return true; const i = levelNums.indexOf(lv); return i <= 0 || !!state.passed[levelNums[i - 1]]; };
   if (!levelNums.includes(state.lv)) state.lv = 1;
@@ -205,7 +206,7 @@
   function startWords(lv) {
     const all = wordUnits(lv);
     const fresh = all.filter((x) => x.t.lv === lv && !U(x.key).m);
-    const old = all.filter((x) => x.t.lv < lv && U(x.key).n > 0 && !U(x.key).m); // 前に 手を つけて まだの ことばだけ
+    const old = all.filter((x) => !TEST && x.t.lv < lv && U(x.key).n > 0 && !U(x.key).m); // 前に 手を つけて まだの ことばだけ（テストプレイでは 持ちこさない）
     // のこりが なければ、このレベルの ことばを ふくしゅう
     const p = plan(fresh.length || old.length ? [...fresh, ...old] : all.filter((x) => x.t.lv === lv), Math.max(WORD_SESSION, fresh.length));
     begin(lv, "ことばチェック", p);

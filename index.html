@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>九九ラボ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#42a5f5">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="九九ラボ">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
 <style>
 /* layout: 縦持ちタブレットで1画面。上=絵(たて×よこ, 5の仕切り線, 点はその場で5・10のかたまりになる), 中=たて・よこ・こたえ, 下=4×4テンキー */
@@ -293,7 +300,6 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
     <button class="btn ghost" id="grBtn">がんばり</button>
     <button class="btn ghost" id="matesBtn">みんなの様子</button>
     <button class="btn ghost" id="invBtn">しょうたい</button>
-    <a class="btn ghost" id="blogBtn" href="https://empmeio.blogspot.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">塾のブログ</a>
   </div>
   <div id="invBox" hidden></div>
 </div>
@@ -320,6 +326,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="darts.js?v=1117e"></script>
+<script src="pwa.js?v=1119"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -342,7 +349,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='11/17';
+const VER='11/19';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -431,7 +438,8 @@ function registerScreen(code,inv,claimed){
   };
 }
 /* しょうたい: 押すたびに 新しいコードを 1つ つくって 記録する */
-$('#invBtn').onclick=async()=>{
+$('#invBtn').onclick=()=>window.PWA?PWA.gate(invOpen):invOpen(); // LINE へ 出るので おうちの方の 確認
+async function invOpen(){
   const b=$('#invBox');b.hidden=false;
   if(!ME||!CUR){b.innerHTML='<div class="rep">しょうたいは URL から ひらいた ときに つかえます。</div>';return}
   b.innerHTML='<div class="rep">つくっています…</div>';
@@ -948,7 +956,7 @@ function homeworkSheet(stageIdx){
 }
 /* adult */
 let adultOn=false;
-$('#adultBtn').onclick=()=>{adultOn=!adultOn;$('#adult').hidden=!adultOn;renderAdult()};
+$('#adultBtn').onclick=()=>{const t=()=>{adultOn=!adultOn;$('#adult').hidden=!adultOn;renderAdult()};if(!adultOn&&window.PWA)PWA.gate(t);else t()}; // LINE・ブログへ 出るので おうちの方の 確認
 function renderAdult(){
   if(!adultOn)return;const a=$('#adult');
   const chips=cur().facts.map(([x,y])=>{const v=sp(key(x,y));return `<span class="chip ${v>=need()?'m':''}">${x}×${y} ${v}/${need()}</span>`}).join('');
@@ -963,7 +971,10 @@ function renderAdult(){
   <p>このステージの式（${cur().review?'まとめ: 各1回':'各2回連続'}のぱっと見でクリア）</p><div class="chips">${chips}</div>
   <p>復習で落ちた式</p><div class="chips">${weak}</div>
   <table><tr><th>しき</th><th>時間</th><th>回数</th><th>操作</th><th>結果</th></tr>${rows||'<tr><td colspan="5">まだ記録なし</td></tr>'}</table>
-  <button class="btn ghost sm" id="resetAll" style="margin-top:6px">すべて最初から</button>`;
+  <button class="btn ghost sm" id="resetAll" style="margin-top:6px">すべて最初から</button>
+  <p style="margin-top:10px"><a class="btn ghost sm" href="${BLOG}" target="_blank" rel="noopener" style="text-decoration:none">塾のブログ</a></p>
+  ${window.PWA?`<div class="rep"><h3>ホーム画面アプリ・ほかの サイトに 行けないように</h3>${PWA.guideHTML('九九ラボ')}</div>`:''}`;
+  if(window.PWA)PWA.bind(a);
   $('#lim').onchange=e=>{P.limit=+e.target.value||6;save()};
   $('#nameIn').onchange=e=>{P.name=e.target.value.trim();save()};
   const hc=$('#hoCopy');if(hc)hc.onclick=()=>navigator.clipboard?.writeText(kidURL(CUR)).then(()=>alert_('コピーしました')).catch(()=>{});

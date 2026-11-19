@@ -146,11 +146,11 @@
     if (CLOUD.online) {
       const row = el(`<div class="pbar center"><button class="go sm ghost" id="matesBtn">みんなの　ようす</button><button class="go sm ghost" id="invBtn">ともだちを　しょうたい</button></div>`);
       row.querySelector("#matesBtn").onclick = mates;
-      row.querySelector("#invBtn").onclick = invite;
+      row.querySelector("#invBtn").onclick = () => (window.PWA ? PWA.gate(invite) : invite()); // LINE へ 出る ので おうちの方の 確認
       app.append(row);
     }
     const rec = el(`<button class="link">おうちの方・先生へ：きろく・れんらく</button>`);
-    rec.onclick = () => records(lv);
+    rec.onclick = () => (window.PWA ? PWA.gate(() => records(lv)) : records(lv)); // LINE・印刷が あるので おうちの方の 確認
     app.append(rec);
     app.append(el(`<p class="ver">版 ${APP_VER}</p>`));
   }
@@ -364,6 +364,7 @@
       CLOUD.bindCopy(box);
       app.append(box);
     }
+    if (window.PWA) { const g = el(`<div><h3 class="sec">ホーム画面アプリ・ほかの サイトに 行けないように</h3>${PWA.guideHTML("よむよむ")}</div>`); app.append(g); PWA.bind(g); }
     const pr = el(`<div><h3 class="sec">いんさつ（じぶんで おいた サイトで つかえます）</h3><div class="pbar"><button class="go sm" id="prRep">おうちへの おしらせ（A4）</button><button class="go sm ghost" id="prHw">このレベルの しゅくだい</button><button class="go sm ghost" id="prHw3">しゅくだい 3まい</button></div><p class="err" id="prErr"></p></div>`);
     pr.querySelector("#prRep").onclick = () => printSheets(reportSheet(), pr);
     pr.querySelector("#prHw").onclick = () => printSheets(homeworkSheet(lv), pr);

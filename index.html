@@ -99,6 +99,16 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .numin.active{border-color:var(--dot);box-shadow:0 0 0 4px color-mix(in srgb,var(--dot) 25%,transparent)}
 .numin.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--paper))}
 .numin.ng{border-color:var(--ng);background:color-mix(in srgb,var(--ng) 12%,var(--paper))}
+.numin.rej{border-color:var(--ng)!important;background:#ffcdd2!important;animation:rejshake .2s}
+@keyframes rejshake{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+/* こたえた 直後の 大きな 丸（みどり＝ぱっと見、きいろ＝せいかい） */
+.mark{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;animation:markfade .9s ease-out forwards}
+.mark .mk{width:min(58vw,300px);height:min(58vw,300px);border-radius:50%;border:min(7vw,36px) solid;box-sizing:border-box;background:color-mix(in srgb,var(--paper) 55%,transparent)}
+.mark.g .mk{border-color:#2e9c6a}.mark.y .mk{border-color:#f2c230}
+.mark .mq{font-family:var(--font-display);font-weight:900;font-size:clamp(28px,7vw,50px);margin-top:10px;color:var(--ink);background:var(--paper);padding:2px 16px;border-radius:14px;font-variant-numeric:tabular-nums}
+.mark .ms{font-weight:800;font-size:clamp(16px,3vw,22px);margin-top:4px;background:var(--paper);padding:0 10px;border-radius:10px}
+@keyframes markfade{0%{transform:scale(.6);opacity:0}18%{transform:scale(1);opacity:1}75%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.mark{animation:none}}
 .msgbox{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;z-index:2;gap:2px}
 .msgbox.has{background:color-mix(in srgb,var(--paper) 82%,transparent);border-radius:12px}
 .msgbox .err:empty,.msgbox .verdict:empty,.msgbox .eqline:empty{display:none}
@@ -367,7 +377,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='11/20';
+const VER='11/20b';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -683,7 +693,14 @@ function earlierFacts(){const m=new Map();for(let i=0;i<P.stage;i++)STAGES[i].fa
 let A,B,qStart,phase,lastKey=null,setRes=[],isReview=false,active=null,qToken=0,attempts=0;
 /* MODE: normal ふつう／fix ステージ終わりの まちがえた しきを かたまりで 1回ずつ／lvup レベルアップ チャレンジ（あたらしい しき 2つを 3回 つづけて）
    P.fix=[[a,b],…]（のこり）・P.fixTotal、P.lvup={to:つぎの ステージ, facts:[[a,b],…], st:{key:連続}} は 記録に のこり、ひらきなおしても つづきから */
-let MODE='normal',setFacts=[];
+let MODE='normal',setFacts=[],rejects=0; // rejects：正しくない 数字を 入れようと した 回数（1回 0.1びょう たす）
+const MARK_MS=900;
+function showMark(green,sub,then){
+  const o=el('div','mark '+(green?'g':'y'));o.innerHTML=`<div class="mk"></div><div class="mq">${A} × ${B} = ${A*B}</div>${sub?`<div class="ms">${sub}</div>`:''}`;
+  document.body.appendChild(o);setTimeout(()=>{o.remove();then()},MARK_MS);
+}
+const expOf=x=>String({inA:A,inB:B,inC:A*B}[x]);
+const answersFull=()=>['inA','inB','inC'].every(x=>vals[x]===expOf(x));
 const LVUP_NEED=3;
 const lvRemain=()=>P.lvup?P.lvup.facts.reduce((n,f)=>n+Math.max(0,LVUP_NEED-(P.lvup.st[key(f[0],f[1])]||0)),0):0;
 function newFactsOf(i){const old=new Set();for(let j=0;j<i;j++)STAGES[j].facts.forEach(([a,b])=>old.add(key(a,b)));return STAGES[i].facts.filter(([a,b])=>!old.has(key(a,b)))}
@@ -695,7 +712,7 @@ function overlay(title,sub,kind,then,btn){
 /* かたまりが できたか：ぜんぶの 点が かたまりに なって いて、となりどうしの 5と 5が のこって いない */
 function buildCheck(){
   if(groups.reduce((n,g)=>n+g.size,0)<A*B)return 'まだ かたまりに なって いない 点が あるよ。点を おして かたまりに しよう';
-  const f=groups.filter(g=>g.size===5);
+  const f=groups.filter(g=>g.size===5&&!g.corner);
   if(f.some(g=>f.some(h=>h.id!==g.id&&adjacentG(g,h))))return 'となりどうしの 5と 5は くっつけて 10に しよう（5を おして はずして、もういちど おす）';
   return '';
 }
@@ -719,9 +736,32 @@ const adjacentG=(g1,g2)=>[...g1.cells].some(x=>touches(g2,x));
 function newGroup(cells){const g={id:gid++,cells:new Set(cells),parts:[cells.slice()],size:cells.length};groups.push(g);return g}
 function mergeIfFive(g){
   if(g.size!==5)return;
-  const other=groups.filter(x=>x.size===5&&x.id!==g.id&&adjacentG(g,x)).sort((a,b)=>b.id-a.id)[0];
+  if(g.corner)return;
+  const other=groups.filter(x=>x.size===5&&!x.corner&&x.id!==g.id&&adjacentG(g,x)).sort((a,b)=>b.id-a.id)[0];
   if(!other)return;
   g.cells.forEach(c=>other.cells.add(c));other.parts.push(...g.parts);other.size=10;groups=groups.filter(x=>x.id!==g.id);opsLog.push('⑩');
+}
+/* 右下の すみ（たても よこも 5に たりない ところ）
+   ・3×3、4×4 の 正方形は そのまま 1つ（3×8 → 10と 5と 9、4×9 → 10と 10と 16）
+   ・3×4 などは まず 左上の 正方形、のこりの ほそい ところは もう1つ
+   ・ほそい ところ（はばが 2いか）で 5より おおきい ときは「5と のこり」に わける（8 → 5と 3） */
+function splitFive(cells){
+  const rs=new Set(cells.map(i=>Math.floor(i/B))),cs=new Set(cells.map(i=>i%B));
+  const wide=cs.size>=rs.size;
+  const ord=cells.slice().sort((x,y)=>wide?(Math.floor(x/B)-Math.floor(y/B))||(x%B-y%B):(x%B-y%B)||(Math.floor(x/B)-Math.floor(y/B)));
+  const parts=ord.length>5?[ord.slice(0,5),ord.slice(5)]:[ord];
+  parts.forEach(pc=>{const g=newGroup(pc);g.corner=true});
+}
+function tapCorner(){
+  const r0=A-A%5,c0=B-B%5,h=A%5,w=B%5,n=Math.min(h,w);
+  const freeIn=()=>{const o=[];for(let rr=r0;rr<A;rr++)for(let cc=c0;cc<B;cc++){const i=rr*B+cc;if(!groupAt(i))o.push(i)}return o};
+  if(n>=3){
+    const sq=[];let ok=true;
+    for(let rr=0;rr<n;rr++)for(let cc=0;cc<n;cc++){const i=(r0+rr)*B+(c0+cc);if(groupAt(i))ok=false;sq.push(i)}
+    if(ok){const g=newGroup(sq);g.corner=true;opsLog.push('■'+sq.length);return}
+  }
+  const rest=freeIn();if(!rest.length)return;
+  splitFive(rest);opsLog.push('□');
 }
 function tapCell(idx){
   if(phase!=='input')return;
@@ -729,26 +769,14 @@ function tapCell(idx){
   if(g){
     groups=groups.filter(x=>x.id!==g.id);
     if(g.size===10&&g.parts.length>1){g.parts.forEach(p=>newGroup(p));opsLog.push('÷')}else opsLog.push('←');
-    drawGrid();return}
-  const u=cellUnit[idx];
-  if(u>=0){const ng=newGroup(units[u]);opsLog.push('5');mergeIfFive(ng);drawGrid();return}
-  /* ばら */
-  const grow=groups.filter(x=>x.size<10&&touches(x,idx)).sort((a,b)=>b.id-a.id)[0];
-  if(grow){grow.cells.add(idx);grow.parts.push([idx]);grow.size++;opsLog.push('+1');mergeIfFive(grow);drawGrid();return}
-  const r0=A-A%5,c0=B-B%5,h=A%5,w=B%5,r=Math.floor(idx/B),c=idx%B;
-  let cells=[];
-  if(Math.min(h,w)<=2){
-    for(let rr=r0;rr<A;rr++)for(let cc=c0;cc<B;cc++){const i=rr*B+cc;if(!groupAt(i))cells.push(i)}
-    opsLog.push('□');
   }else{
-    let n=Math.min(h-(r-r0),w-(c-c0));
-    for(;n>=1;n--){cells=[];let ok=true;
-      for(let rr=0;rr<n&&ok;rr++)for(let cc=0;cc<n;cc++){const i=(r+rr)*B+(c+cc);if(groupAt(i)){ok=false;break}cells.push(i)}
-      if(ok)break}
-    opsLog.push(cells.length===1?'1':'■'+cells.length);
+    const u=cellUnit[idx];
+    if(u>=0){const ng=newGroup(units[u]);opsLog.push('5');mergeIfFive(ng)}
+    else tapCorner();
   }
-  if(!cells.length)return;
-  const ng=newGroup(cells);mergeIfFive(ng);drawGrid();
+  drawGrid();
+  // かたまりづくりでは、こたえが 入って いて かたまりが できたら そのまま はんてい
+  if(MODE!=='normal'&&answersFull()&&!buildCheck())judge();
 }
 function sizeDots(){
   const d=`clamp(14px, min(${(76/Math.max(B,5)).toFixed(2)}vw, ${(26/Math.max(A,3)).toFixed(2)}vh), 48px)`;
@@ -818,10 +846,13 @@ function clearErr(){$('#err').textContent='';['inA','inB','inC'].forEach(x=>$('#
 function typeKey(k){
   if(phase!=='input'||!active)return;clearErr();
   if(k==='del'){vals[active]=vals[active].slice(0,-1);showVals();return}
-  const max=+$('#'+active).dataset.max;
-  if(vals[active].length>=max)vals[active]='';
+  // タッチミス よけ：正しくない 数字は 一瞬 赤く して 入れない（0.1びょう たす）
+  const exp=expOf(active);
+  if(vals[active].length>=exp.length)return;
+  if(exp[vals[active].length]!==k){rejects++;qStart-=100;const e=$('#'+active);e.classList.remove('rej');void e.offsetWidth;e.classList.add('rej');setTimeout(()=>e.classList.remove('rej'),260);return}
   vals[active]+=k;showVals();
-  if(active!=='inC'&&vals[active].length>=max)setActive(active==='inA'?'inB':'inC');
+  if(vals[active].length>=exp.length&&active!=='inC'){const nx=['inA','inB','inC'].find(x=>vals[x].length<expOf(x).length);if(nx)setActive(nx)}
+  if(answersFull())judge(); // ぜんぶ 入ったら すぐ はんてい（けってい ボタンは いらない）
 }
 function buildPad(){
   const w=$('#padwrap');w.innerHTML='';const pad=el('div','pad');pad.id='pad';
@@ -833,7 +864,7 @@ function buildPad(){
   w.appendChild(pad);
 }
 function start(){
-  [A,B]=pick();lastKey=key(A,B);renderProg();phase='ready';attempts=0;
+  [A,B]=pick();lastKey=key(A,B);renderProg();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;
   vals.inA='';vals.inB='';vals.inC='';showVals();
   $('#inA').dataset.max=A>=10?2:1;
@@ -867,16 +898,14 @@ function judge(){
     const first=['inA','inB','inC'].find(x=>$('#'+x).classList.contains('ng'));vals[first]='';showVals();setActive(first);
     return}
   phase='shown';
-  const used=opsLog.length>0,pass=fast&&!used&&attempts===1;
+  const used=opsLog.length>0,pass=fast&&!used;
   ['inA','inB','inC'].forEach(x=>{$('#'+x).classList.remove('active');$('#'+x).classList.add('ok')});
-  P.hist.push({k,t:tenths,pass,used,att:attempts,r:isReview,ops:opsLog.join(''),at:Date.now()});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  P.hist.push({k,t:tenths,pass,used,att:attempts,rej:rejects,r:isReview,ops:opsLog.join(''),at:Date.now()});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(pass){if(isReview)delete P.weak[k];else setSp(k,sp(k)+1);P.seen[k]=true}else{if(isReview)P.weak[k]=true;else setSp(k,0)}
   P.days[today()]=(P.days[today()]||0)+1;
   save();
-  const v=$('#verdict');v.className='verdict ok';
-  v.innerHTML=(pass?'せいかい！':used?'せいかい！ かたまりで 見えた':attempts>1?'せいかい！':'せいかい！')+`<span class="tchip">${(tenths/10).toFixed(1)}びょう</span>`;
-  $('#eqline').textContent=`${A} × ${B} = ${A*B}`;
-  $('#pad').classList.add('locked');const go=$('#go');go.textContent='つぎへ';go.onclick=()=>finishItem(pass?'p':'o');
+  $('#pad').classList.add('locked');
+  showMark(pass,'',()=>finishItem(pass?'p':'o'));
 }
 function judgeBuild(){
   const msg=buildCheck();
@@ -894,14 +923,13 @@ function judgeBuild(){
     const first=['inA','inB','inC'].find(x=>$('#'+x).classList.contains('ng'));vals[first]='';showVals();setActive(first);
     return}
   phase='shown';
-  const success=MODE==='fix'||attempts===1;
+  const success=MODE==='fix'||rejects===0;
   ['inA','inB','inC'].forEach(x=>{$('#'+x).classList.remove('active');$('#'+x).classList.add('ok')});
-  P.hist.push({k,t:Math.max(1,Math.round((performance.now()-qStart)/100)),pass:false,used:true,att:attempts,r:false,ops:opsLog.join(''),at:Date.now(),b:MODE});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  P.hist.push({k,t:Math.max(1,Math.round((performance.now()-qStart)/100)),pass:false,used:true,att:attempts,rej:rejects,r:false,ops:opsLog.join(''),at:Date.now(),b:MODE});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   P.days[today()]=(P.days[today()]||0)+1;save();
-  const v=$('#verdict');v.className='verdict ok';
-  v.textContent=MODE==='fix'?'できた！ かたまりで 見えたね':success?`せいかい！ ${(P.lvup.st[k]||0)+1}かい つづけて できた`:'せいかい！ でも つぎは さいしょから';
-  $('#eqline').textContent=`${A} × ${B} = ${A*B}`;
-  $('#pad').classList.add('locked');const go=$('#go');go.textContent='つぎへ';go.onclick=()=>finishBuild(success);
+  $('#pad').classList.add('locked');
+  const n=success?(MODE==='lvup'?(P.lvup.st[k]||0)+1:0):0;
+  showMark(success,MODE==='fix'?'かたまりで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));
 }
 function finishBuild(success){
   const k=key(A,B);
@@ -910,7 +938,7 @@ function finishBuild(success){
     if(!P.fix.length){delete P.fix;delete P.fixTotal;save();if(setRes.length>=SET)showResult();else{setRes=[];start()}return}
     save();start();return}
   const L=P.lvup;if(!L){start();return}
-  if(success)L.st[k]=(L.st[k]||0)+1;
+  L.st[k]=success?(L.st[k]||0)+1:0;
   if(lvRemain()===0){
     const to=L.to;delete P.lvup;P.stage=to;setRes=[];save();
     overlay('🎉 レベルアップ！',`ステージ ${to+1}「${STAGES[to].name}」に すすむよ`,'lvup',()=>start(),'すすむ');return}
@@ -918,10 +946,10 @@ function finishBuild(success){
 }
 function finishItem(kind){
   if(!setRes.length)setFacts=[];
-  setRes.push(kind);setFacts.push({a:A,b:B,att:attempts});
+  setRes.push(kind);setFacts.push({a:A,b:B,rej:rejects});
   if(setRes.length>=SET){
-    // まちがえた しき（1回目に こたえを まちがえた しき）を かたまりで 1回ずつ つくってから 結果へ
-    const m=new Map();setFacts.filter(x=>x.att>1).forEach(x=>m.set(key(x.a,x.b),[x.a,x.b]));
+    // まちがえた しき（ちがう 数字を 入れようと した しき）を かたまりで 1回ずつ つくってから 結果へ
+    const m=new Map();setFacts.filter(x=>x.rej>0).forEach(x=>m.set(key(x.a,x.b),[x.a,x.b]));
     if(m.size){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
       overlay('かたまりで たしかめよう',`まちがえた しき ${P.fix.map(f=>`<b>${f[0]}×${f[1]}</b>`).join('・')} を、<br>10と 5の かたまりで つくって みよう`,'fix',()=>start());return}
     showResult();return}

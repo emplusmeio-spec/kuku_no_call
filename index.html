@@ -72,6 +72,23 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .startflash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);font-family:var(--font-display);font-weight:900;font-size:clamp(28px,6vw,56px);color:var(--muted);border-radius:12px;z-index:3}
 .read{text-align:center;font-family:var(--font-display);font-weight:900;font-size:clamp(16px,2.8vw,24px);min-height:1.4em;font-variant-numeric:tabular-nums;margin-top:2px}
 .read b.t{color:var(--ten)}.read b.f{color:var(--five)}
+/* かたまりづくり（ステージ終わりの 復習・レベルアップ チャレンジ）の 演出 */
+.ovl{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(20,16,30,.6);padding:16px}
+.ovbox{background:var(--paper);color:var(--ink);border-radius:22px;padding:22px 26px;text-align:center;max-width:440px;width:100%;animation:ovpop .5s cubic-bezier(.2,1.6,.4,1)}
+.ovt{font-family:var(--font-display);font-weight:900;font-size:clamp(28px,7vw,48px);color:var(--accent);line-height:1.25}
+.ovs{margin:10px 0 16px;font-size:1.05rem;line-height:1.7}
+.ovl.reach{background:radial-gradient(circle,rgba(255,235,59,.6),rgba(229,57,53,.8))}
+.ovl.reach .ovt{color:#e53935;animation:reachbeat .45s infinite alternate;text-shadow:0 0 14px #ffeb3b}
+.ovl.lvup{background:radial-gradient(circle,rgba(255,241,118,.7),rgba(46,156,106,.8))}
+.ovl.lvup .ovt{color:#f9a825;text-shadow:0 2px 0 #fff3}
+.ovl .spark{position:absolute;font-size:34px;animation:spark 1.4s ease-out infinite;pointer-events:none}
+@keyframes ovpop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes reachbeat{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.15) rotate(3deg)}}
+@keyframes spark{0%{transform:translateY(0) scale(.6);opacity:1}100%{transform:translateY(-120px) scale(1.3);opacity:0}}
+@media (prefers-reduced-motion:reduce){.ovbox,.ovl .ovt,.ovl .spark{animation:none}}
+.prog .gap{display:inline-block;width:14px}
+.bhint{text-align:center;font-weight:800;color:var(--accent);font-size:clamp(14px,2.4vw,18px);line-height:1.5;margin:2px 8px}
+.bhint.warn{color:#fff;background:var(--ng);border-radius:10px;padding:4px 10px}
 /* 入力 */
 .answerrow{display:flex;align-items:center;justify-content:center;gap:clamp(6px,1.5vw,14px);margin-top:6px;flex-wrap:wrap}
 .answerrow .lb{font-family:var(--font-display);font-weight:800;font-size:clamp(16px,2.6vw,22px)}
@@ -266,6 +283,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
       <div class="msgbox" id="msgbox"><div class="err" id="err"></div><div class="verdict" id="verdict"></div><div class="eqline" id="eqline"></div></div>
     </div>
     <div class="read" id="read"></div>
+    <div class="bhint" id="bhint" hidden></div>
     <div class="answerrow">
       <span class="lb">たて</span><div class="numin" id="inA" data-max="1"></div>
       <span class="x">×</span>
@@ -349,7 +367,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='11/19';
+const VER='11/20';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -663,6 +681,24 @@ const stageDone=()=>cur().facts.every(([a,b])=>sp(key(a,b))>=need());
 function earlierFacts(){const m=new Map();for(let i=0;i<P.stage;i++)STAGES[i].facts.forEach(([a,b])=>m.set(key(a,b),[a,b]));cur().facts.forEach(([a,b])=>m.delete(key(a,b)));return [...m.values()]}
 
 let A,B,qStart,phase,lastKey=null,setRes=[],isReview=false,active=null,qToken=0,attempts=0;
+/* MODE: normal ふつう／fix ステージ終わりの まちがえた しきを かたまりで 1回ずつ／lvup レベルアップ チャレンジ（あたらしい しき 2つを 3回 つづけて）
+   P.fix=[[a,b],…]（のこり）・P.fixTotal、P.lvup={to:つぎの ステージ, facts:[[a,b],…], st:{key:連続}} は 記録に のこり、ひらきなおしても つづきから */
+let MODE='normal',setFacts=[];
+const LVUP_NEED=3;
+const lvRemain=()=>P.lvup?P.lvup.facts.reduce((n,f)=>n+Math.max(0,LVUP_NEED-(P.lvup.st[key(f[0],f[1])]||0)),0):0;
+function newFactsOf(i){const old=new Set();for(let j=0;j<i;j++)STAGES[j].facts.forEach(([a,b])=>old.add(key(a,b)));return STAGES[i].facts.filter(([a,b])=>!old.has(key(a,b)))}
+function overlay(title,sub,kind,then,btn){
+  const o=el('div','ovl '+kind);
+  o.innerHTML=`${kind==='reach'||kind==='lvup'?['12%','82%','30%','64%'].map((l,i)=>`<span class="spark" style="left:${l};top:${60+i*6}%;animation-delay:${i*.3}s">${kind==='reach'?'⚡':'⭐'}</span>`).join(''):''}<div class="ovbox"><div class="ovt">${title}</div><div class="ovs">${sub}</div><button class="btn" style="font-size:1.2rem">${btn||'はじめる'}</button></div>`;
+  document.body.appendChild(o);o.querySelector('.btn').onclick=()=>{o.remove();if(then)then()};
+}
+/* かたまりが できたか：ぜんぶの 点が かたまりに なって いて、となりどうしの 5と 5が のこって いない */
+function buildCheck(){
+  if(groups.reduce((n,g)=>n+g.size,0)<A*B)return 'まだ かたまりに なって いない 点が あるよ。点を おして かたまりに しよう';
+  const f=groups.filter(g=>g.size===5);
+  if(f.some(g=>f.some(h=>h.id!==g.id&&adjacentG(g,h))))return 'となりどうしの 5と 5は くっつけて 10に しよう（5を おして はずして、もういちど おす）';
+  return '';
+}
 const vals={inA:'',inB:'',inC:''};
 /* ---- 5のかたまり: 仕切り線で区切られた領域の中の、まっすぐ並んだ5こ ---- */
 /* 5のかたまり(unit) > ばらは 右下へ最大の正方形(3×3, 4×4) > 2以下の細い領域は まとめて一撃 > 9のあとの1こは くっついて10 */
@@ -742,6 +778,11 @@ function drawGrid(){
 }
 /* ---- 出題 ---- */
 function pick(){
+  if(P.fix&&P.fix.length){MODE='fix';isReview=false;return P.fix[0]}
+  if(P.lvup){MODE='lvup';isReview=false;
+    const todo=P.lvup.facts.filter(f=>(P.lvup.st[key(f[0],f[1])]||0)<LVUP_NEED);let c=todo.filter(f=>key(f[0],f[1])!==lastKey);if(!c.length)c=todo;
+    return c[Math.floor(Math.random()*c.length)]}
+  MODE='normal';
   const ef=earlierFacts();
   if(ef.length&&Math.random()<0.3){isReview=true;
     const w=ef.map(([a,b])=>P.weak[key(a,b)]?4:1);let r=Math.random()*w.reduce((x,y)=>x+y,0);
@@ -755,9 +796,19 @@ function pick(){
 }
 function renderProg(){
   const p=$('#prog');p.innerHTML='';
+  $('#who').textContent=ME?ME.nick:'';
+  if(MODE==='fix'&&P.fix){
+    const tot=P.fixTotal||P.fix.length,done=tot-P.fix.length;
+    for(let i=0;i<tot;i++){const d=el('i');if(i<done)d.className='p';p.appendChild(d)}
+    $('#progress').textContent=`かたまりづくり ${Math.min(done+1,tot)} / ${tot}`;
+    $('#stageTag').textContent=`ステージ ${P.stage+1}　まちがえた しきを かたまりで`;$('#stageTag').style.background=`var(${PH[cur().p][2]})`;return}
+  if(MODE==='lvup'&&P.lvup){
+    const L=P.lvup;
+    L.facts.forEach((f,j)=>{if(j)p.appendChild(el('span','gap'));for(let i=0;i<LVUP_NEED;i++){const d=el('i');if(i<(L.st[key(f[0],f[1])]||0))d.className='p';p.appendChild(d)}});
+    $('#progress').textContent=`レベルアップ チャレンジ　${L.facts.map(f=>`${f[0]}×${f[1]}`).join('・')}`;
+    $('#stageTag').textContent=`レベルアップ → ステージ ${L.to+1}`;$('#stageTag').style.background=`var(${PH[STAGES[L.to].p][2]})`;return}
   for(let i=0;i<SET;i++){const d=el('i');if(setRes[i])d.className=setRes[i];p.appendChild(d)}
   $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
-  $('#who').textContent=ME?ME.nick:'';
   $('#stageTag').textContent=`ステージ ${P.stage+1}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
 }
@@ -782,7 +833,7 @@ function buildPad(){
   w.appendChild(pad);
 }
 function start(){
-  renderProg();[A,B]=pick();lastKey=key(A,B);phase='ready';attempts=0;
+  [A,B]=pick();lastKey=key(A,B);renderProg();phase='ready';attempts=0;
   $('#q').hidden=false;$('#result').hidden=true;
   vals.inA='';vals.inB='';vals.inC='';showVals();
   $('#inA').dataset.max=A>=10?2:1;
@@ -790,15 +841,20 @@ function start(){
   clearErr();$('#verdict').textContent='';$('#verdict').className='verdict';$('#eqline').textContent='';
   sizeDots();buildUnits();drawGrid();buildPad();
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
-  const flash=el('div','startflash');flash.textContent='スタート';$('#stagewrap').appendChild(flash);
+  const build=MODE!=='normal';
+  const flash=el('div','startflash');flash.textContent=build?'かたまりを つくろう':'スタート';$('#stagewrap').appendChild(flash);
   const token=++qToken;
-  setTimeout(()=>{if(token!==qToken)return;flash.remove();phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive('inA');qStart=performance.now()},FLASH);
+  setTimeout(()=>{if(token!==qToken)return;flash.remove();phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive('inA');qStart=performance.now();
+  },FLASH);
+  const bh=$('#bhint');bh.hidden=!build;bh.className='bhint';bh.textContent=build?'点を おして、10と 5の かたまりを つくろう。ぜんぶ かたまりに したら こたえを いれてね':'';
+  if(MODE==='lvup'&&lvRemain()===1)overlay('⚡ リーチ！ ⚡',`あと 1かいで レベルアップ！<br><b>${A} × ${B}</b> を かたまりで つくろう`,'reach',null,'いくぞ！');
   renderAdult();
 }
 function judge(){
   if(phase!=='input')return;
   const empty=['inA','inB','inC'].filter(x=>vals[x]==='');
   if(empty.length){$('#err').textContent='すうじを ぜんぶ いれてね';empty.forEach(x=>$('#'+x).classList.add('ng'));setActive(empty[0]);return}
+  if(MODE!=='normal')return judgeBuild();
   attempts++;
   const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
   const okA=+vals.inA===A,okB=+vals.inB===B,okC=+vals.inC===A*B,all=okA&&okB&&okC,fast=tenths<=P.limit*10;
@@ -822,7 +878,55 @@ function judge(){
   $('#eqline').textContent=`${A} × ${B} = ${A*B}`;
   $('#pad').classList.add('locked');const go=$('#go');go.textContent='つぎへ';go.onclick=()=>finishItem(pass?'p':'o');
 }
-function finishItem(kind){setRes.push(kind);if(setRes.length>=SET){showResult();return}start()}
+function judgeBuild(){
+  const msg=buildCheck();
+  const bh=$('#bhint');
+  if(msg){bh.textContent=msg;bh.className='bhint warn';return}
+  bh.className='bhint';
+  attempts++;
+  const okA=+vals.inA===A,okB=+vals.inB===B,okC=+vals.inC===A*B,k=key(A,B);
+  $('#inA').classList.toggle('ng',!okA);$('#inB').classList.toggle('ng',!okB);$('#inC').classList.toggle('ng',!okC);
+  if(!(okA&&okB&&okC)){
+    if(MODE==='lvup'){P.lvup.st[k]=0;save();renderProg()}
+    $('#verdict').className='verdict ng';$('#verdict').textContent=MODE==='lvup'?'おしい！ この しきは さいしょから':'おしい！';
+    $('#eqline').textContent='かたまりを 見て かぞえよう';
+    ['inA','inB','inC'].forEach(x=>{if(!$('#'+x).classList.contains('ng'))$('#'+x).classList.add('ok')});
+    const first=['inA','inB','inC'].find(x=>$('#'+x).classList.contains('ng'));vals[first]='';showVals();setActive(first);
+    return}
+  phase='shown';
+  const success=MODE==='fix'||attempts===1;
+  ['inA','inB','inC'].forEach(x=>{$('#'+x).classList.remove('active');$('#'+x).classList.add('ok')});
+  P.hist.push({k,t:Math.max(1,Math.round((performance.now()-qStart)/100)),pass:false,used:true,att:attempts,r:false,ops:opsLog.join(''),at:Date.now(),b:MODE});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  P.days[today()]=(P.days[today()]||0)+1;save();
+  const v=$('#verdict');v.className='verdict ok';
+  v.textContent=MODE==='fix'?'できた！ かたまりで 見えたね':success?`せいかい！ ${(P.lvup.st[k]||0)+1}かい つづけて できた`:'せいかい！ でも つぎは さいしょから';
+  $('#eqline').textContent=`${A} × ${B} = ${A*B}`;
+  $('#pad').classList.add('locked');const go=$('#go');go.textContent='つぎへ';go.onclick=()=>finishBuild(success);
+}
+function finishBuild(success){
+  const k=key(A,B);
+  if(MODE==='fix'){
+    P.fix.shift();
+    if(!P.fix.length){delete P.fix;delete P.fixTotal;save();if(setRes.length>=SET)showResult();else{setRes=[];start()}return}
+    save();start();return}
+  const L=P.lvup;if(!L){start();return}
+  if(success)L.st[k]=(L.st[k]||0)+1;
+  if(lvRemain()===0){
+    const to=L.to;delete P.lvup;P.stage=to;setRes=[];save();
+    overlay('🎉 レベルアップ！',`ステージ ${to+1}「${STAGES[to].name}」に すすむよ`,'lvup',()=>start(),'すすむ');return}
+  save();start();
+}
+function finishItem(kind){
+  if(!setRes.length)setFacts=[];
+  setRes.push(kind);setFacts.push({a:A,b:B,att:attempts});
+  if(setRes.length>=SET){
+    // まちがえた しき（1回目に こたえを まちがえた しき）を かたまりで 1回ずつ つくってから 結果へ
+    const m=new Map();setFacts.filter(x=>x.att>1).forEach(x=>m.set(key(x.a,x.b),[x.a,x.b]));
+    if(m.size){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
+      overlay('かたまりで たしかめよう',`まちがえた しき ${P.fix.map(f=>`<b>${f[0]}×${f[1]}</b>`).join('・')} を、<br>10と 5の かたまりで つくって みよう`,'fix',()=>start());return}
+    showResult();return}
+  start();
+}
 function showResult(){
   const n=setRes.filter(x=>x==='p').length,kind=n===SET?'g':n>=7?'s':'b';P.badges[kind]++;
   const name={g:'きん',s:'ぎん',b:'どう'}[kind],msg={g:'ぜんぶ ぱっと見！',s:'ぱっと見が ふえてきた！',b:'かたまりで たしかめた。それが だいじ。'}[kind];
@@ -837,7 +941,15 @@ function showResult(){
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの ステージへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}`;
   if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'kuku_'+P.stage,kind);
-  $('#nextSet').onclick=()=>{if(canNext){P.stage++;save()}setRes=[];start()};
+  $('#nextSet').onclick=()=>{
+    setRes=[];
+    if(canNext){
+      const to=P.stage+1,nf=newFactsOf(to);
+      if(nf.length){ // レベルアップ チャレンジ：つぎの ステージで はじめて 出る しきを 2つ、それぞれ 3回 つづけて
+        const fs=nf.slice().sort(()=>Math.random()-.5).slice(0,2);P.lvup={to,facts:fs,st:{}};save();
+        overlay('レベルアップ チャレンジ！',`つぎの ステージの あたらしい しき<br>${fs.map(f=>`<b>${f[0]}×${f[1]}</b>`).join('・')}<br>を かたまりで つくって、それぞれ ${LVUP_NEED}かい つづけて できたら レベルアップ！`,'lvintro',()=>start());return}
+      P.stage++;save()}
+    start()};
   const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];start()};
 }
 /* map */
@@ -856,7 +968,7 @@ function renderMap(){
     ids.forEach(i=>{const s=STAGES[i];const c=el('button','step');const done=P.cleared.includes(i),open=i<=maxOpen;
       c.innerHTML=`${i+1}<small>${s.name}</small>`;
       if(done)c.classList.add('done');if(i===P.stage)c.classList.add('cur');if(!open&&!done)c.classList.add('lock');
-      c.onclick=()=>{if(!open&&!done)return;P.stage=i;setRes=[];save();showOnly('play');start()};
+      c.onclick=()=>{if(!open&&!done)return;P.stage=i;delete P.lvup;delete P.fix;setRes=[];save();showOnly('play');start()};
       foot.appendChild(c)});
     sec.appendChild(foot);m.appendChild(sec)});
   const all=P.cleared.length>=STAGES.length;
@@ -981,7 +1093,7 @@ function renderAdult(){
   $('#repBtn').onclick=()=>{renderReport();showOnly('rep')};
   $('#hwBtn').onclick=()=>printHTML(homeworkSheet(P.stage));
   $('#hwBtn2').onclick=()=>printHTML([P.stage-1,P.stage,P.stage+1].filter(i=>i>=0&&i<STAGES.length).map(homeworkSheet).join(''));
-  $('#jump').onchange=e=>{P.stage=+e.target.value;setRes=[];save();start()};
+  $('#jump').onchange=e=>{P.stage=+e.target.value;delete P.lvup;delete P.fix;setRes=[];save();start()};
   $('#resetAll').onclick=()=>{P={limit:P.limit,stage:0,cleared:[],sp:{},weak:{},hist:[],badges:{g:0,s:0,b:0}};setRes=[];save();start()};
 }
 const mb=$('#msgbox');new MutationObserver(()=>{mb.classList.toggle('has',!!($('#verdict').textContent||$('#eqline').textContent||$('#err').textContent))}).observe(mb,{childList:true,subtree:true,characterData:true});

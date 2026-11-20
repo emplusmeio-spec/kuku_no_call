@@ -378,7 +378,7 @@ const SET=10,FLASH=700;
 /* ===== クラウド（Firebase）: URL の ?i=コード がその子。招待は押すたびに新しいコード。先生は ?teacher ===== */
 const FB_CONFIG={apiKey:"AIzaSyCwFcL6Zsizljlu-xjph0cQSWCMhjysOV4",authDomain:"kuku-lab.firebaseapp.com",projectId:"kuku-lab",storageBucket:"kuku-lab.firebasestorage.app",messagingSenderId:"921149180959",appId:"1:921149180959:web:417d63b3338df9d1f7d92a"};
 const TEACHER_EMAIL='terauchi@em-plus.net';
-const VER='11/20c';
+const VER='11/20d';
 const BLOG='https://empmeio.blogspot.com';
 const SITE=location.origin+location.pathname;
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -722,23 +722,25 @@ const vals={inA:'',inB:'',inC:''};
 /* ---- 5のかたまり: 仕切り線で区切られた領域の中の、まっすぐ並んだ5こ ---- */
 /* 5のかたまり(unit) > ばらは 右下へ最大の正方形(3×3, 4×4) > 2以下の細い領域は まとめて一撃 > 9のあとの1こは くっついて10 */
 let units=[],cellUnit=[],groups=[],gid=0,opsLog=[];
-/* RW：絵の 行の 数。9のだん（9×n）は 下に とうめいな 玉を 1行 たして 10の まとまりに 見せる（n十 − n） */
-let RW=0;
-const NINE=()=>A===9;
-const isGhost=i=>Math.floor(i/B)>=A;
+/* RW・CW：絵の 行と 列の 数。9の ある 式は とうめいな 玉を たして 10の まとまりに 見せる（n十 − n）
+   9×n（たてが 9）は 下に 1行、n×9（よこが 9）は 右に 1列 たす */
+let RW=0,CW=0;
+const NINE=()=>A===9?'r':B===9?'c':'';
+const isGhost=i=>Math.floor(i/CW)>=A||i%CW>=B;
 function buildUnits(){
-  RW=NINE()?10:A;
-  units=[];cellUnit=Array(RW*B).fill(-1);groups=[];opsLog=[];
-  if(NINE()){for(let c=0;c<B;c++){const cells=[];for(let r=0;r<10;r++)cells.push(r*B+c);addUnit(cells)}return} // 1れつ＝9こ＋とうめい1こ＝10
+  const nn=NINE();RW=nn==='r'?10:A;CW=nn==='c'?10:B;
+  units=[];cellUnit=Array(RW*CW).fill(-1);groups=[];opsLog=[];
+  if(nn==='r'){for(let c=0;c<CW;c++){const cells=[];for(let r=0;r<10;r++)cells.push(r*CW+c);addUnit(cells)}return} // たて1れつ＝9こ＋とうめい1こ＝10
+  if(nn==='c'){for(let r=0;r<RW;r++){const cells=[];for(let c=0;c<10;c++)cells.push(r*CW+c);addUnit(cells)}return} // よこ1れつ＝9こ＋とうめい1こ＝10
   for(let rb=0;rb<A;rb+=5)for(let cb=0;cb<B;cb+=5){
     const h=Math.min(5,A-rb),w=Math.min(5,B-cb);
-    if(B===5&&w===5){for(let r=rb;r<rb+h;r++){const cells=[];for(let c=cb;c<cb+5;c++)cells.push(r*B+c);addUnit(cells)}} // 〜×5 は 横に つなげる
-    else if(h===5){for(let c=cb;c<cb+w;c++){const cells=[];for(let r=rb;r<rb+5;r++)cells.push(r*B+c);addUnit(cells)}}
-    else if(w===5){for(let r=rb;r<rb+h;r++){const cells=[];for(let c=cb;c<cb+5;c++)cells.push(r*B+c);addUnit(cells)}}
+    if(B===5&&w===5){for(let r=rb;r<rb+h;r++){const cells=[];for(let c=cb;c<cb+5;c++)cells.push(r*CW+c);addUnit(cells)}} // 〜×5 は 横に つなげる
+    else if(h===5){for(let c=cb;c<cb+w;c++){const cells=[];for(let r=rb;r<rb+5;r++)cells.push(r*CW+c);addUnit(cells)}}
+    else if(w===5){for(let r=rb;r<rb+h;r++){const cells=[];for(let c=cb;c<cb+5;c++)cells.push(r*CW+c);addUnit(cells)}}
   }
 }
 function addUnit(cells){const i=units.length;units.push(cells);cells.forEach(x=>cellUnit[x]=i)}
-const nb=x=>{const r=Math.floor(x/B),c=x%B,o=[];if(c>0)o.push(x-1);if(c<B-1)o.push(x+1);if(r>0)o.push(x-B);if(r<RW-1)o.push(x+B);return o};
+const nb=x=>{const r=Math.floor(x/CW),c=x%CW,o=[];if(c>0)o.push(x-1);if(c<CW-1)o.push(x+1);if(r>0)o.push(x-CW);if(r<RW-1)o.push(x+CW);return o};
 const groupAt=idx=>groups.find(g=>g.cells.has(idx));
 const touches=(g,idx)=>nb(idx).some(n=>g.cells.has(n));
 const adjacentG=(g1,g2)=>[...g1.cells].some(x=>touches(g2,x));
@@ -755,19 +757,19 @@ function mergeIfFive(g){
    ・3×4 などは まず 左上の 正方形、のこりの ほそい ところは もう1つ
    ・ほそい ところ（はばが 2いか）で 5より おおきい ときは「5と のこり」に わける（8 → 5と 3） */
 function splitFive(cells){
-  const rs=new Set(cells.map(i=>Math.floor(i/B))),cs=new Set(cells.map(i=>i%B));
+  const rs=new Set(cells.map(i=>Math.floor(i/CW))),cs=new Set(cells.map(i=>i%CW));
   const wide=cs.size>=rs.size;
-  const ord=cells.slice().sort((x,y)=>wide?(Math.floor(x/B)-Math.floor(y/B))||(x%B-y%B):(x%B-y%B)||(Math.floor(x/B)-Math.floor(y/B)));
+  const ord=cells.slice().sort((x,y)=>wide?(Math.floor(x/CW)-Math.floor(y/CW))||(x%CW-y%CW):(x%CW-y%CW)||(Math.floor(x/CW)-Math.floor(y/CW)));
   const parts=ord.length>5?[ord.slice(0,5),ord.slice(5)]:[ord];
   parts.forEach(pc=>{const g=newGroup(pc);g.corner=true});
 }
 function tapCorner(){
   // 3×9 の はんぱ（3×4）は 5の 横に 3、その 横に 9：正方形は 外がわ（右・下）、ほそい ところは 5の となり。1回 おすと ぜんぶ できる
   const r0=A-A%5,c0=B-B%5,h=A%5,w=B%5,n=Math.min(h,w);
-  const freeIn=()=>{const o=[];for(let rr=r0;rr<A;rr++)for(let cc=c0;cc<B;cc++){const i=rr*B+cc;if(!groupAt(i))o.push(i)}return o};
+  const freeIn=()=>{const o=[];for(let rr=r0;rr<A;rr++)for(let cc=c0;cc<B;cc++){const i=rr*CW+cc;if(!groupAt(i))o.push(i)}return o};
   if(n>=3){
     const sq=[];let ok=true;
-    for(let rr=A-n;rr<A;rr++)for(let cc=B-n;cc<B;cc++){const i=rr*B+cc;if(groupAt(i))ok=false;sq.push(i)}
+    for(let rr=A-n;rr<A;rr++)for(let cc=B-n;cc<B;cc++){const i=rr*CW+cc;if(groupAt(i))ok=false;sq.push(i)}
     if(ok){const g=newGroup(sq);g.corner=true;opsLog.push('■'+sq.length)}
   }
   const rest=freeIn();if(rest.length){splitFive(rest);opsLog.push('□')}
@@ -788,25 +790,25 @@ function tapCell(idx){
   if(MODE!=='normal'&&answersFull()&&!buildCheck())judge();
 }
 function sizeDots(){
-  const d=`clamp(14px, min(${(76/Math.max(B,5)).toFixed(2)}vw, ${(26/Math.max(RW||A,3)).toFixed(2)}vh), 48px)`;
+  const d=`clamp(14px, min(${(76/Math.max(CW||B,5)).toFixed(2)}vw, ${(26/Math.max(RW||A,3)).toFixed(2)}vh), 48px)`;
   document.documentElement.style.setProperty('--d',d);
   document.documentElement.style.setProperty('--g',`calc(${d} * .2)`);
 }
 function drawGrid(){
-  const G=$('#grid');G.innerHTML='';G.style.gridTemplateColumns=`repeat(${B},var(--d))`;
+  const G=$('#grid');G.innerHTML='';G.style.gridTemplateColumns=`repeat(${CW},var(--d))`;
   const groupOf=i=>{const g=groupAt(i);return g?g.id:-1};
-  for(let i=0;i<RW*B;i++){
-    const r=Math.floor(i/B),c=i%B,grp=groupAt(i),g=grp?grp.id:-1;
+  for(let i=0;i<RW*CW;i++){
+    const r=Math.floor(i/CW),c=i%CW,grp=groupAt(i),g=grp?grp.id:-1;
     const cell=el('button','cell'+(isGhost(i)?' ghost':''));cell.setAttribute('aria-label',isGhost(i)?'とうめいな 点':'点');
     if(grp){cell.classList.add(grp.size===10?'c10':grp.size===5?'c5':'csq');
-      if(c<B-1&&groupOf(i+1)===g)cell.appendChild(el('div','br r'));
-      if(r<RW-1&&groupOf(i+B)===g)cell.appendChild(el('div','br d'));
+      if(c<CW-1&&groupOf(i+1)===g)cell.appendChild(el('div','br r'));
+      if(r<RW-1&&groupOf(i+CW)===g)cell.appendChild(el('div','br d'));
       const lead=Math.min(...grp.cells);
       if(lead===i&&grp.size>1){cell.classList.add('lead');cell.dataset.n=grp.size}}
     cell.appendChild(el('div','dd'));
     cell.onclick=()=>tapCell(i);
     G.appendChild(cell)}
-  for(let k=5;k<=B;k+=5){const v=el('div','sepv');v.style.cssText=`top:0;bottom:0;left:calc(${k} * (var(--d) + var(--g)) + var(--g)*.5 + 2px - var(--g)*.5 - 1.5px)`;G.appendChild(v)}
+  for(let k=5;k<CW;k+=5){const v=el('div','sepv');v.style.cssText=`top:0;bottom:0;left:calc(${k} * (var(--d) + var(--g)) + var(--g)*.5 + 2px - var(--g)*.5 - 1.5px)`;G.appendChild(v)}
   for(let k=5;k<RW;k+=5){const h=el('div','seph');h.style.cssText=`left:0;right:0;top:calc(${k} * (var(--d) + var(--g)) + var(--g)*.5 + 2px - var(--g)*.5 - 1.5px)`;G.appendChild(h)}
   const n10=groups.filter(x=>x.size===10).length,n5=groups.filter(x=>x.size===5).length;
   const others=groups.filter(x=>x.size!==10&&x.size!==5).map(x=>x.size).sort((a,b)=>b-a);
@@ -883,7 +885,7 @@ function start(){
   $('#inA').dataset.max=A>=10?2:1;
   ['inA','inB','inC'].forEach(x=>{const e=$('#'+x);e.className='numin'+(x==='inC'?' ans':'');e.onclick=()=>setActive(x)});
   clearErr();$('#verdict').textContent='';$('#verdict').className='verdict';$('#eqline').textContent='';
-  sizeDots();buildUnits();drawGrid();buildPad();
+  buildUnits();sizeDots();drawGrid();buildPad();
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
   const build=MODE!=='normal';
   const flash=el('div','startflash');flash.textContent=build?'かたまりを つくろう':'スタート';$('#stagewrap').appendChild(flash);

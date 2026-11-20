@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>ごほうび どうが（試作）</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;color:#fff;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;cursor:pointer;border:none}
+/* feed */
+#feed{position:fixed;inset:0;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
+.slide{position:relative;height:100vh;height:100dvh;width:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+.slide .thumb{position:absolute;inset:0;background:#111 center/cover no-repeat;filter:brightness(.55)}
+.slide .stage{position:relative;height:100%;aspect-ratio:9/16;max-width:100%;}
+.slide .stage iframe,.slide .stage .yt{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+/* 動画の上をおおう「たて」。YouTube のロゴ・タイトル・おすすめに さわれないようにする */
+.slide .shield{position:absolute;inset:0;z-index:5;background:transparent}
+.slide .demo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28px;gap:12px;text-align:center;padding:20px}
+.slide .demo b{font-size:72px}
+.slide .paused{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);font-size:64px;opacity:0;transition:opacity .2s;pointer-events:none;text-shadow:0 0 12px #000}
+.slide.is-paused .paused{opacity:.9}
+.slide .side{position:absolute;z-index:7;right:10px;bottom:120px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.likeBtn{width:60px;height:60px;border-radius:50%;background:rgba(0,0,0,.35);font-size:32px;color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.likeBtn.on{color:#ff3b6b;transform:scale(1.12)}
+.likeBtn small{display:block}
+.slide .info{position:absolute;z-index:7;left:14px;right:84px;bottom:40px;text-shadow:0 1px 4px #000;pointer-events:none}
+.slide .info .ch{font-weight:bold;font-size:16px}
+.slide .info .tt{font-size:14px;opacity:.9;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.slide.endcard{flex-direction:column;gap:14px;font-size:22px;text-align:center;padding:24px}
+/* top bar */
+#bar{position:fixed;z-index:20;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;pointer-events:none}
+#bar>*{pointer-events:auto}
+#clock{background:rgba(0,0,0,.55);border:2px solid #4ade80;border-radius:999px;padding:6px 14px;font-size:20px;font-weight:bold;font-variant-numeric:tabular-nums}
+#clock.low{border-color:#f87171;color:#fecaca;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.55}}
+#adultBtn{background:rgba(255,255,255,.12);color:#ddd;border-radius:10px;padding:6px 10px;font-size:13px}
+#backBtn{background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:6px 12px;font-size:15px}
+/* overlays */
+.ov{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:24px;background:rgba(10,14,30,.96)}
+.ov.show{display:flex}
+.big{font-size:26px;line-height:1.6}
+.huge{font-size:56px}
+.btn{background:#22c55e;color:#fff;border-radius:16px;padding:14px 36px;font-size:24px;font-weight:bold;box-shadow:0 4px 0 #15803d}
+.btn.gray{background:#475569;box-shadow:0 4px 0 #1e293b}
+.btn.sm{font-size:16px;padding:8px 16px;border-radius:10px}
+#toast{position:fixed;z-index:60;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.8);padding:10px 18px;border-radius:12px;font-size:18px;display:none}
+/* adult panel */
+#adult{align-items:stretch;justify-content:flex-start;overflow-y:auto;text-align:left;font-family:system-ui,"Hiragino Sans","Meiryo",sans-serif;background:#0f172a}
+#adult h2{font-size:20px;margin-top:6px}
+#adult h3{font-size:16px;margin:4px 0;color:#93c5fd}
+#adult section{background:#1e293b;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#adult input,#adult textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:#fff;font-size:15px}
+#adult textarea{min-height:70px}
+#adult .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#adult .note{font-size:13px;color:#94a3b8;line-height:1.6}
+#adult ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+#adult li{display:flex;justify-content:space-between;align-items:center;background:#0f172a;border-radius:8px;padding:6px 10px;font-size:14px}
+#gateQ{font-size:40px;font-weight:bold}
+#gateA{font-size:32px;width:160px;text-align:center;padding:8px;border-radius:12px;border:none}
+</style>
+</head>
+<body>
+
+<div id="feed"></div>
+
+<div id="bar">
+  <button id="backBtn">← もどる</button>
+  <div id="clock">のこり 0:00</div>
+  <button id="adultBtn">おとな</button>
+</div>
+
+<!-- はじめの画面 -->
+<div class="ov show" id="start">
+  <div class="huge">🎬</div>
+  <div class="big">ごほうび どうが</div>
+  <div class="big" id="startLeft"></div>
+  <button class="btn" id="startBtn">みる</button>
+  <div class="big" id="startMsg" style="font-size:16px;opacity:.8"></div>
+</div>
+
+<!-- 時間切れ -->
+<div class="ov" id="over">
+  <div class="huge">⏰</div>
+  <div class="big">きょうの ごほうび じかんは<br>おしまい！</div>
+  <div class="big" style="font-size:18px;opacity:.85">また がんばって じかんを ふやそう</div>
+  <button class="btn" id="overBack">もどる</button>
+  <button class="btn gray sm" id="overAdult" style="margin-top:30px;opacity:.7">おとな</button>
+</div>
+
+<!-- おうちの方の確認 -->
+<div class="ov" id="gate">
+  <div class="big">おうちの方の かくにん</div>
+  <div id="gateQ"></div>
+  <input id="gateA" inputmode="numeric" autocomplete="off">
+  <div class="row" style="display:flex;gap:12px">
+    <button class="btn gray sm" id="gateNo">やめる</button>
+    <button class="btn sm" id="gateOk">OK</button>
+  </div>
+</div>
+
+<!-- おとなの画面 -->
+<div class="ov" id="adult">
+  <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+    <h2>ごほうび動画の設定（おとな）</h2>
+    <button class="btn gray sm" id="adultClose">とじる</button>
+  </div>
+
+  <section>
+    <h3>見られる時間</h3>
+    <div id="aLeft" class="big" style="font-size:20px"></div>
+    <div class="row">
+      <button class="btn sm" data-add="1">+1分</button>
+      <button class="btn sm" data-add="3">+3分</button>
+      <button class="btn sm" data-add="5">+5分</button>
+      <button class="btn gray sm" id="aZero">0にする</button>
+    </div>
+    <div class="row">1日の上限（分）<input id="aCap" type="number" min="0" style="width:90px"> <span class="note">0 = 上限なし。ごほうびが多くても、1日にこれ以上は見られません。</span></div>
+    <div id="aToday" class="note"></div>
+    <div class="note">本番では、九九ラボのメダルやダーツから自動で時間が入る形にします（<code>ShortsWallet.grant(分, 理由)</code>）。</div>
+  </section>
+
+  <section>
+    <h3>許可したチャンネル</h3>
+    <div class="note">ここに入れたチャンネルの<b>ショートだけ</b>を、1日1回、自動で集めます。@ハンドル（例：@nhk_eteleなど）か、UC から始まるチャンネルIDを入れてください。</div>
+    <div class="row"><input id="aChIn" placeholder="@ハンドル または UC…" style="flex:1"><button class="btn sm" id="aChAdd">追加</button></div>
+    <ul id="aChList"></ul>
+    <div class="row"><button class="btn sm" id="aFetch">今すぐ集める</button><span id="aFetchMsg" class="note"></span></div>
+  </section>
+
+  <section>
+    <h3>動画を1本ずつ入れる</h3>
+    <div class="note">ショートのURL（youtube.com/shorts/… や youtu.be/…）を1行に1つ。APIキーがなくても使えます。</div>
+    <textarea id="aUrls" placeholder="https://www.youtube.com/shorts/xxxxxxxxxxx"></textarea>
+    <div class="row"><input id="aUrlCh" placeholder="まとめる名前（例：おきにいり）" style="flex:1"><button class="btn sm" id="aUrlAdd">入れる</button></div>
+  </section>
+
+  <section>
+    <h3>集めた動画 <span id="aPoolN"></span></h3>
+    <div class="note">子どもが ♥ を押したチャンネルほど、多めに出ます。</div>
+    <ul id="aLikes"></ul>
+    <div class="row"><button class="btn gray sm" id="aPoolClear">集めた動画を全部けす</button></div>
+  </section>
+
+  <section>
+    <h3>YouTube Data API キー</h3>
+    <div class="note">チャンネルから自動で集めるときだけ必要です。Google Cloud で「YouTube Data API v3」のキーを作り、使えるサイトをこのアプリのURLだけに制限してください。1回の取得で使う量は、チャンネル1つにつき1〜2ユニット（1日の無料枠は10,000）。</div>
+    <input id="aKey" placeholder="AIza…">
+  </section>
+
+  <section>
+    <h3>外へ出さないしくみ</h3>
+    <div class="note">
+      ・動画の上に透明な板をかぶせているので、YouTube のロゴ・タイトル・おすすめを押せません。<br>
+      ・動画が終わると、おすすめが出る前に次の動画へ進みます。<br>
+      ・チャンネル名は文字だけで、リンクにしていません。<br>
+      ・時間は「再生しているあいだ」だけ減り、端末に保存するので、開き直しても増えません。
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const VER='shorts-0.1';
+const Q=new URLSearchParams(location.search);
+const DEMO=Q.has('demo');               // ?demo … YouTube を使わず色の板で動きを見る
+const BACK=Q.get('back')||'../';         // もどる先（九九ラボ本体）
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+
+/* ================= 保存（Store） =================
+   試作では localStorage。本番は Firestore の users/{token} か shorts/{token} に
+   同じ形で入れる（save() を差しかえるだけ）。本番 Firebase にはまだ さわらない。 */
+const KEY='shortslab-v1';
+function fresh(){return{secLeft:0,cap:0,used:{},log:[],channels:[],key:'',pool:[],likes:{},chLikes:{},seen:{},lastFetch:''};}
+let S;
+try{S=Object.assign(fresh(),JSON.parse(localStorage.getItem(KEY)||'{}'));}catch(e){S=fresh();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ================= 時間のさいふ ================= */
+const ShortsWallet={
+  grant(min,why){S.secLeft=Math.max(0,S.secLeft+Math.round(min*60));S.log.unshift({t:Date.now(),min,why:why||''});S.log=S.log.slice(0,100);save();render();},
+  // 今日あと何秒見られるか（のこり時間 と 1日の上限 の 小さいほう）
+  avail(){let a=S.secLeft;if(S.cap>0){a=Math.min(a,S.cap*60-(S.used[today()]||0));}return Math.max(0,Math.floor(a));},
+  spend(sec){S.secLeft=Math.max(0,S.secLeft-sec);const d=today();S.used[d]=(S.used[d]||0)+sec;
+    const ks=Object.keys(S.used).sort();while(ks.length>14)delete S.used[ks.shift()];save();}
+};
+window.ShortsWallet=ShortsWallet;
+
+const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+function render(){
+  const a=ShortsWallet.avail();
+  $('clock').textContent='のこり '+fmt(a);
+  $('clock').classList.toggle('low',a<=30);
+  $('startLeft').textContent=a>0?'のこり '+fmt(a):'いまは みられる じかんが ないよ';
+  $('startBtn').style.display=a>0?'':'none';
+}
+
+/* ================= 動画を集める ================= */
+function idFromUrl(u){u=u.trim();if(/^[\w-]{11}$/.test(u))return u;
+  const m=u.match(/(?:shorts\/|youtu\.be\/|[?&]v=|embed\/)([\w-]{11})/);return m?m[1]:null;}
+function addToPool(items){let n=0;const have=new Set(S.pool.map(p=>p.id));
+  for(const it of items){if(!it.id||have.has(it.id))continue;S.pool.push(it);have.add(it.id);n++;}
+  S.pool=S.pool.slice(-400);save();return n;}
+async function api(path,params){
+  const u=new URL('https://www.googleapis.com/youtube/v3/'+path);
+  for(const k in params)u.searchParams.set(k,params[k]);u.searchParams.set('key',S.key);
+  const r=await fetch(u);const j=await r.json();if(j.error)throw new Error(j.error.message);return j;}
+async function resolveChannel(input){
+  input=input.trim();
+  if(/^UC[\w-]{22}$/.test(input)){const j=await api('channels',{part:'snippet',id:input});
+    return{id:input,name:j.items&&j.items[0]?j.items[0].snippet.title:input};}
+  const h=input.startsWith('@')?input:'@'+input;
+  const j=await api('channels',{part:'snippet',forHandle:h});
+  if(!j.items||!j.items.length)throw new Error('チャンネルが見つかりません：'+input);
+  return{id:j.items[0].id,name:j.items[0].snippet.title};}
+// チャンネルの「ショートだけ」の再生リストは UC… を UUSH… にしたもの（1回1ユニット）
+async function fetchChannelShorts(ch){
+  const j=await api('playlistItems',{part:'snippet,contentDetails',playlistId:'UUSH'+ch.id.slice(2),maxResults:25});
+  return(j.items||[]).map(it=>({id:it.contentDetails.videoId,ch:ch.id,chName:ch.name,title:it.snippet.title,added:Date.now()}))
+    .filter(it=>it.title!=='Private video'&&it.title!=='Deleted video');}
+async function fetchAll(force){
+  if(!S.key||!S.channels.length)return'APIキーとチャンネルを入れてください';
+  if(!force&&S.lastFetch===today())return'';
+  let n=0,err=[];
+  for(const ch of S.channels){try{n+=addToPool(await fetchChannelShorts(ch));}catch(e){err.push(ch.name+'：'+e.message);}}
+  S.lastFetch=today();save();
+  return n+'本 ふえました'+(err.length?'（'+err.join(' / ')+'）':'');}
+
+/* ================= ならべ方（いいね で多め） ================= */
+function pickNext(exclude){
+  const pool=S.pool.filter(p=>!exclude.has(p.id));
+  if(!pool.length)return null;
+  const now=Date.now();
+  const w=pool.map(p=>{let x=1+2*(S.chLikes[p.ch]||0);if(S.likes[p.id])x*=1.5;
+    const seen=S.seen[p.id];if(seen&&now-seen<3*864e5)x*=0.15;     // 3日以内に見たものは出にくく
+    if(now-(p.added||0)<2*864e5)x*=1.5;                              // 新しいものは少し多め
+    return x;});
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<pool.length;i++){r-=w[i];if(r<=0)return pool[i];}
+  return pool[pool.length-1];}
+
+/* ================= フィード ================= */
+const feed=$('feed');
+let slides=[],active=-1,player=null,playing=false,started=false,locked=false;
+const DEMO_COLORS=['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899'];
+function demoPool(){const a=[];for(let i=0;i<12;i++)a.push({id:'demo'+i,ch:'demo'+(i%3),chName:['どうぶつ','のりもの','おえかき'][i%3]+' チャンネル',title:'ためしの どうが '+(i+1),added:Date.now()});return a;}
+
+function makeSlide(item){
+  const el=document.createElement('div');el.className='slide';el.dataset.id=item.id;
+  el.innerHTML=(DEMO?`<div class="demo" style="background:${DEMO_COLORS[slides.length%6]}"><b>${slides.length+1}</b>${item.title}<small>（YouTube のかわり）</small></div>`
+      :`<div class="thumb" style="background-image:url(https://i.ytimg.com/vi/${item.id}/hqdefault.jpg)"></div><div class="stage"><div class="yt"></div></div>`)
+    +`<div class="shield"></div><div class="paused">▶</div>
+    <div class="side"><button class="likeBtn${S.likes[item.id]?' on':''}">♥</button></div>
+    <div class="info"><div class="ch"></div><div class="tt"></div></div>`;
+  el.querySelector('.ch').textContent=item.chName||'';
+  el.querySelector('.tt').textContent=item.title||'';
+  el.querySelector('.shield').addEventListener('click',()=>togglePause());
+  el.querySelector('.likeBtn').addEventListener('click',e=>{e.stopPropagation();toggleLike(item,e.currentTarget);});
+  slides.push({el,item});feed.appendChild(el);io.observe(el);}
+function endSlide(){const el=document.createElement('div');el.className='slide endcard';
+  el.innerHTML='<div class="huge">🎈</div><div>きょうの どうがは ここまで<br>また あした あたらしいのが くるよ</div>';
+  feed.appendChild(el);}
+function fillFeed(){
+  const shown=new Set(slides.map(s=>s.item.id));
+  while(slides.length-active<4){const n=pickNext(shown);if(!n){if(!feed.querySelector('.endcard'))endSlide();return;}
+    shown.add(n.id);makeSlide(n);}}
+
+const io=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting&&e.intersectionRatio>0.6){
+  const i=slides.findIndex(s=>s.el===e.target);if(i>=0&&i!==active)activate(i);}}},{root:feed,threshold:[0.6]});
+
+function toggleLike(item,btn){
+  const on=!S.likes[item.id];
+  if(on){S.likes[item.id]=1;S.chLikes[item.ch]=(S.chLikes[item.ch]||0)+1;}
+  else{delete S.likes[item.id];S.chLikes[item.ch]=Math.max(0,(S.chLikes[item.ch]||0)-1);}
+  btn.classList.toggle('on',on);save();if(on)toast('♥ この チャンネルが ふえるよ');}
+
+function setPaused(p){const s=slides[active];if(s)s.el.classList.toggle('is-paused',p);}
+function togglePause(){
+  if(locked)return;
+  if(DEMO){playing=!playing;setPaused(!playing);return;}
+  if(!player||!player.getPlayerState)return;
+  if(player.getPlayerState()===1)player.pauseVideo();else player.playVideo();}
+
+function destroyPlayer(){if(player&&player.destroy){try{player.destroy();}catch(e){}}player=null;playing=false;}
+function activate(i){
+  if(locked)return;
+  active=i;fillFeed();destroyPlayer();
+  const s=slides[i];S.seen[s.item.id]=Date.now();save();
+  if(DEMO){playing=started;setPaused(!playing);return;}
+  if(!window.YT||!YT.Player){s.el.querySelector('.yt').textContent='よみこみちゅう…';whenYT(()=>{if(active===i)activate(i);});return;}
+  const box=document.createElement('div');const holder=s.el.querySelector('.yt');holder.innerHTML='';holder.appendChild(box);
+  player=new YT.Player(box,{host:'https://www.youtube-nocookie.com',videoId:s.item.id,width:'100%',height:'100%',
+    playerVars:{autoplay:1,controls:0,disablekb:1,fs:0,rel:0,modestbranding:1,iv_load_policy:3,playsinline:1,cc_load_policy:0},
+    events:{
+      onReady:e=>{if(started)e.target.playVideo();},
+      onStateChange:e=>{playing=e.data===1;setPaused(e.data===2);
+        if(e.data===0)next();},                 // 終わったら おすすめが出る前に つぎへ
+      onError:()=>{toast('この どうがは みられないよ');S.pool=S.pool.filter(p=>p.id!==s.item.id);save();setTimeout(next,800);}
+    }});}
+function next(){const s=slides[active+1];if(s)s.el.scrollIntoView({behavior:'smooth'});else fillFeed();}
+
+let ytCbs=[];function whenYT(f){if(window.YT&&YT.Player)f();else ytCbs.push(f);}
+window.onYouTubeIframeAPIReady=()=>{ytCbs.splice(0).forEach(f=>f());};
+function loadYT(){if(DEMO||window.YT)return;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';
+  s.onerror=()=>toast('インターネットに つながっていないよ');document.head.appendChild(s);}
+
+/* ================= 時間をへらす ================= */
+let lastTick=performance.now();
+setInterval(()=>{
+  const now=performance.now(),dt=(now-lastTick)/1000;lastTick=now;
+  if(!started||locked||document.hidden||!playing)return;
+  ShortsWallet.spend(Math.min(dt,2));render();
+  if(ShortsWallet.avail()<=0)lockOut();
+},1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(player&&player.pauseVideo)player.pauseVideo();if(DEMO){playing=false;setPaused(true);}}});
+
+function lockOut(){locked=true;destroyPlayer();if(S.secLeft<1){S.secLeft=0;save();}
+  feed.innerHTML='';slides=[];active=-1;
+  $('over').classList.add('show');}
+
+/* ================= はじめる ================= */
+async function begin(){
+  if(ShortsWallet.avail()<=0){lockOut();return;}
+  $('start').classList.remove('show');started=true;
+  if(!slides.length){fillFeed();}
+  if(DEMO){playing=true;setPaused(false);}
+  else if(player&&player.playVideo)player.playVideo();
+}
+$('startBtn').addEventListener('click',begin);
+function goBack(){destroyPlayer();location.href=BACK;}
+$('backBtn').addEventListener('click',goBack);
+$('overBack').addEventListener('click',goBack);
+$('overAdult').addEventListener('click',()=>gate(openAdult));
+
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',1800);}
+
+/* ================= おうちの方の確認（2けたのたし算） ================= */
+let gateFn=null,gateAns=0;
+function gate(fn){const a=10+Math.floor(Math.random()*80),b=10+Math.floor(Math.random()*80);gateAns=a+b;gateFn=fn;
+  $('gateQ').textContent=a+' + '+b+' = ?';$('gateA').value='';
+  if(player&&player.pauseVideo)player.pauseVideo();if(DEMO){playing=false;setPaused(true);}
+  $('gate').classList.add('show');setTimeout(()=>$('gateA').focus(),50);}
+$('gateNo').addEventListener('click',()=>$('gate').classList.remove('show'));
+$('gateOk').addEventListener('click',()=>{const ok=+$('gateA').value===gateAns;$('gate').classList.remove('show');if(ok&&gateFn)gateFn();else if(!ok)toast('ちがいます');});
+$('gateA').addEventListener('keydown',e=>{if(e.key==='Enter')$('gateOk').click();});
+
+/* ================= おとなの画面 ================= */
+$('adultBtn').addEventListener('click',()=>gate(openAdult));
+$('adultClose').addEventListener('click',()=>{$('adult').classList.remove('show');
+  if(locked&&ShortsWallet.avail()>0){locked=false;$('over').classList.remove('show');$('start').classList.add('show');started=false;}
+  else if(!locked&&!slides.length&&started)fillFeed();
+  render();});
+function openAdult(){$('adult').classList.add('show');renderAdult();}
+function renderAdult(){
+  $('aLeft').textContent='のこり '+fmt(S.secLeft)+'（今日見られるのは '+fmt(ShortsWallet.avail())+'）';
+  $('aCap').value=S.cap||0;
+  $('aToday').textContent='今日見た時間：'+fmt(S.used[today()]||0);
+  $('aKey').value=S.key||'';
+  const ul=$('aChList');ul.innerHTML='';
+  S.channels.forEach((c,i)=>{const li=document.createElement('li');li.innerHTML='<span></span><button class="btn gray sm">けす</button>';
+    li.firstChild.textContent=c.name+'（'+c.id+'）';li.lastChild.onclick=()=>{S.channels.splice(i,1);save();renderAdult();};ul.appendChild(li);});
+  $('aPoolN').textContent='（'+S.pool.length+'本）';
+  const by={};S.pool.forEach(p=>{by[p.ch]=by[p.ch]||{name:p.chName,n:0};by[p.ch].n++;});
+  const lk=$('aLikes');lk.innerHTML='';
+  Object.keys(by).sort((a,b)=>(S.chLikes[b]||0)-(S.chLikes[a]||0)).forEach(ch=>{const li=document.createElement('li');
+    li.textContent=by[ch].name+'　'+by[ch].n+'本　♥'+(S.chLikes[ch]||0);lk.appendChild(li);});}
+document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{ShortsWallet.grant(+b.dataset.add,'おとなが追加');renderAdult();toast('+'+b.dataset.add+'分');}));
+$('aZero').addEventListener('click',()=>{S.secLeft=0;save();render();renderAdult();});
+$('aCap').addEventListener('change',e=>{S.cap=Math.max(0,+e.target.value||0);save();render();renderAdult();});
+$('aKey').addEventListener('change',e=>{S.key=e.target.value.trim();save();});
+$('aChAdd').addEventListener('click',async()=>{
+  const v=$('aChIn').value.trim();if(!v)return;S.key=$('aKey').value.trim()||S.key;
+  if(!S.key){$('aFetchMsg').textContent='先に下のAPIキーを入れてください';return;}
+  try{const c=await resolveChannel(v);if(!S.channels.some(x=>x.id===c.id))S.channels.push(c);$('aChIn').value='';save();renderAdult();}
+  catch(e){$('aFetchMsg').textContent=e.message;}});
+$('aFetch').addEventListener('click',async()=>{$('aFetchMsg').textContent='集めています…';$('aFetchMsg').textContent=await fetchAll(true)||'';renderAdult();});
+$('aUrlAdd').addEventListener('click',()=>{
+  const name=$('aUrlCh').value.trim()||'おうちで えらんだ どうが';const ch='manual:'+name;
+  const items=$('aUrls').value.split(/\s+/).map(idFromUrl).filter(Boolean).map(id=>({id,ch,chName:name,title:'',added:Date.now()}));
+  const n=addToPool(items);$('aUrls').value='';toast(n+'本 入れました');renderAdult();});
+$('aPoolClear').addEventListener('click',()=>{if(confirm('集めた動画を全部けしますか？')){S.pool=[];S.seen={};save();renderAdult();}});
+
+/* ================= スタート ================= */
+if(DEMO&&!S.pool.some(p=>p.id.startsWith('demo')))addToPool(demoPool());
+if(!DEMO)S.pool=S.pool.filter(p=>!p.id.startsWith('demo'));
+render();loadYT();
+fetchAll(false).then(m=>{if(m&&!m.startsWith('APIキー'))console.log('[shorts] '+m);});
+if(!S.pool.length)$('startMsg').textContent='まだ どうがが ないよ。おとなの がめんで えらんでもらってね';
+</script>
+</body>
+</html>

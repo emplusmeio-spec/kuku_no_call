@@ -1,0 +1,44 @@
+// たしひきラボ（tashihiki/）の分。Firebase コンソール → Firestore → ルール で、
+// いまの ルールの いちばん下の  } } の 手前（match /databases/... の 中）に そのまま 貼りつけて「公開」。
+// 九九ラボの users / board / invites と 同じ しくみで、名前の 頭に tashihiki_ が つくだけ。
+    match /tashihiki_users/{token} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if request.resource.data.keys().hasAll(['nick','code','inv','root','progress'])
+                    && request.resource.data.nick is string && request.resource.data.nick.size() <= 20
+                    && request.resource.data.code is string && request.resource.data.code.size() == 6
+                    && exists(/databases/$(database)/documents/tashihiki_invites/$(request.resource.data.inv));
+      allow update: if request.resource.data.code == resource.data.code
+                    && request.resource.data.inv == resource.data.inv
+                    && request.resource.data.root == resource.data.root;
+      allow delete: if teacher();
+    }
+    // みんなの様子（生徒も読める表示用）。ドキュメントIDは公開の招待コード。鍵（ひきつぎURL）は入らない
+    match /tashihiki_board/{code} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['nick','root','stage','cl','seen','updated'])
+                    && exists(/databases/$(database)/documents/tashihiki_invites/$(code))
+                    && get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.by == 'user'
+                    && request.resource.data.nick == get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.nick
+                    && request.resource.data.root == get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.root
+                    && request.resource.data.stage is int && request.resource.data.stage >= 0 && request.resource.data.stage < 30
+                    && request.resource.data.cl is list && request.resource.data.cl.size() <= 30
+                    && request.resource.data.seen is int && request.resource.data.seen >= 0 && request.resource.data.seen <= 999;
+      allow delete: if teacher();
+    }
+    // 招待コード。先生が発行するもの(by: teacher)と、登録した人が自動で持つもの(by: user)
+    match /tashihiki_invites/{code} {
+      allow get: if true;
+      allow list: if teacher();
+      allow create: if (request.resource.data.by == 'user'
+                        && request.resource.data.keys().hasAll(['by','parent','root','nick'])
+                        && request.resource.data.nick is string && request.resource.data.nick.size() <= 20)
+                    || (teacher() && request.resource.data.by == 'teacher');
+      // その URL を はじめて開いた子が 登録するとき、先に コードを 押さえる（1コード 1人。2人目は 通らない）
+      allow update: if teacher()
+                    || (resource.data.get('uid', null) == null
+                        && resource.data.get('cands', null) == null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid','usedAt'])
+                        && request.resource.data.uid is string);
+      allow delete: if teacher();
+    }

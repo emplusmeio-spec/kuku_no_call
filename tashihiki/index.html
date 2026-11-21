@@ -460,7 +460,7 @@ const STAGES=[
  S('5と いくつで',[1,2,3,4,5],0,k=>genFivePlus(k),0,3),              // 式→数（5＋□）
  S('5を こえる たしざん',[6,7,8],1500,k=>genOver5(k,false),0,3),     // 少ない ほうを うごかして 5を つくる
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
- S('6〜9＋小さい数',[6,7,8,9],1300,k=>genSmallAdd(k)),               // 6＋3 は 5と1と3 → 5と4
+ S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],1300,k=>genSmallAdd(k)),               // 6＋3 は 5と1と3 → 5と4
  S('6〜10の 分解①',[6,7,8,9,10],1500,k=>genBag(k,5,9)),             // 見えているのが 5いじょう
  S('6〜10の 分解②',[6,7,8,9,10],1500,k=>genBag(k,1,4)),             // 見えているのが 5みまん（5の 中まで かくれる）
  S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k)),           // ドット「10の なかま」
@@ -912,7 +912,7 @@ const Ryo = (() => {
    MODE: normal ふつう／fix 10問の あとで、ちがう 数字を 入れようと した もんだいを うごきで たしかめて 1回ずつ／
          lvup レベルアップ チャレンジ（つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて）
    P.fix=[[レベル,key],…]・P.fixTotal、P.lvup={to, facts:[key,…], st:{key:連続}} は 記録に のこる */
-let N,NS,qStart,phase,lastN=null,setRes=[],isReview=false,qToken=0,attempts=0,PAIR=null;
+let DECK=null,N,NS,qStart,phase,lastN=null,setRes=[],isReview=false,qToken=0,attempts=0,PAIR=null;
 let MODE='normal',setFacts=[],rejects=0,active=0,vals=[];
 const MARK_MS=900,LVUP_NEED=3,FLASH=700;
 const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
@@ -936,10 +936,9 @@ function pick(){
     for(let j=0;j<rp.length;j++){r-=w[j];if(r<=0){NS=rp[j][0];return rp[j][1]}}
     NS=rp[0][0];return rp[0][1]}
   isReview=false;NS=P.stage;
-  let pool=cur().facts.filter(n=>n!==lastN);if(!pool.length)pool=cur().facts;
-  const w=pool.map(n=>sp(n)>=need()?1:4);let r=Math.random()*w.reduce((x,y)=>x+y,0);
-  for(let i=0;i<pool.length;i++){r-=w[i];if(r<=0)return pool[i]}
-  return pool[pool.length-1];
+  /* かたよらない ように: しゅるいを ぜんぶ 1まいずつ 入れた 山を まぜて、上から じゅんに 出す（なくなったら まぜなおし） */
+  if(!DECK||DECK.stage!==P.stage||!DECK.list.length){let l=shuffle(cur().facts.slice());if(l.length>1&&l[0]===lastN)l.push(l.shift());DECK={stage:P.stage,list:l}}
+  return DECK.list.shift();
 }
 function renderProg(){
   const p=$('#prog');p.innerHTML='';
@@ -1061,6 +1060,13 @@ function addFrames(a,b,keep){
   const draw=()=>fscene([{id:'A',n:a,cls:'a'},'＋',{id:'B',n:b,cls:'b'}]);
   const after=async()=>{if(!FS||!FS.wrap.isConnected||!FS.frames.A){draw();await wait(400)}uncover();
     if(keep){const rest=(a-5)+(b-5);$('#read').textContent='ひだりの 5と みぎの 5で 10。のこりは '+rest+'こ';await wait(400);FS.frames.A.classList.add('full');FS.frames.B.classList.add('full');return}
+    if(a+b===10){ /* あわせて 10: うごかす かずが すくない ほうを えらぶ（9＋1 は 1を うつして 10、6＋4 は 1を うつして 5と5、5＋5 は そのまま） */
+      if(a===5){$('#read').textContent='5と 5で 10';await wait(400);FS.frames.A.classList.add('full');FS.frames.B.classList.add('full');return}
+      const big=a>b?'A':'B',sm=big==='A'?'B':'A',bn=Math.max(a,b),sn=Math.min(a,b);let mv=[],hint;
+      if(sn<bn-5){for(let i=0;i<sn;i++)mv.push({f:sm,i,tf:big,ti:bn+i});hint=`${frameName(big)}に ${sn}こ うつして 10`}
+      else{const n=bn-5;for(let i=0;i<n;i++)mv.push({f:big,i:bn-n+i,tf:sm,ti:sn+i});hint=`${frameName(big)}の ${n}こ を うつして 5と 5で 10`}
+      $('#read').textContent=hint;await wait(500);applyMoves(mv);await wait(950);
+      if(sn<bn-5)FS.frames[big].classList.add('full');else{FS.frames.A.classList.add('full');FS.frames.B.classList.add('full')}return}
     const plan=buildAddPlan(a,b);$('#read').textContent=plan.hint;await wait(500);applyMoves(plan.mv);await wait(950);
     if(plan.anchor&&plan.anchorFrame)FS.frames[plan.anchorFrame].classList.add('full')};
   return {draw,after,reveal:after};
@@ -1202,7 +1208,7 @@ const OVER5={6:[[2,4],[4,2],[3,3]],7:[[3,4],[4,3]],8:[[4,4]]};
 function genOver5(s,eq){const [a,b]=choice(OVER5[s]);const v=addFrames(a,b);
   return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:!eq,...v,...(eq?{draw:null}:{}),how:`${a}＋${b}（5を こえる）`})}
 /* 6〜9 ＋ 小さい数（10まで）: 6＋3 は 5と1と3 → 5と4 */
-function genSmallAdd(a){const b=rint(1,10-a);
+function genSmallAdd(k){const [a,b]=String(k).split('+').map(Number);
   return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（10まで）`})}
 /* ---- Lv11 たしざん②（ドット「たしざん② くりあがり あり」: 式と わくで、こたえの あとに 10を つくる うごき） ---- */
 function genCarry(big){const small=rint(11-big,big),[a,b]=Math.random()<.5?[big,small]:[small,big];

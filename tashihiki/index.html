@@ -342,6 +342,8 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fscene.tapfr{--fd:clamp(34px,min(9vw,6vh),64px)}
 .ft{pointer-events:none}.fc2.tapc{cursor:pointer;background:color-mix(in srgb,var(--paper) 70%,#fff)}.fc2.tapc:active{background:color-mix(in srgb,var(--dot) 25%,var(--paper))}
 .fc2.hit{animation:taphit .35s}@keyframes taphit{0%{background:color-mix(in srgb,var(--accent) 45%,var(--paper))}100%{background:transparent}}
+.fbush{z-index:3;border-radius:14px}
+.fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .fsign{font-family:var(--font-display);font-weight:900;font-size:calc(var(--fd)*1.1);color:var(--muted)}
 
 /* たしひきラボ: タイル（たしざんラボと同じ 色・形）。たてに 下から つむ */
@@ -444,7 +446,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'6〜10を 見る'],[0,'5と わける'],[0,'どこまで？'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
@@ -452,9 +454,9 @@ const LEVELS=[
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
 const STAGES=[
  S('0〜5 まとめ',['みる','どこまで','たす','かくす'],1200,k=>gen05(k),1),   // 0〜5 の 総復習（くわしくは べつアプリ）
- S('6〜10を 見る',[6,7,8,9,10],1000,k=>genSee(k),0,3),              // タイル→数（5と なんぼで 見る）
+ S('どこまで？',[6,7,8,9,10],0,k=>genWhere(k),0,3),                      // 数→タイル（わくを タップ）
  S('5と わける',[6,7,8,9],1300,k=>genSplit5(k),0,3),                 // ドット「5と わける」
- S('どこまで？',[6,7,8,9],0,k=>genWhere(k),0,3),                      // 数→タイル（わくを タップ）
+ S('6〜10を 見る',[6,7,8,9,10],1000,k=>genSee(k),0,3),              // タイル→数（5と なんぼで 見る）
  S('5と いくつで',[1,2,3,4,5],0,k=>genFivePlus(k),0,3),              // 式→数（5＋□）
  S('5を こえる たしざん',[6,7,8],1500,k=>genOver5(k,false),0,3),     // 少ない ほうを うごかして 5を つくる
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
@@ -977,7 +979,7 @@ function overlay(title,sub,kind,then,btn){
 }
 function showMark(green,sub,then){
   const o=el('div','mark '+(green?'g':'y'));o.innerHTML=`<div class="mk"></div><div class="mq">${Q.mq}</div>${sub?`<div class="ms">${sub}</div>`:''}`;
-  document.body.appendChild(o);setTimeout(()=>{o.remove();then()},MARK_MS);
+  document.body.appendChild(o);setTimeout(()=>{o.remove();then()},sub?MARK_MS:MARK_MS/2); /* ふつうの こたえあわせは 半分の 時間で つぎへ */
 }
 
 /* ===== タイル（静止画）: たしざんラボと同じ 四角い タイル。たてに 下から つむ。5の ところに すきま =====
@@ -1158,13 +1160,18 @@ function genTake(m){const r=rint(1,m-1),n=10+r;
     fields:[{pre:`10 から ${m} を とって`,ans:10-m},{pre:`${10-m} と ${r} で`,ans:10-m+r}],mq:`${n} − ${m} ＝ ${10-m+r}`,how:`${n}−${m}`}}
 /* ---- Lv2 5と わける（ドット「5と わける」: 6〜9 は 5 と いくつ。5の かたまりを 見て こたえる） ---- */
 function genSplit5(n){const h=n-5;
-  return Object.assign({mq:`5 と ${h} で ${n}`},{title:`5 と いくつで いくつ？`,draw:()=>{const r=hrow(10,5,h,false);r.querySelectorAll('.tc.b').forEach(c=>c.classList.replace('b','a'))},flash:true,hcover:true,
-    fields:[{pre:'5 と',ans:h},{pre:'で',ans:n}],after:reveal,reveal,how:`5と□で□（${n}）`})}
+  const draw=()=>{fscene([{id:'A',n,cls:'a'}]);const fr=FS.frames.A,bu=el('div','bush fbush off');bu.innerHTML='<span>？</span>';FS.wrap.appendChild(bu);
+    const place=()=>{const w=FS.wrap.getBoundingClientRect(),c5=fr.children[5].getBoundingClientRect(),c9=fr.children[9].getBoundingClientRect(),pad=6;
+      bu.style.left=(c5.left-w.left-pad)+'px';bu.style.top=(c5.top-w.top-pad)+'px';bu.style.width=(c9.right-c5.left+pad*2)+'px';bu.style.height=(c5.height+pad*2)+'px';bu.style.bottom='auto';bu.style.right='auto'};
+    place();requestAnimationFrame(place)};
+  const after=async()=>{await fensure(draw,'A');const bu=FS.wrap.querySelector('.bush');if(bu)bu.classList.add('lift');fset('A',5,n,'b');FS.frames.A.classList.add('five');rd(`5 と ${h} で ${n}`)};
+  return {title:`5 と いくつで いくつ？`,draw,flash:true,hcover:true,after,reveal:after,mq:`5 と ${h} で ${n}`,
+    fields:[{pre:'5 と',ans:h},{pre:'で',ans:n}],how:`5と□で□（${n}）`}}
 /* ---- 5と わける の 階段 ②「どこまで？」: 数字だけ 見て、からっぽの 10の わくの「n こめ」を タップ。
    上の だん（5）と 下の だん いくつ、と 形で うかばないと おせない。おすと タイルが ならんで こたえあわせ ---- */
 function genWhere(n){const h=n-5;
   const draw=()=>{fscene([{id:'A',n:0,cls:'a'}],'tapfr');[...FS.frames.A.children].forEach((c,i)=>{c.classList.add('tapc');c.onclick=e=>{e.stopPropagation();if(phase!=='input')return;
-      c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');typeKey(String(i+1))}})};
+      c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');const v=String(i+1),ex=expOf(active);if(v!==ex){typeKey(v[0]!==ex[0]?v[0]:'x');return}for(const ch of v)typeKey(ch)}})};
   const after=async()=>{await fensure(draw,'A');FS.dots.forEach(d=>d.el.remove());FS.dots=[];fdots('A',n,h>0?[...cells(5,'a'),...cells(h,'b')]:cells(n,'a'),0);
     rd(h>0?`${n} は 5 と ${h}`:`${n}`)};
   return {title:`${B(n)} は どこまで？`,tap:true,flash:false,draw,after,reveal:after,
@@ -1293,7 +1300,7 @@ function judge(){
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
   P.days[today()]=(P.days[today()]||0)+1;save();
-  if(Q.reveal&&!Q.used){const rv=Promise.resolve().then(()=>Q.reveal()).catch(()=>{});showMark(pass,'',()=>rv.then(()=>{$('#read').textContent=Q.mq;setTimeout(()=>finishItem(pass?'p':'o'),1100)}));return}
+  if(Q.reveal&&!Q.used){const rv=Promise.resolve().then(()=>Q.reveal()).catch(()=>{});showMark(pass,'',()=>rv.then(()=>{$('#read').textContent=Q.mq;setTimeout(()=>finishItem(pass?'p':'o'),550)}));return}
   showMark(pass,'',()=>finishItem(pass?'p':'o'));
 }
 function finishBuild(success){

@@ -436,28 +436,32 @@ const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
 const DEBUG=location.hash==='#debug';
 const FREE=location.hash==='#free'||DEBUG;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-/* ===== レベル（30段階案。いまは Lv1〜14「ばらの せかい」まで。ドットの 7コース（5の なかま〜たしざん②）を ふくむ） =====
+/* ===== レベル（30段階案。いまは Lv1〜19「ばらの せかい」まで。Lv1 は 0〜5 まとめ、Lv2〜13 で 6〜10 を 手あつく。ドットの 7コース（5の なかま〜たしざん②）を ふくむ） =====
    第1部 ばらの せかい（10をつくる・10からとる）／第2部 ぼうの せかい（100をつくる・100からとる）／第3部 いたの せかい（3けた）
    facts は そのレベルで 出す問題の しゅるい（key）。key ごとに 2回つづけて できたら「できた」。 */
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'5の なかま'],[0,'5と わける'],[0,'どこまで？'],[0,'数字だけで わける'],[0,'10の なかま'],[0,'たしざん①'],[0,'のこりは'],[0,'ちがいは'],
- [0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'6〜10を 見る'],[0,'5と わける'],[0,'どこまで？'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
 ];
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
 const STAGES=[
- S('5の なかま',[2,3,4,5],1500,k=>genBag(k)),                       // ドット「5の なかま」
- S('5と わける',[6,7,8,9],1300,k=>genSplit5(k)),                    // ドット「5と わける」（6〜9を 5と）
- S('どこまで？',[6,7,8,9],0,k=>genWhere(k),0,3),                        // 5と わける の 階段②: 数字 → わくの 位置を タップ
- S('数字だけで わける',[6,7,8,9],0,k=>genSplitNum(k),0,3),            // 5と わける の 階段③: タイルは こたえあわせ だけ
- S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k)),           // ドット「10の なかま」（あと いくつで 10）
- S('たしざん①',[2,3,4,5,6,7,8,9,10],1300,k=>genJoin(k)),            // ドット「たしざん①」くりあがり なし
- S('のこりは',[3,4,5,6,7,8,9,10],1300,k=>genLeft(k)),
- S('ちがいは',[3,4,5,6,7,8,9,10],1300,k=>genDiff(k)),
+ S('0〜5 まとめ',['みる','どこまで','たす','かくす'],1200,k=>gen05(k),1),   // 0〜5 の 総復習（くわしくは べつアプリ）
+ S('6〜10を 見る',[6,7,8,9,10],1000,k=>genSee(k),0,3),              // タイル→数（5と なんぼで 見る）
+ S('5と わける',[6,7,8,9],1300,k=>genSplit5(k),0,3),                 // ドット「5と わける」
+ S('どこまで？',[6,7,8,9],0,k=>genWhere(k),0,3),                      // 数→タイル（わくを タップ）
+ S('5と いくつで',[1,2,3,4,5],0,k=>genFivePlus(k),0,3),              // 式→数（5＋□）
+ S('5を こえる たしざん',[6,7,8],1500,k=>genOver5(k,false),0,3),     // 少ない ほうを うごかして 5を つくる
+ S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
+ S('6〜9＋小さい数',[6,7,8,9],1300,k=>genSmallAdd(k)),               // 6＋3 は 5と1と3 → 5と4
+ S('6〜10の 分解①',[6,7,8,9,10],1500,k=>genBag(k,5,9)),             // 見えているのが 5いじょう
+ S('6〜10の 分解②',[6,7,8,9,10],1500,k=>genBag(k,1,4)),             // 見えているのが 5みまん（5の 中まで かくれる）
+ S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k)),           // ドット「10の なかま」
+ S('のこりは',[6,7,8,9,10],1300,k=>genLeft(k)),
+ S('ちがいは',[6,7,8,9,10],1300,k=>genDiff(k)),
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
  S('くりあがり②',[6,7,8,9],1500,k=>genMake(k)),                     // ドット「くりあがり② 10を つくる」
@@ -1101,7 +1105,7 @@ function takeFrames(n,m){const r=n-10,k=10-m;
   return {draw,after,reveal:after};
 }
 /* ---- Lv1・2 ぜんぶで T。見えているのは a、のこりは くさむらの中 ---- */
-function genBag(T){const a=Math.random()<.1?T:rint(1,T-1),h=T-a,size=T<=5&&NS===0?5:10;
+function genBag(T,lo,hi){const a=lo!=null?rint(Math.max(1,lo),Math.min(hi,T-1)):Math.random()<.1?T:rint(1,T-1),h=T-a,size=T<=5&&NS===0?5:10;
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw:()=>hrow(size,a,h,true),flash:false,hcover:true,
     after:reveal,reveal,how:`${T}は${a}と□`})}
 /* ---- Lv3 あわせて・ふえると（和≦10） ---- */
@@ -1158,15 +1162,38 @@ function genSplit5(n){const h=n-5;
 function genWhere(n){const h=n-5;
   const draw=()=>{fscene([{id:'A',n:0,cls:'a'}],'tapfr');[...FS.frames.A.children].forEach((c,i)=>{c.classList.add('tapc');c.onclick=e=>{e.stopPropagation();if(phase!=='input')return;
       c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');typeKey(String(i+1))}})};
-  const after=async()=>{await fensure(draw,'A');FS.dots.forEach(d=>d.el.remove());FS.dots=[];fdots('A',n,[...cells(5,'a'),...cells(h,'b')],0);
-    rd(`${n} は 5 と ${h}`)};
+  const after=async()=>{await fensure(draw,'A');FS.dots.forEach(d=>d.el.remove());FS.dots=[];fdots('A',n,h>0?[...cells(5,'a'),...cells(h,'b')]:cells(n,'a'),0);
+    rd(h>0?`${n} は 5 と ${h}`:`${n}`)};
   return {title:`${B(n)} は どこまで？`,tap:true,flash:false,draw,after,reveal:after,
-    fields:[{pre:'わくを おしてね',ans:n,post:'こめ'}],mq:`${n} は 5 と ${h}`,how:`${n}はどこまで`}}
+    fields:[{pre:'わくを おしてね',ans:n,post:'こめ'}],mq:h>0?`${n} は 5 と ${h}`:`${n}`,how:`${n}はどこまで`}}
 /* ---- 5と わける の 階段 ③「数字だけで わける」: タイルは 出さない。こたえた あとに 5の かたまりで こたえあわせ ---- */
 function genSplitNum(n){const h=n-5;
   const after=async()=>{uncover();const r=hrow(10,5,h,false);reveal();rd(`${n} は 5 と ${h}`)};
   return Object.assign(one(h,`${n} は 5 と ${h}`),{title:`${B(n)} は 5 と いくつ？`,flash:false,draw:null,after,reveal:after,
     fields:[{pre:`${n} は 5 と`,ans:h}],how:`${n}は5と□（数字だけ）`})}
+/* ===== 0〜5 まとめ（Lv1）と 6〜10 を 手あつく ===== */
+/* いくつ？（タイル→数）: 5×2 の わくに 一瞬 見せて かくす。こたえで 5の かたまりと のこりを 色わけ */
+function genSee(n){const h=n-5;
+  const draw=()=>{fscene([{id:'A',n,cls:'a'}]);if(n===10)FS.frames.A.classList.add('full')};
+  const after=async()=>{await fensure(draw,'A');if(h>0)fset('A',5,n,'b');rd(h>0?`${n} は 5 と ${h}`:`${n}`)};
+  return Object.assign(one(n,h>0?`${n} は 5 と ${h}`:`${n}`),{title:'いくつ？',flash:true,draw,after,reveal:after,how:`${n}をみる`})}
+/* Lv1 0〜5 まとめ: みる・どこまで・たす・かくす を まぜて */
+function gen05(k){
+  if(k==='みる')return genSee(rint(1,5));
+  if(k==='どこまで')return genWhere(rint(1,5));
+  if(k==='たす'){const s=rint(2,5),a=rint(1,s-1),b=s-a;return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（5まで）`})}
+  return genBag(rint(2,5))}
+/* 5と いくつで（式→数）: タイルは こたえあわせ だけ */
+function genFivePlus(h){const n=5+h;
+  const after=async()=>{uncover();hrow(10,5,h,false);reveal();rd(`5 と ${h} で ${n}`)};
+  return Object.assign(one(n,`5 と ${h} で ${n}`),{title:`5 と ${B(h)} で いくつ？`,flash:false,draw:null,after,reveal:after,how:`5と${h}で□`})}
+/* 5を こえる たしざん（1〜4 どうし、こたえ 6〜8）。少ない ほうを うごかして 5を つくる。eq=true は 式だけ */
+const OVER5={6:[[2,4],[4,2],[3,3]],7:[[3,4],[4,3]],8:[[4,4]]};
+function genOver5(s,eq){const [a,b]=choice(OVER5[s]);const v=addFrames(a,b);
+  return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:!eq,...v,...(eq?{draw:null}:{}),how:`${a}＋${b}（5を こえる）`})}
+/* 6〜9 ＋ 小さい数（10まで）: 6＋3 は 5と1と3 → 5と4 */
+function genSmallAdd(a){const b=rint(1,10-a);
+  return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（10まで）`})}
 /* ---- Lv11 たしざん②（ドット「たしざん② くりあがり あり」: 式と わくで、こたえの あとに 10を つくる うごき） ---- */
 function genCarry(big){const small=rint(11-big,big),[a,b]=Math.random()<.5?[big,small]:[small,big];
   return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（くりあがり）`})}
@@ -1344,7 +1371,7 @@ function renderMap(){
 $('#licBtn').onclick=()=>{const b=$('#licBox');b.hidden=!b.hidden;if(b.hidden)return;
   b.innerHTML=`<div class="lic"><div class="seal">10を<br>つくる<br>とる</div><div class="t">TASHIHIKI LAB LICENSE</div><h2>ばらの せかい ライセンス</h2>
   <input id="licName" placeholder="なまえ" value="${esc(P.name)}">
-  <div class="row"><span>Lv.1〜14 ぜんぶ クリア</span></div>
+  <div class="row"><span>Lv.1〜19 ぜんぶ クリア</span></div>
   <div class="row"><span>8＋5 は「8は あと2で 10、のこり3」、13−8 は「10から8を とって2、2と3で5」が できる</span></div></div>`;
   $('#licName').oninput=e=>{P.name=e.target.value;save()}};
 function alert_(m){const e=$('#err');if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent=''},3000)}}

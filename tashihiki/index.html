@@ -918,7 +918,8 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 const choice=a=>a[Math.floor(Math.random()*a.length)];
 const lvRemain=()=>P.lvup?P.lvup.facts.reduce((n,f)=>n+Math.max(0,LVUP_NEED-(P.lvup.st[f]||0)),0):0;
 /* ふくしゅう: 1つ前〜3つ前の レベルから 3割（苦手は 4倍） */
-function reviewPool(){const r=[];for(let i=Math.max(0,P.stage-3);i<P.stage;i++)STAGES[i].facts.forEach(k=>r.push([i,k]));return r}
+/* ふくしゅうは 出さない（たし算は つぎの レベルでも 数と 量に ふれつづけるので。九九ラボとの ちがい） */
+function reviewPool(){return [];const r=[];for(let i=Math.max(0,P.stage-3);i<P.stage;i++)STAGES[i].facts.forEach(k=>r.push([i,k]));return r}
 function pick(){
   if(P.fix&&P.fix.length){MODE='fix';isReview=false;NS=P.fix[0][0];return P.fix[0][1]}
   if(P.lvup){MODE='lvup';isReview=false;NS=P.lvup.to;

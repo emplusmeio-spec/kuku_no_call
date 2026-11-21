@@ -440,13 +440,13 @@ const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e};
 const DEBUG=location.hash==='#debug';
 const FREE=location.hash==='#free'||DEBUG;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-/* ===== レベル（30段階案。いまは Lv1〜19「ばらの せかい」まで。Lv1 は 0〜5 まとめ、Lv2〜13 で 6〜10 を 手あつく。ドットの 7コース（5の なかま〜たしざん②）を ふくむ） =====
+/* ===== レベル（30段階案。いまは Lv1〜20「ばらの せかい」まで。Lv1 は 0〜5 まとめ、Lv2〜13 で 6〜10 を 手あつく。ドットの 7コース（5の なかま〜たしざん②）を ふくむ） =====
    第1部 ばらの せかい（10をつくる・10からとる）／第2部 ぼうの せかい（100をつくる・100からとる）／第3部 いたの せかい（3けた）
    facts は そのレベルで 出す問題の しゅるい（key）。key ごとに 2回つづけて できたら「できた」。 */
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
@@ -462,8 +462,9 @@ const STAGES=[
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
  S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],1300,k=>genSmallAdd(k)),               // 6＋3 は 5と1と3 → 5と4
  S('6〜10の 分解①',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 見えているのが 6いじょう（5ちょうどは「5と わける」と かぶるので 出さない）
- S('6〜10の 分解②',[6,7,8,9,10],1500,k=>genBag(k,1,4)),             // 見えているのが 5みまん（5の 中まで かくれる）
- S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k)),           // ドット「10の なかま」
+ S('6〜10の 分解②',[6,7,8,9],1500,k=>genBag(k,1,4,1,5)),                // 見えているのが 5みまん、こたえ（かくれた かず）が 5まで
+ S('6〜10の 分解③',[7,8,9,10],1500,k=>genBag(k,1,4,6,9)),               // 見えているのが 5みまん、こたえが 6いじょう             // 見えているのが 5みまん（5の 中まで かくれる）
+ S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k),0,5.5),           // ドット「10の なかま」
  S('のこりは',[6,7,8,9,10],1300,k=>genLeft(k)),
  S('ちがいは',[6,7,8,9,10],1300,k=>genDiff(k)),
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
@@ -1116,7 +1117,7 @@ function takeFrames(n,m){const r=n-10,k=10-m;
   return {draw,after,reveal:after};
 }
 /* ---- Lv1・2 ぜんぶで T。見えているのは a、のこりは くさむらの中 ---- */
-function genBag(T,lo,hi){const a=lo!=null?rint(Math.max(1,lo),Math.min(hi,T-1)):Math.random()<.1?T:rint(1,T-1),h=T-a,size=T<=5&&NS===0?5:10;
+function genBag(T,lo,hi,hlo,hhi){if(hlo!=null){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo)}const a=lo!=null?rint(Math.max(1,lo),Math.min(hi,T-1)):Math.random()<.1?T:rint(1,T-1),h=T-a,size=T<=5&&NS===0?5:10;
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw:()=>hrow(size,a,h,true),flash:false,hcover:true,
     after:reveal,reveal,how:`${T}は${a}と□`})}
 /* ---- Lv3 あわせて・ふえると（和≦10） ---- */
@@ -1149,9 +1150,14 @@ function genTeen(k){let a,b,op;
   return Object.assign(one(ans,`${a} ${o} ${b} ＝ ${ans}`),{title:`${B(a)} ${o} ${B(b)}`,flash:true,...vis,how:`${a}${o}${b}`})}
 /* ---- Lv8 あと いくつで 10（わくの あきを 一瞬 見せてから くさむらで かくす） ---- */
 function genFill(n){const h=10-n;
-  return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw:()=>hrow(10,n,0,false),flash:true,hcover:true,
-    after:()=>{const r=F().querySelector('.trow');r.querySelectorAll('.tc.e').forEach(t=>{t.classList.remove('e');t.classList.add('b')});reveal()},
-    get reveal(){return this.after},how:`${n}はあと□で10`})}
+  /* 見せ方は 3だんかい: ①文字だけ → ②タイルと くさむら（ここまでに こたえたら ごうかく）→ ③くさむらが とれる（ヒント。ごうかくには ならない） */
+  const after=()=>{let r=F().querySelector('.trow');if(!r)r=hrow(10,n,0,false);r.querySelectorAll('.tc.e').forEach(t=>{t.classList.remove('e');t.classList.add('b')});reveal()};
+  const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
+    await sl(FILL_T1);if(!alive())return;hrow(10,n,0,true);
+    await sl(FILL_T2);if(!alive())return;Q.used=true;after();$('#read').textContent=`${n} と ${h} で 10`};
+  return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw:()=>hrow(10,n,0,true),flash:false,timeline,
+    after,reveal:after,how:`${n}はあと□で10`})}
+const FILL_T1=2500,FILL_T2=3000;
 /* ---- Lv9 5と5で 10（6〜9 どうし） ---- */
 function genFive(k){const o=rint(6,9),[a,b]=Math.random()<.5?[k,o]:[o,k],s=a+b,ra=a-5,rb=b-5;
   return {title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b,true),
@@ -1279,7 +1285,8 @@ function start(){
     if(build){ /* たしかめ・チャレンジ: 絵を 見せて うごきを 見てから こたえる（時間は はからない） */
       if(Q.draw)Q.draw();Q.used=true;await new Promise(r=>setTimeout(r,(STAGES[NS].ms||1200)));if(token!==qToken)return;
       try{await Q.after()}catch(e){}if(token!==qToken)return;$('#read').textContent='';ready();return}
-    if(Q.draw){Q.draw();ready();
+    if(Q.timeline){f.innerHTML='';ready();Q.timeline(()=>token===qToken&&phase==='input'&&!Q.used)}
+    else if(Q.draw){Q.draw();ready();
       if(Q.flash){const ms=Math.round((STAGES[NS].ms||1200)*(P.speed||1));
         setTimeout(()=>{if(token!==qToken||phase!=='input'||Q.used)return;if(Q.hcover){const bu=f.querySelector('.bush');if(bu)bu.classList.remove('off')}else cover();f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'},ms)}
       else if(Q.hcover){f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'}}
@@ -1387,7 +1394,7 @@ function renderMap(){
 $('#licBtn').onclick=()=>{const b=$('#licBox');b.hidden=!b.hidden;if(b.hidden)return;
   b.innerHTML=`<div class="lic"><div class="seal">10を<br>つくる<br>とる</div><div class="t">TASHIHIKI LAB LICENSE</div><h2>ばらの せかい ライセンス</h2>
   <input id="licName" placeholder="なまえ" value="${esc(P.name)}">
-  <div class="row"><span>Lv.1〜19 ぜんぶ クリア</span></div>
+  <div class="row"><span>Lv.1〜20 ぜんぶ クリア</span></div>
   <div class="row"><span>8＋5 は「8は あと2で 10、のこり3」、13−8 は「10から8を とって2、2と3で5」が できる</span></div></div>`;
   $('#licName').oninput=e=>{P.name=e.target.value;save()}};
 function alert_(m){const e=$('#err');if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent=''},3000)}}

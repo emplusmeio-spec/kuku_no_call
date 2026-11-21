@@ -1158,8 +1158,8 @@ function genTake(m){const r=rint(1,m-1),n=10+r;
     fields:[{pre:`10 から ${m} を とって`,ans:10-m},{pre:`${10-m} と ${r} で`,ans:10-m+r}],mq:`${n} − ${m} ＝ ${10-m+r}`,how:`${n}−${m}`}}
 /* ---- Lv2 5と わける（ドット「5と わける」: 6〜9 は 5 と いくつ。5の かたまりを 見て こたえる） ---- */
 function genSplit5(n){const h=n-5;
-  return Object.assign(one(h,`${n} は 5 と ${h}`),{title:`${B(n)} は 5 と いくつ？`,draw:()=>{const r=hrow(10,5,h,false);r.querySelectorAll('.tc.b').forEach(c=>c.classList.replace('b','a'))},flash:true,hcover:true,
-    fields:[{pre:`${n} は 5 と`,ans:h}],after:reveal,reveal,how:`${n}は5と□`})}
+  return Object.assign({mq:`5 と ${h} で ${n}`},{title:`5 と いくつで いくつ？`,draw:()=>{const r=hrow(10,5,h,false);r.querySelectorAll('.tc.b').forEach(c=>c.classList.replace('b','a'))},flash:true,hcover:true,
+    fields:[{pre:'5 と',ans:h},{pre:'で',ans:n}],after:reveal,reveal,how:`5と□で□（${n}）`})}
 /* ---- 5と わける の 階段 ②「どこまで？」: 数字だけ 見て、からっぽの 10の わくの「n こめ」を タップ。
    上の だん（5）と 下の だん いくつ、と 形で うかばないと おせない。おすと タイルが ならんで こたえあわせ ---- */
 function genWhere(n){const h=n-5;

@@ -299,7 +299,9 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);font-family:var(--font-display);font-weight:900;font-size:clamp(48px,12vw,96px);color:var(--line)}
 .field.tap .cover span,.field.tap .qmark{color:var(--dot);border:4px dashed color-mix(in srgb,var(--dot) 45%,transparent);border-radius:24px;padding:0 .4em}
 .qmark{font-family:var(--font-display);font-weight:900;font-size:clamp(56px,14vw,110px);color:var(--line)}
-.qtitle b{font-size:1.4em;color:var(--accent);margin:0 .1em}
+.qtitle b{font-size:2.2em;line-height:1;color:var(--accent);margin:0 .12em;vertical-align:-.12em}
+.qtitle b.k{color:var(--ink)}
+.answerrow .lb b{font-size:1.7em;line-height:1;margin:0 .08em;vertical-align:-.1em}
 #ans{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 #ans .answerrow{margin-top:0}
 .pips{display:inline-flex;gap:6px;vertical-align:middle;flex-wrap:wrap;justify-content:center}
@@ -1179,7 +1181,7 @@ function genSee(n){const h=n-5;
   return Object.assign(one(n,h>0?`${n} は 5 と ${h}`:`${n}`),{title:'いくつ？',flash:true,draw,after,reveal:after,how:`${n}をみる`})}
 /* Lv1 0〜5 まとめ: みる・どこまで・たす・かくす を まぜて */
 function gen05(k){
-  if(k==='みる')return genSee(rint(1,5));
+  if(k==='みる')return genSee(Math.random()<.8?rint(3,4):5); /* 1・2は 出さない。3・4 中心 */
   if(k==='どこまで')return genWhere(rint(1,5));
   if(k==='たす'){const s=rint(2,5),a=rint(1,s-1),b=s-a;return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（5まで）`})}
   return genBag(rint(2,5))}
@@ -1215,9 +1217,9 @@ const expOf=i=>String(Q.fields[i].ans);
 function renderFields(){
   const w=$('#ans');w.innerHTML='';
   Q.fields.forEach((f,i)=>{const r=el('div','answerrow');
-    if(f.pre){const l=el('span','lb');l.textContent=f.pre;r.appendChild(l)}
+    if(f.pre){const l=el('span','lb');l.innerHTML=esc(f.pre).replace(/(\d+)/g,'<b>$1</b>');r.appendChild(l)}
     const b=el('div','numin ans');b.id='in'+i;b.onclick=()=>setActive(i);r.appendChild(b);
-    if(f.post){const l=el('span','lb');l.textContent=f.post;r.appendChild(l)}
+    if(f.post){const l=el('span','lb');l.innerHTML=esc(f.post).replace(/(\d+)/g,'<b>$1</b>');r.appendChild(l)}
     w.appendChild(r)});
 }
 function setActive(i){if(phase!=='input')return;active=i;Q.fields.forEach((_,j)=>$('#in'+j).classList.toggle('active',j===i))}
@@ -1252,7 +1254,7 @@ function start(){
   N=pick();lastN=N;renderProg();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
   Q=STAGES[NS].gen(N);Q.used=false;vals=Q.fields.map(()=>'');active=0;
-  $('#qtitle').innerHTML=Q.title;renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';
+  $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';
   const f=F();f.innerHTML='';f.classList.remove('tap');f.onclick=()=>{if(phase==='input'&&f.classList.contains('tap'))check()};
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
   const build=MODE!=='normal';

@@ -344,6 +344,9 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fc2.hit{animation:taphit .35s}@keyframes taphit{0%{background:color-mix(in srgb,var(--accent) 45%,var(--paper))}100%{background:transparent}}
 .fbush{z-index:3;border-radius:14px}
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
+.tscene.ldscene{flex-direction:column;align-items:center;gap:0}
+.ldscene .lrow{padding:6px 12px}
+.lrow .tc{transition:background .3s,opacity .3s}
 .fsign{font-family:var(--font-display);font-weight:900;font-size:calc(var(--fd)*1.1);color:var(--muted)}
 
 /* たしひきラボ: タイル（たしざんラボと同じ 色・形）。たてに 下から つむ */
@@ -1116,6 +1119,28 @@ function takeFrames(n,m){const r=n-10,k=10-m;
     rd(`${k} と ${r} で ${k+r}`);applyMoves(Array.from({length:r},(_,i)=>({f:'A',i,tf:'T',ti:k+i})));await wait(900)};
   return {draw,after,reveal:after};
 }
+/* ===== のこりは・ちがいは（横一列 5・5）: ①ことばだけ（ここで こたえたら ごうかく）→ ②はじめの 数 → ③とる数・くらべる数 ===== */
+const LD_T1=3000,LD_T2=1300;
+function rowEl(n,cls){const r=el('div','trow lrow');for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i;gw.appendChild(el('span','tc '+(k<n?(cls||'a'):'e')))}r.appendChild(gw)}return r}
+function ldScene(){const f=F();f.innerHTML='';const w=el('div','tscene ldscene');f.appendChild(w);return w}
+function ldCells(r){return [...r.querySelectorAll('.tc')]}
+function leftTL(a,b){const r_=a-b;
+  const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
+    await sl(LD_T1);if(!alive())return;Q.used=true;const w=ldScene();w.appendChild(rowEl(a));
+    await sl(LD_T2);if(!alive())return;const cs=ldCells(w.querySelector('.lrow'));for(let i=r_;i<a;i++)cs[i].classList.replace('a','x')};
+  const after=async()=>{let w=F().querySelector('.ldscene');if(!w){w=ldScene();w.appendChild(rowEl(a));}const cs=ldCells(w.querySelector('.lrow'));
+    for(let i=r_;i<a;i++){cs[i].classList.remove('a');cs[i].classList.add('x')}await wait(350);for(let i=r_;i<a;i++){cs[i].classList.remove('x');cs[i].classList.add('e')}
+    $('#read').textContent=`${a} − ${b} ＝ ${r_}`};
+  return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
+}
+function diffTL(a,b){const d=a-b;
+  const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
+    await sl(LD_T1);if(!alive())return;Q.used=true;const w=ldScene();w.appendChild(rowEl(a));
+    await sl(LD_T2);if(!alive())return;w.appendChild(rowEl(b,'b'))};
+  const after=async()=>{let w=F().querySelector('.ldscene');if(!w){w=ldScene();w.appendChild(rowEl(a))}if(w.querySelectorAll('.lrow').length<2)w.appendChild(rowEl(b,'b'));
+    const cs=ldCells(w.querySelector('.lrow'));for(let i=b;i<a;i++)cs[i].classList.add('hl');$('#read').textContent=`${b} こずつ ならべると、うえが ${d} こ おおい`};
+  return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
+}
 /* ---- Lv1・2 ぜんぶで T。見えているのは a、のこりは くさむらの中 ---- */
 function genBag(T,lo,hi,hlo,hhi){if(hlo!=null){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo)}const a=lo!=null?rint(Math.max(1,lo),Math.min(hi,T-1)):Math.random()<.1?T:rint(1,T-1),h=T-a,size=T<=5&&NS===0?5:10;
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw:()=>hrow(size,a,h,true),flash:false,hcover:true,
@@ -1126,10 +1151,10 @@ function genJoin(s){let a=rint(1,s-1),b=s-a;if(Math.random()<.1){a=s;b=0}
   return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${w} いくつ？`,flash:true,...addFrames(a,b),how:`${a}＋${b}（${w}）`})}
 /* ---- Lv4 のこりは ---- */
 function genLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r=a-b,cs=[...cells(r,'a'),...cells(b,'x')];
-  return Object.assign(one(r,`${a} − ${b} ＝ ${r}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,flash:true,...leftFrames(a,b),how:`${a}−${b}（のこりは）`})}
+  return Object.assign(one(r,`${a} − ${b} ＝ ${r}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,...leftTL(a,b),how:`${a}−${b}（のこりは）`})}
 /* ---- Lv5 ちがいは（2れつを ならべて はみだしを 見る） ---- */
 function genDiff(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;
-  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,flash:true,...diffFrames(a,b),how:`${a}と${b}のちがい`})}
+  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,...diffTL(a,b),how:`${a}と${b}のちがい`})}
 /* ---- Lv6・11 たして ひいて（たし算の すぐあとに、その こたえから ひく） ---- */
 function genPair(k,carry){
   const pairOK=MODE==='normal'&&!isReview;
@@ -1153,8 +1178,8 @@ function genFill(n){const h=10-n;
   /* 見せ方は 3だんかい: ①文字だけ → ②タイルと くさむら（ここまでに こたえたら ごうかく）→ ③くさむらが とれる（ヒント。ごうかくには ならない） */
   const after=()=>{let r=F().querySelector('.trow');if(!r)r=hrow(10,n,0,false);r.querySelectorAll('.tc.e').forEach(t=>{t.classList.remove('e');t.classList.add('b')});reveal()};
   const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
-    await sl(FILL_T1);if(!alive())return;hrow(10,n,0,true);
-    await sl(FILL_T2);if(!alive())return;Q.used=true;after();$('#read').textContent=`${n} と ${h} で 10`};
+    await sl(FILL_T1);if(!alive()||Q.used)return;hrow(10,n,0,true);
+    await sl(FILL_T2);if(!alive()||Q.used)return;Q.used=true;after();$('#read').textContent=`${n} と ${h} で 10`};
   return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw:()=>hrow(10,n,0,true),flash:false,timeline,
     after,reveal:after,how:`${n}はあと□で10`})}
 const FILL_T1=2500,FILL_T2=3000;
@@ -1283,9 +1308,10 @@ function start(){
   const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now()};
   setTimeout(async()=>{if(token!==qToken)return;flash.remove();
     if(build){ /* たしかめ・チャレンジ: 絵を 見せて うごきを 見てから こたえる（時間は はからない） */
+      if(Q.tlBuild){f.innerHTML='';ready();Q.used=true;Q.timeline(()=>token===qToken&&phase==='input');return}
       if(Q.draw)Q.draw();Q.used=true;await new Promise(r=>setTimeout(r,(STAGES[NS].ms||1200)));if(token!==qToken)return;
       try{await Q.after()}catch(e){}if(token!==qToken)return;$('#read').textContent='';ready();return}
-    if(Q.timeline){f.innerHTML='';ready();Q.timeline(()=>token===qToken&&phase==='input'&&!Q.used)}
+    if(Q.timeline){f.innerHTML='';ready();Q.timeline(()=>token===qToken&&phase==='input')}
     else if(Q.draw){Q.draw();ready();
       if(Q.flash){const ms=Math.round((STAGES[NS].ms||1200)*(P.speed||1));
         setTimeout(()=>{if(token!==qToken||phase!=='input'||Q.used)return;if(Q.hcover){const bu=f.querySelector('.bush');if(bu)bu.classList.remove('off')}else cover();f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'},ms)}

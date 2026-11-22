@@ -503,6 +503,11 @@ const STAGES=[
  S('まぜて 20まで',['くりあがり','くりさがり','10と いくつ','10まで'],0,k=>genMix(k),1),
 ];
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
+/* 段の しゅるい: teach 教える／try ためす（タイルを うごかす）→ 正しく 連続8もんで クリア（時間は とわない。リーチ あり）
+   nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
+const KIND=['nare','teach','nare','nare','nare','try','nare','try','nare','try','try','try','try','try','nare','teach','try','try','try','try','nare'];
+STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
+const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
 
 /* ===== クラウド（Firebase）: 九九ラボと同じ。URL の ?i=コード が その子（1コード 1人）。ダーツは 九九ラボ・よむよむと 共通。先生は ?teacher =====
@@ -512,7 +517,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22k';
+const VER='11/22l';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1008,6 +1013,7 @@ function pick(){
   if(!DECK||DECK.stage!==P.stage||!DECK.list.length){let l=buildDeck(P.stage);if(l.length>1&&l[0].id===LASTID)l.push(l.shift());DECK={stage:P.stage,list:l}}
   const c=DECK.list.shift();CURSEED=c.seed;LASTID=c.id;return c.k;
 }
+const streakOf=()=>(P.streak||{})[P.stage]||0;
 function renderProg(){
   const p=$('#prog');p.innerHTML='';
   $('#who').textContent=ME?ME.nick:'';
@@ -1026,7 +1032,7 @@ function renderProg(){
     $('#progress').textContent='レベルアップ チャレンジ';
     $('#stageTag').textContent=`レベルアップ → Lv.${L.to+1}`;$('#stageTag').style.background=`var(${PH[STAGES[L.to].p][2]})`;return}
   for(let i=0;i<SET;i++){const d=el('i');if(setRes[i])d.className=setRes[i];p.appendChild(d)}
-  $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
+  $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`+(P.cleared.includes(P.stage)?'':`　れんぞく ${streakOf()}/${CLEAR_STREAK}`);
   $('#stageTag').textContent=`Lv.${cur().lv}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
 }
@@ -1526,6 +1532,7 @@ function start(){
       else if(Q.hcover){f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'}}
     else{f.innerHTML='<div class="qmark hide">？</div>';f.classList.add('tap');ready()}
   },build?FLASH:0); /* ふつうは 問題が 出たら すぐ 入力できる（まちじかん なし） */
+  if(MODE==='normal'&&cur().kind!=='nare'&&!P.cleared.includes(P.stage)&&streakOf()===CLEAR_STREAK-1)overlay('⚡ リーチ！ ⚡','あと 1もん で クリア！','reach',null,'いくぞ！');
   if(MODE==='lvup'&&lvRemain()===1)overlay('⚡ リーチ！ ⚡',`あと 1かいで レベルアップ！`,'reach',null,'いくぞ！');
   renderAdult();
 }
@@ -1545,6 +1552,7 @@ function judge(){
   const limit=(STAGES[NS].lim||P.limit)*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
   P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
+  { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;Q.ok=okQ}
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
   P.days[today()]=(P.days[today()]||0)+1;save();
@@ -1566,7 +1574,8 @@ function finishBuild(success){
 function finishItem(kind){
   if(!setRes.length)setFacts=[];
   setRes.push(kind);setFacts.push({st:NS,k:N,rej:rejects,how:Q.how});
-  if(setRes.length>=SET){
+  const reached=!P.cleared.includes(P.stage)&&streakOf()>=CLEAR_STREAK;
+  if(setRes.length>=SET||reached){
     /* ちがう 数字を 入れようと した もんだいを、うごきで たしかめて 1回ずつ */
     const m=new Map();setFacts.filter(x=>x.rej>0).forEach(x=>m.set(x.st+':'+x.k,[x.st,x.k]));
     if(m.size){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
@@ -1577,14 +1586,14 @@ function finishItem(kind){
 
 function showResult(){
   PAIR=null;MODE='normal';
-  const n=setRes.filter(x=>x==='p').length,kind=n===SET?'g':n>=7?'s':'b';P.badges[kind]++;
+  const LEN=setRes.length||SET,n=setRes.filter(x=>x==='p').length,kind=n===LEN?'g':n>=Math.ceil(LEN*.7)?'s':'b';P.badges[kind]++;
   const name={g:'きん',s:'ぎん',b:'どう'}[kind],msg={g:'ぜんぶ ぱっと見！',s:'ぱっと見が ふえてきた！',b:'うごきで たしかめた。それが だいじ。'}[kind];
-  const cleared=stageDone()&&!P.cleared.includes(P.stage);
-  const canNext=(stageDone()||P.cleared.includes(P.stage))&&P.stage<STAGES.length-1;
+  const cleared=streakOf()>=CLEAR_STREAK&&!P.cleared.includes(P.stage);
+  const canNext=(cleared||P.cleared.includes(P.stage))&&P.stage<STAGES.length-1;
   if(cleared)P.cleared.push(P.stage);
   { /* きろく（ドットと 同じ: いつ・ぱっと見・じかん）。1レベル 30かいまで */
-    const hs=P.hist.filter(h=>!h.b).slice(-SET),tt=hs.reduce((a,h)=>a+h.t,0);
-    P.rec=P.rec||{};const k=String(P.stage);(P.rec[k]=P.rec[k]||[]).push({at:Date.now(),c:n,n:SET,t:tt});if(P.rec[k].length>30)P.rec[k]=P.rec[k].slice(-30)}
+    const hs=P.hist.filter(h=>!h.b).slice(-LEN),tt=hs.reduce((a,h)=>a+h.t,0);
+    P.rec=P.rec||{};const k=String(P.stage);(P.rec[k]=P.rec[k]||[]).push({at:Date.now(),c:n,n:LEN,t:tt});if(P.rec[k].length>30)P.rec[k]=P.rec[k].slice(-30)}
   save();$('#q').hidden=true;renderProg();
   /* もどる きまり: Lv9 は 3セット クリア できなければ Lv6 へ／Lv15 は どう なら Lv13 へ／Lv6・Lv8 は どう なら たしかめテスト */
   let back=null;
@@ -1598,7 +1607,7 @@ function showResult(){
   const partDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i))&&LEVELS.filter(l=>l[0]===cur().p).length===STAGES.filter(s=>s.p===cur().p).length;
   const lastReady=P.stage>=STAGES.length-1;
   r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>Lv.${P.stage+1} クリア！</h2><p>${esc(cur().name)} が じぶんのものに なった。</p>${partDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}<p>ぱっと見で できた もんだい　${seenCount()} / ${SEENTOTAL}</p>${lastReady?'<p>つぎの レベルは じゅんび中。</p>':''}<hr style="border:none;border-top:2px dashed var(--line)">`:'')+
-  `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ たしかめ ${SET-n} こ</p>
+  `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ たしかめ ${LEN-n} こ</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
   if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);

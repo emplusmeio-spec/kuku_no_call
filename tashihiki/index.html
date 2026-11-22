@@ -371,17 +371,18 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fscene.mv .ft{pointer-events:auto;cursor:pointer;touch-action:manipulation}.fscene.mv .ft:active{transform:scale(.9)}
 .fr.five{border-color:var(--accent)}
 .tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
-.sbag .tc.a{cursor:pointer;position:relative;z-index:4}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
+.sbag .tc.a{cursor:pointer;position:relative;z-index:4}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:auto;cursor:pointer}.sbag .sbush.lift{pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
 /* 草むら D（草＋花）11/22 ボス */
-.sbag .sbush{background:transparent;border:none;overflow:visible;isolation:isolate}
-.sbag .sbush::before{content:"";position:absolute;left:-4%;right:-4%;top:-22%;bottom:0;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23a6dc7e%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2358a548%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M0%2C100%20L0%2C30%20L2.5%2C2%20L5%2C26%20L7.5%2C15%20L10%2C31%20L12.5%2C13%20L15%2C28%20L17.5%2C2%20L20%2C33%20L22.5%2C9%20L25%2C30%20L27.5%2C16%20L30%2C27%20L32.5%2C2%20L35%2C32%20L37.5%2C12%20L40%2C29%20L42.5%2C10%20L45%2C26%20L47.5%2C2%20L50%2C31%20L52.5%2C15%20L55%2C28%20L57.5%2C13%20L60%2C33%20L62.5%2C2%20L65%2C30%20L67.5%2C9%20L70%2C27%20L72.5%2C16%20L75%2C32%20L77.5%2C2%20L80%2C29%20L82.5%2C12%20L85%2C26%20L87.5%2C10%20L90%2C31%20L92.5%2C2%20L95%2C28%20L97.5%2C15%20L100%2C33%20L102.5%2C13%20L105%2C30%20L107.5%2C2%20L110%2C27%20L112.5%2C9%20L115%2C32%20L117.5%2C16%20L120%2C29%20L122.5%2C2%20L125%2C26%20L127.5%2C12%20L130%2C31%20L132.5%2C10%20L135%2C28%20L137.5%2C2%20L140%2C33%20L142.5%2C15%20L145%2C30%20L147.5%2C13%20L150%2C27%20L152.5%2C2%20L155%2C32%20L157.5%2C9%20L160%2C29%20L162.5%2C16%20L165%2C26%20L167.5%2C2%20L170%2C31%20L172.5%2C12%20L175%2C28%20L177.5%2C10%20L180%2C33%20L182.5%2C2%20L185%2C30%20L187.5%2C15%20L190%2C27%20L192.5%2C13%20L195%2C32%20L197.5%2C2%20L200%2C29%20L202.5%2C9%20L205%2C26%20L200%2C100%20Z%22%20fill%3D%22url(%23g)%22%20stroke%3D%22%232f6e2c%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2228.2%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2226.0%22%20cy%3D%2248.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2222.4%22%20cy%3D%2246.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2222.4%22%20cy%3D%2243.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2226.0%22%20cy%3D%2242.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2225%22%20cy%3D%2245%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2273.2%22%20cy%3D%2260.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2271.0%22%20cy%3D%2263.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2267.4%22%20cy%3D%2261.9%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2267.4%22%20cy%3D%2258.1%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2271.0%22%20cy%3D%2257.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2270%22%20cy%3D%2260%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22123.2%22%20cy%3D%2242.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22121.0%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22117.4%22%20cy%3D%2243.9%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22117.4%22%20cy%3D%2240.1%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22121.0%22%20cy%3D%2239.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22120%22%20cy%3D%2242%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22163.2%22%20cy%3D%2266.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22161.0%22%20cy%3D%2269.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22157.4%22%20cy%3D%2267.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22157.4%22%20cy%3D%2264.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22161.0%22%20cy%3D%2263.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22160%22%20cy%3D%2266%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2298.2%22%20cy%3D%2280.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2296.0%22%20cy%3D%2283.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2292.4%22%20cy%3D%2281.9%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2292.4%22%20cy%3D%2278.1%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2296.0%22%20cy%3D%2277.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2295%22%20cy%3D%2280%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2243.2%22%20cy%3D%2278.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%2281.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2237.4%22%20cy%3D%2279.9%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2237.4%22%20cy%3D%2276.1%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%2275.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2240%22%20cy%3D%2278%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22183.2%22%20cy%3D%2248.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22181.0%22%20cy%3D%2251.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22177.4%22%20cy%3D%2249.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22177.4%22%20cy%3D%2246.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22181.0%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22180%22%20cy%3D%2248%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3C%2Fsvg%3E") center/100% 100% no-repeat;z-index:-1}
-.sbag .sbush span{color:#fff;text-shadow:0 2px 0 #2f6e2c,0 0 6px #2f6e2c}
+.bush{background:transparent!important;border:none!important;overflow:visible;isolation:isolate;border-radius:0!important}
+.bush::before{content:"";position:absolute;left:0;right:0;top:-22%;bottom:0;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23a6dc7e%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2358a548%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M0%2C100%20L0%2C30%20L2.5%2C2%20L5%2C26%20L7.5%2C15%20L10%2C31%20L12.5%2C13%20L15%2C28%20L17.5%2C2%20L20%2C33%20L22.5%2C9%20L25%2C30%20L27.5%2C16%20L30%2C27%20L32.5%2C2%20L35%2C32%20L37.5%2C12%20L40%2C29%20L42.5%2C10%20L45%2C26%20L47.5%2C2%20L50%2C31%20L52.5%2C15%20L55%2C28%20L57.5%2C13%20L60%2C33%20L62.5%2C2%20L65%2C30%20L67.5%2C9%20L70%2C27%20L72.5%2C16%20L75%2C32%20L77.5%2C2%20L80%2C29%20L82.5%2C12%20L85%2C26%20L87.5%2C10%20L90%2C31%20L92.5%2C2%20L95%2C28%20L97.5%2C15%20L100%2C33%20L102.5%2C13%20L105%2C30%20L107.5%2C2%20L110%2C27%20L112.5%2C9%20L115%2C32%20L117.5%2C16%20L120%2C29%20L122.5%2C2%20L125%2C26%20L127.5%2C12%20L130%2C31%20L132.5%2C10%20L135%2C28%20L137.5%2C2%20L140%2C33%20L142.5%2C15%20L145%2C30%20L147.5%2C13%20L150%2C27%20L152.5%2C2%20L155%2C32%20L157.5%2C9%20L160%2C29%20L162.5%2C16%20L165%2C26%20L167.5%2C2%20L170%2C31%20L172.5%2C12%20L175%2C28%20L177.5%2C10%20L180%2C33%20L182.5%2C2%20L185%2C30%20L187.5%2C15%20L190%2C27%20L192.5%2C13%20L195%2C32%20L197.5%2C2%20L200%2C29%20L202.5%2C9%20L205%2C26%20L200%2C100%20Z%22%20fill%3D%22url(%23g)%22%20stroke%3D%22%232f6e2c%22%20stroke-width%3D%221.5%22%20stroke-linejoin%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2228.2%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2226.0%22%20cy%3D%2248.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2222.4%22%20cy%3D%2246.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2222.4%22%20cy%3D%2243.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2226.0%22%20cy%3D%2242.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%2225%22%20cy%3D%2245%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2273.2%22%20cy%3D%2260.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2271.0%22%20cy%3D%2263.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2267.4%22%20cy%3D%2261.9%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2267.4%22%20cy%3D%2258.1%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2271.0%22%20cy%3D%2257.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2270%22%20cy%3D%2260%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22123.2%22%20cy%3D%2242.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22121.0%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22117.4%22%20cy%3D%2243.9%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22117.4%22%20cy%3D%2240.1%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22121.0%22%20cy%3D%2239.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%22120%22%20cy%3D%2242%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22163.2%22%20cy%3D%2266.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22161.0%22%20cy%3D%2269.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22157.4%22%20cy%3D%2267.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22157.4%22%20cy%3D%2264.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22161.0%22%20cy%3D%2263.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22160%22%20cy%3D%2266%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2298.2%22%20cy%3D%2280.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2296.0%22%20cy%3D%2283.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2292.4%22%20cy%3D%2281.9%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2292.4%22%20cy%3D%2278.1%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2296.0%22%20cy%3D%2277.0%22%20r%3D%222.6%22%20fill%3D%22%23ff8fb1%22%2F%3E%3Ccircle%20cx%3D%2295%22%20cy%3D%2280%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%2243.2%22%20cy%3D%2278.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%2281.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2237.4%22%20cy%3D%2279.9%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2237.4%22%20cy%3D%2276.1%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2241.0%22%20cy%3D%2275.0%22%20r%3D%222.6%22%20fill%3D%22%23ffffff%22%2F%3E%3Ccircle%20cx%3D%2240%22%20cy%3D%2278%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3Ccircle%20cx%3D%22183.2%22%20cy%3D%2248.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22181.0%22%20cy%3D%2251.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22177.4%22%20cy%3D%2249.9%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22177.4%22%20cy%3D%2246.1%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22181.0%22%20cy%3D%2245.0%22%20r%3D%222.6%22%20fill%3D%22%23ffd23f%22%2F%3E%3Ccircle%20cx%3D%22180%22%20cy%3D%2248%22%20r%3D%221.8%22%20fill%3D%22%23f29a1f%22%2F%3E%3C%2Fsvg%3E") center/100% 100% no-repeat;z-index:-1}
+.bush span,.bush{color:#fff!important;text-shadow:0 2px 0 #2f6e2c,0 0 6px #2f6e2c}
 /* しっぱい */
 .failbox{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0 14px;text-align:center}
 .failbox .fl{font-family:var(--font-display);font-weight:900;font-size:clamp(30px,8vw,46px);color:#d9534f;letter-spacing:.1em}
 .failbox .fa{font-weight:800;font-size:clamp(18px,4.6vw,26px)}.failbox .fa b{font-family:var(--font-display);font-size:1.25em}
 .failbox .fm{font-weight:700;color:var(--muted,#777)}.failbox .md{font-weight:900;padding:1px 10px;border-radius:999px;color:#fff}.failbox .md.g{background:#d4a017}.failbox .md.s{background:#9aa3ad}.failbox .md.b{background:#b06a3b}
 .failbox .btn{font-size:1.4rem;padding:.5em 2.2em;margin-top:4px}
+.failbox .fmed{display:flex;align-items:center;gap:12px}.failbox .badge{width:64px;height:64px;font-size:1rem;margin:0}.failbox .fm b{color:var(--ink)}.failbox .shelf{margin:0}
 .ansfield.ansshow,.ansshow{color:#d9534f!important;border-color:#d9534f!important}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
 .tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}.tapl .tc.gone2{background:var(--dot);opacity:.18}.tlreset{margin-top:10px}
@@ -520,8 +521,8 @@ const STAGES=[
  S('5を こえる たしざん',[6,7,8],0,k=>genOver5Mv(k),0,3),            // ためす: タイルを おして うごかす。時間切れで「こう うごかすと はやいよ」
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
  S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),   // ためす（Lv6と おなじ）
- S('6〜10の 分解①',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト。3セットで クリア できなければ Lv6 へ
- S('6〜10の 分解②',[6,7,8,9],0,k=>sideBag(k,1,4,1,5)),          // ためす: 見えている タイルを おすと 左右が いれかわる（どちらから 見るかは 子ども）
+ S('6〜10の 分解①',[6,7,8,9],0,k=>sideBag(k,1,4,1,5)),   // ためす: 見えている タイルか くさむらを おすと 左右が いれかわる（11/22 19:26 ボス「Lv9とLv10入れ替え」）
+ S('6〜10の 分解②',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト
  S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),
  S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
  S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k)),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
@@ -537,9 +538,9 @@ const STAGES=[
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 段の しゅるい: teach 教える／try ためす（タイルを うごかす）→ 正しく 連続8もんで クリア（時間は とわない。リーチ あり）
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
-/* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
-   Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv10〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
-const KIND=['nare','teach','teach','nare','nare','try','nare','nare','nare','try','try','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
+/* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv10 定着テスト（11/22 19:26 Lv9と いれかえ）・Lv14 合格2秒・Lv15 なれる → nare
+   Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv9・Lv11〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
+const KIND=['nare','teach','teach','nare','nare','try','nare','nare','try','nare','try','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -551,7 +552,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z5';
+const VER='11/22z6';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1155,9 +1156,10 @@ function hrow(size,blue,orange,bushOn){
   for(let g=0;g<size/5;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const n=g*5+i;gw.appendChild(el('span','tc '+(n<blue?'a':n<blue+orange?'b':'e')))}r.appendChild(gw)}
   const bu=el('div','bush'+(bushOn?'':' off'));bu.innerHTML='<span>？</span>';r.appendChild(bu);
   w.appendChild(r);f.appendChild(w);
-  const place=()=>{const cs=r.querySelectorAll('.tc');const rr=r.getBoundingClientRect();
-    const left=blue<cs.length?cs[blue].getBoundingClientRect().left-rr.left-5:cs[cs.length-1].getBoundingClientRect().right-rr.left+4;
-    bu.style.left=left+'px';bu.style.right='0px'};
+  /* くさむらは 見えている タイルの すぐ 右から（かさねない。11/22 ボス） */
+  const place=()=>{const cs=r.querySelectorAll('.tc');const rr=r.getBoundingClientRect();const i0=Math.min(blue,cs.length-1),i1=cs.length-1; /* 右はしまで おおう（かくれた 数が はばで わからないように） */
+    const c0=cs[i0].getBoundingClientRect(),c1=cs[i1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4);
+    bu.style.left=(c0.left-rr.left-3)+'px';bu.style.width=(c1.right-c0.left+6)+'px';bu.style.right='auto';bu.style.top=(c0.top-rr.top-pad)+'px';bu.style.height=(c0.height+pad*2)+'px';bu.style.bottom='auto'};
   place();requestAnimationFrame(place);
   return r;
 }
@@ -1469,9 +1471,9 @@ function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);
   const mk=()=>{const f=F();f.innerHTML='';const w=el('div','tscene');const r=el('div','trow sbag');
     for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i,vis=side==='L'?k<a:(k>=T-a&&k<T);gw.appendChild(el('span','tc '+(k>=T?'e':vis?'a':'b hid')))}r.appendChild(gw)}
     const bu=el('div','bush sbush'+(done?' lift':''));bu.innerHTML='<span>？</span>';r.appendChild(bu);
-    r.onclick=e=>{if(phase!=='input'&&!done)return;if(!e.target.classList.contains('a'))return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;mk();if(done)fin(F().querySelector('.sbag'))};
+    r.onclick=e=>{if(phase!=='input'&&!done)return;if(!e.target.classList.contains('a')&&!e.target.closest('.sbush'))return; /* くさむらを おしても いれかわる（11/22 ボス） */side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;mk();if(done)fin(F().querySelector('.sbag'))};
     w.appendChild(r);f.appendChild(w);
-    const place=()=>{const hs=[...r.querySelectorAll('.tc.hid')];if(!hs.length)return;const rr=r.getBoundingClientRect(),c0=hs[0].getBoundingClientRect(),c1=hs[hs.length-1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4),px=Math.max(12,c0.width*.7);
+    const place=()=>{const hs=[...r.querySelectorAll('.tc.hid')];if(!hs.length)return;const rr=r.getBoundingClientRect(),c0=hs[0].getBoundingClientRect(),c1=hs[hs.length-1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4),px=3; /* よこは かくれた タイルの はばだけ（見えている タイルに かさねない） */
       bu.style.left=(c0.left-rr.left-px)+'px';bu.style.width=(c1.right-c0.left+px*2)+'px';bu.style.top=(c0.top-rr.top-pad)+'px';bu.style.height=(c0.height+pad*2)+'px';bu.style.right='auto';bu.style.bottom='auto'};
     place();requestAnimationFrame(place);return r};
   const draw=()=>{mk();rd('見えている タイルを おすと はんたいがわへ')};
@@ -1532,12 +1534,18 @@ function finishScreen(pass){const S=P.screen;if(!pass)S.ng[NS]=1;S.i++;
   if(weak!=null){P.stage=weak;save();overlay('たしかめテスト おわり',`Lv.${weak+1}「${esc(STAGES[weak].name)}」で れんしゅう しよう。<br>ここが すらすら できると、タイルを うごかすのも らくに なるよ`,'fix',()=>start(),'すすむ');return}
   P.stage=S.from;save();overlay('たしかめテスト おわり',`Lv.3〜5 は だいじょうぶ！<br>Lv.${S.from+1} で、タイルを うごかして ためして みよう`,'fix',()=>start(),'すすむ')}
 /* ---- レベルの ならびが かわった（11/22: Lv15「ひきざん（式だけ）」を 入れて うしろへ 1つ ずらす）ときの きろくの 引っこし ---- */
-function migrateLayout(){if((P.lay||1)>=2)return;const S=14,sh=i=>i>=S?i+1:i;
+function migrateLayout(){if((P.lay||1)>=3)return;if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
   P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=k.indexOf(sep);if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');
   if(P.rec){const r={};for(const [k,v] of Object.entries(P.rec))r[/^\d+$/.test(k)?String(sh(+k)):k]=v;P.rec=r}
-  if(P.lvup)P.lvup.to=sh(P.lvup.to);if(P.fix)P.fix=P.fix.map(([s,k])=>[sh(s),k]);P.lay=2}
+  if(P.lvup)P.lvup.to=sh(P.lvup.to);if(P.fix)P.fix=P.fix.map(([s,k])=>[sh(s),k]);P.lay=2;migrateLayout()}
+/* lay3: Lv9 と Lv10 を いれかえ（11/22 ボス）。きろくも いっしょに いれかえる */
+function migrateLay3(){const sw=i=>i===8?9:i===9?8:i;
+  P.stage=sw(P.stage);P.cleared=(P.cleared||[]).map(sw);
+  const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sw(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
+  P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');
+  if(P.lvup)P.lvup.to=sw(P.lvup.to);P.lay=3}
 
 /* ===== 1もんの ながれ =====
    スタート → タイルを 一瞬 見せて かくす → テンキーで こたえ（ちがう 数字は 入らない。1回 0.1びょう たす）→ ぜんぶ 入ったら すぐ はんてい
@@ -1638,8 +1646,13 @@ function failOut(judged){
   save();
   $('#padwrap').style.display='none';document.querySelectorAll('#failbox').forEach(x=>x.remove());
   const fb=el('div','failbox');fb.id='failbox';const mname={g:'きんメダル',s:'ぎんメダル',b:'どうメダル'}[kind]||'';
-  fb.innerHTML=`<div class="fl">しっぱい</div><div class="fa">こたえ　<b>${esc(String(Q.mq))}</b></div><div class="fm">れんぞく さいこう ${run}もん${mname?`　<span class="md ${kind}">${mname}</span>`:''}</div><button class="btn" id="again" hidden>もういちど？</button>`;
+  /* メダルは 九九と おなじ: メダル・たな・ダーツ（ルーレット）を 出す。画面は きりかえない（11/22 ボス） */
+  fb.innerHTML=`<div class="fl">しっぱい</div><div class="fa">こたえ　<b>${esc(String(Q.mq))}</b></div>
+  <div class="fmed">${kind?`<div class="badge ${kind}">${{g:'きん',s:'ぎん',b:'どう'}[kind]}</div>`:''}<div class="fm">れんぞく さいこう ${run}もん${kind?`<br><b>${mname}！</b>`:'<br>つぎは 2もん れんぞくを めざそう'}</div></div>
+  <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
+  <button class="btn" id="again" hidden>もういちど？</button>`;
   $('#padwrap').after(fb);fitScreen();
+  if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
   const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();b.onclick=()=>{fb.remove();setRes=[];ARMED=true;start()}},lost?700+lost*110:300)}
 function judge(){
   if(phase!=='input')return;
@@ -1704,7 +1717,7 @@ function showResult(){
   let back=null;
   /* 11/22 18:22 ボス「まちがえたら＞もう一度挑戦する？でそのステージ」→ しっぱいで ほかの レベルへ もどす きまりは とめる */
   if(false&&!cleared&&!P.cleared.includes(P.stage)){
-    if(P.stage===8){P.fails=P.fails||{};P.fails[8]=(P.fails[8]||0)+1;if(P.fails[8]>=3){P.fails[8]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
+    if(P.stage===9){P.fails=P.fails||{};P.fails[9]=(P.fails[9]||0)+1;if(P.fails[9]>=3){P.fails[9]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
     if(P.stage===14&&(kind==='b'||!kind))back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
     if((P.stage===5||P.stage===7)&&(kind==='b'||!kind))back={screen:true};
   }else if(cleared&&P.fails)delete P.fails[P.stage];

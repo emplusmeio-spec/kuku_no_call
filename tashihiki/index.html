@@ -352,7 +352,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
 .sbag .tc.a{cursor:pointer}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
-.tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}
+.tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}.tapl .tc.gone2{background:var(--dot);opacity:.18}.tlreset{margin-top:10px}
 .tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:18px;width:100%;padding:10px 0 30px}
 .lnpool{height:calc(var(--ts)*1.6);width:90%;border:2px dashed var(--line);border-radius:14px}
 .lnline{display:flex;gap:var(--lg);padding-bottom:calc(var(--ts)*.7);border-bottom:4px solid var(--ink);position:relative}
@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22e';
+const VER='11/22f';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1420,12 +1420,14 @@ function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
   return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw,flash:false,after,reveal:after,how:`${n}はあと□で10`})}
 /* ---- Lv13 のこりは: さいしょから タイル。おすと きえる（5の かたまりは まとめて きえる）。きえた ところを おすと もどる ---- */
 function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
+  /* けした タイルは うすい 色で のこる（もう いちど おすと もどる）。リセットで ぜんぶ もとどおり */
   const draw=()=>{const w=ldScene();const row=rowEl(a);row.classList.add('tapl');w.appendChild(row);
     row.querySelectorAll('.tc').forEach((c,k)=>{if(k<a)c.classList.add('own');c.onclick=()=>{if(phase!=='input'||!c.classList.contains('own'))return;Q.moves=(Q.moves||0)+1;
-      if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const grp=cs.every(t=>t.classList.contains('a'))?cs:[c];grp.forEach(t=>t.classList.replace('a','e'))}
-      else c.classList.replace('e','a')}});
+      if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const grp=cs.every(t=>t.classList.contains('a'))?cs:[c];grp.forEach(t=>t.classList.replace('a','gone2'))}
+      else c.classList.replace('gone2','a')}});
+    const rs=el('button','btn ghost sm tlreset');rs.textContent='リセット';rs.onclick=e=>{e.stopPropagation();if(phase!=='input')return;row.querySelectorAll('.tc.gone2').forEach(t=>t.classList.replace('gone2','a'))};w.appendChild(rs);
     rd('タイルを おすと きえるよ（もう いちど おすと もどる）')};
-  const after=async()=>{if(!F().querySelector('.tapl'))draw();rd(`${a} − ${b} ＝ ${r_}`)};
+  const after=async()=>{if(!F().querySelector('.tapl'))draw();const rs=F().querySelector('.tlreset');if(rs)rs.remove();rd(`${a} − ${b} ＝ ${r_}`)};
   return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,draw,flash:false,after,reveal:after,how:`${a}−${b}（のこりは）`})}
 /* ---- Lv14 ちがいは: 上に a、下に b。下の だんを おすと 左よせ・右よせ ---- */
 function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';

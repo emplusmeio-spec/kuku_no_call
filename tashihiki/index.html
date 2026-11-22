@@ -346,6 +346,10 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
+.tkrow{display:flex;gap:calc(var(--ts)*.35);padding:5px 8px;align-self:center}
+.tkg{display:flex;gap:2px;padding:3px;border:2px dashed var(--line);border-radius:8px}
+.tkg:nth-child(2){margin-right:calc(var(--ts)*.6)}.tkrow.low .tkg{border-color:transparent}.tkrow.low{cursor:pointer}
+.tkrow .tc{transition:background .3s,opacity .3s}.tkrow .tc.v{visibility:hidden}
 .lrow .tc{transition:background .3s,opacity .3s}
 .fsign{font-family:var(--font-display);font-weight:900;font-size:calc(var(--fd)*1.1);color:var(--muted)}
 
@@ -450,7 +454,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'10から とる'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'くりさがり'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
@@ -475,7 +479,7 @@ const STAGES=[
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
  S('くりあがり②',[6,7,8,9],1500,k=>genMake(k)),                     // ドット「くりあがり② 10を つくる」
  S('たしざん②',[6,7,8,9],1200,k=>genCarry(k)),                      // ドット「たしざん② くりあがり あり」
- S('10から とる',[2,3,4,5,6,7,8,9],1500,k=>genTake(k)),
+ S('くりさがり',[2,3,4,5,6,7,8,9],1500,k=>genTake(k)),
  S('まぜて 20まで',['くりあがり','くりさがり','10と いくつ','10まで'],0,k=>genMix(k),1),
 ];
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
@@ -488,7 +492,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22b';
+const VER='11/22c';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1244,9 +1248,29 @@ function genMake(big){const small=rint(11-big,big),[x,y]=Math.random()<.5?[big,s
   return {title:`${B(x)} ＋ ${B(y)}`,flash:true,...addFrames(x,y),
     fields:[{pre:`${big} は あと`,ans:nd,post:'で 10'},{pre:`${small} は ${nd} と`,ans:r},{pre:`${x} ＋ ${y} ＝`,ans:x+y}],mq:`${x} ＋ ${y} ＝ ${x+y}`,how:`${x}＋${y}`}}
 /* ---- Lv12 10から とる（減加法） ---- */
+/* ---- くりさがり（Lv19）: 上に ひかれる数を 横一列（10＋ばら）、下に ひく数を ならべる。
+   ひく数 5以上は 左よせ（10から とる＝減加）、4以下は 右よせ（ばらから とって 10から＝減減）。下の段を タップすると 左右を 入れかえられる（えらぶのは 子ども） ---- */
+function takeTL(n,m){const r=n-10,ans=n-m;let side=m>=5?'L':'R';
+  const sizes=[5,5];for(let x=r;x>0;x-=5)sizes.push(Math.min(5,x));
+  const mkRow=(cls,on)=>{const row=el('div','tkrow');let k=0;for(const sz of sizes){const g=el('div','tkg');for(let i=0;i<sz;i++,k++)g.appendChild(el('span','tc '+(on(k)?cls:'v')));row.appendChild(g)}return row};
+  const lowOn=k=>side==='L'?k<m:k>=n-m;
+  const readTx=()=>side==='L'?`10 − ${m} ＝ ${10-m}。${10-m} と ${r} で ${ans}`:`${m} は ${r} と ${m-r}。${n} − ${r} ＝ 10。10 − ${m-r} ＝ ${ans}`;
+  let revealed=false;
+  const mark=w=>{const top=[...w.querySelector('.tkrow.top').querySelectorAll('.tc')];top.forEach((c,k)=>{c.classList.toggle('x',revealed&&lowOn(k));c.classList.toggle('a',!(revealed&&lowOn(k)))})};
+  const low=w=>{const old=w.querySelector('.tkrow.low');const nr=mkRow('b',lowOn);nr.classList.add('low');nr.title='タップで 左右を いれかえ';
+    nr.onclick=()=>{side=side==='L'?'R':'L';low(w);mark(w);if(revealed)$('#read').textContent=readTx()};
+    if(old)old.replaceWith(nr);else w.appendChild(nr)};
+  const base=()=>{const w=ldScene();w.classList.add('tkscene');const t=mkRow('a',k=>k<n);t.classList.add('top');w.appendChild(t);
+    let ts=40;w.style.setProperty('--ts',ts+'px');while(ts>10&&t.scrollWidth>w.clientWidth-8){ts--;w.style.setProperty('--ts',ts+'px')}return w};
+  const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
+    await sl(LD_T1);if(!alive())return;Q.used=true;const w=base();
+    await sl(LD_T2);if(!alive())return;low(w)};
+  const after=async()=>{let w=F().querySelector('.tkscene');if(!w)w=base();if(!w.querySelector('.tkrow.low'))low(w);
+    await wait(300);revealed=true;mark(w);$('#read').textContent=readTx()};
+  return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
+}
 function genTake(m){const r=rint(1,m-1),n=10+r;
-  return {title:`${B(n)} − ${B(m)}`,flash:true,...takeFrames(n,m),
-    fields:[{pre:`10 から ${m} を とって`,ans:10-m},{pre:`${10-m} と ${r} で`,ans:10-m+r}],mq:`${n} − ${m} ＝ ${10-m+r}`,how:`${n}−${m}`}}
+  return Object.assign(one(n-m,`${n} − ${m} ＝ ${n-m}`),{title:`${B(n)} − ${B(m)}`,...takeTL(n,m),how:`${n}−${m}`})}
 /* ---- Lv2 5と わける（ドット「5と わける」: 6〜9 は 5 と いくつ。5の かたまりを 見て こたえる） ---- */
 function genSplit5(n){const h=n-5;
   const draw=()=>{fscene([{id:'A',n,cls:'a'}]);const fr=FS.frames.A,bu=el('div','bush fbush off');bu.innerHTML='<span>？</span>';FS.wrap.appendChild(bu);

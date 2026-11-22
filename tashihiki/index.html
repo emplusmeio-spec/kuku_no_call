@@ -526,9 +526,9 @@ const STAGES=[
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 段の しゅるい: teach 教える／try ためす（タイルを うごかす）→ 正しく 連続8もんで クリア（時間は とわない。リーチ あり）
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
-/* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv6/8 時間しばり・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
+/* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
    Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv10〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
-const KIND=['nare','teach','teach','nare','nare','nare','nare','nare','nare','try','try','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
+const KIND=['nare','teach','teach','nare','nare','try','nare','nare','nare','try','try','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -540,7 +540,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z';
+const VER='11/22z2';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1445,7 +1445,7 @@ function moveFrames(a,b){
     FS.dots.forEach(d=>{d.el.onclick=e=>{e.stopPropagation();if(phase!=='input')return;Q.moves=(Q.moves||0)+1;moveDot(d)}});upd();
     rd('タイルを おすと となりへ うごくよ')};
   const demo=async()=>{Q.used=true;compact('A');compact('B');rd('こう うごかすと はやいよ');await wait(400);const plan=buildAddPlan(a,b);applyMoves(plan.mv);await wait(700);compact('A');compact('B');upd()};
-  const timeline=async alive=>{draw();await new Promise(r=>setTimeout(r,lim()));if(!alive()||Q.moves)return;demo()};
+  const timeline=async alive=>{draw();if(cur().kind!=='nare')return;await new Promise(r=>setTimeout(r,lim()));if(!alive()||Q.moves)return;demo()};  /* 時間なしの 段（Lv6）では 見本を 出さない */
   const after=async()=>{if(!FS||!FS.wrap.isConnected||!FS.frames.A)draw();upd();rd(`${a} ＋ ${b} ＝ ${a+b}`)};
   return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
 }

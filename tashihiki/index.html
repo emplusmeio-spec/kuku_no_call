@@ -535,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22s';
+const VER='11/22t';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1051,7 +1051,7 @@ function renderMeter(){ensureMeter();const show=MODE==='normal';METER.hidden=!(s
   segs.forEach((g,i)=>{g.classList.toggle('best',i<best);
     if(lost&&i>=s&&i<lost){g.classList.remove('lose');void g.offsetWidth;g.style.animationDelay=((lost-1-i)*110)+'ms';g.classList.add('lose');g.classList.remove('on');setTimeout(()=>g.classList.remove('lose'),700+(lost-1-i)*110)}
     else{g.classList.toggle('on',i<s);if(i===s-1&&s>prevStreak){g.classList.remove('pop');void g.offsetWidth;g.classList.add('pop')}}});
-  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=P.cleared.includes(P.stage)?'✔ クリアずみ':left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3&&!P.cleared.includes(P.stage));
+  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
   prevStreak=s}
 function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||MODE==='screen';TBAR.hidden=!timed;if(!timed)return;
   const ms=(STAGES[NS].lim||P.limit)*1000*Q.fields.length,b=TBAR.querySelector('i');TBAR.classList.remove('over');b.style.transition='none';b.style.width='100%';void b.offsetWidth;
@@ -1577,7 +1577,7 @@ function start(){
       else if(Q.hcover){f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'}}
     else{f.innerHTML='<div class="qmark hide">？</div>';f.classList.add('tap');ready()}
   },build?FLASH:0); /* ふつうは 問題が 出たら すぐ 入力できる（まちじかん なし） */
-  if(MODE==='normal'&&cur().kind!=='nare'&&!P.cleared.includes(P.stage)&&streakOf()===CLEAR_STREAK-1)overlay('⚡ リーチ！ ⚡','あと 1もん で クリア！','reach',null,'いくぞ！');
+  if(MODE==='normal'&&cur().kind!=='nare'&&streakOf()===CLEAR_STREAK-1)overlay('⚡ リーチ！ ⚡','あと 1もん で クリア！','reach',null,'いくぞ！');
   if(MODE==='lvup'&&lvRemain()===1)overlay('⚡ リーチ！ ⚡',`あと 1かいで レベルアップ！`,'reach',null,'いくぞ！');
   renderAdult();
 }
@@ -1620,11 +1620,11 @@ function finishBuild(success){
 function finishItem(kind){
   if(!setRes.length)setFacts=[];
   setRes.push(kind);setFacts.push({st:NS,k:N,rej:rejects,how:Q.how});
-  const reached=!P.cleared.includes(P.stage)&&streakOf()>=CLEAR_STREAK;
+  const reached=MODE==='normal'&&streakOf()>=CLEAR_STREAK; /* 8もん つづいたら その場で おわり（前に クリアずみでも） */
   if(setRes.length>=SET||reached){
     /* ちがう 数字を 入れようと した もんだいを、うごきで たしかめて 1回ずつ */
     const m=new Map();setFacts.filter(x=>x.rej>0).forEach(x=>m.set(x.st+':'+x.k,[x.st,x.k]));
-    if(m.size){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
+    if(m.size&&!reached){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
       overlay('うごきで たしかめよう',`まちがえた もんだいと おなじ しゅるいを、<br>タイルの うごきを 見てから といて みよう`,'fix',()=>start());return}
     showResult();return}
   start();
@@ -1634,20 +1634,21 @@ function showResult(){
   PAIR=null;MODE='normal';
   const LEN=setRes.length||SET,n=setRes.filter(x=>x==='p').length,kind=n===LEN?'g':n>=Math.ceil(LEN*.7)?'s':'b';P.badges[kind]++;
   const name={g:'きん',s:'ぎん',b:'どう'}[kind],msg={g:'ぜんぶ ぱっと見！',s:'ぱっと見が ふえてきた！',b:'うごきで たしかめた。それが だいじ。'}[kind];
-  const cleared=streakOf()>=CLEAR_STREAK&&!P.cleared.includes(P.stage);
-  const canNext=(cleared||P.cleared.includes(P.stage))&&P.stage<STAGES.length-1;
-  if(cleared)P.cleared.push(P.stage);
+  /* クリア＝この 10もんの 中で 連続8もん（前に クリアした レベルでも 同じ）。とどかなければ「つぎの レベルへ」は 出さない */
+  const cleared=streakOf()>=CLEAR_STREAK;
+  const canNext=cleared&&P.stage<STAGES.length-1;
+  if(cleared&&!P.cleared.includes(P.stage))P.cleared.push(P.stage);
   { /* きろく（ドットと 同じ: いつ・ぱっと見・じかん）。1レベル 30かいまで */
     const hs=P.hist.filter(h=>!h.b).slice(-LEN),tt=hs.reduce((a,h)=>a+h.t,0);
     P.rec=P.rec||{};const k=String(P.stage);(P.rec[k]=P.rec[k]||[]).push({at:Date.now(),c:n,n:LEN,t:tt});if(P.rec[k].length>30)P.rec[k]=P.rec[k].slice(-30)}
   save();$('#q').hidden=true;renderProg();
   /* もどる きまり: Lv9 は 3セット クリア できなければ Lv6 へ／Lv15 は どう なら Lv13 へ／Lv6・Lv8 は どう なら たしかめテスト */
   let back=null;
-  if(!P.cleared.includes(P.stage)){
+  if(!cleared&&!P.cleared.includes(P.stage)){
     if(P.stage===8){P.fails=P.fails||{};P.fails[8]=(P.fails[8]||0)+1;if(P.fails[8]>=3){P.fails[8]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
     if(P.stage===14&&kind==='b')back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
     if((P.stage===5||P.stage===7)&&kind==='b')back={screen:true};
-  }else if(P.fails)delete P.fails[P.stage];
+  }else if(cleared&&P.fails)delete P.fails[P.stage];
   save();
   const r=$('#result');r.hidden=false;
   const partDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i))&&LEVELS.filter(l=>l[0]===cur().p).length===STAGES.filter(s=>s.p===cur().p).length;

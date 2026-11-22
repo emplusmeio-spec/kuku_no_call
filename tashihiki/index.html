@@ -346,6 +346,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
+.badge.none{background:var(--line);color:var(--ink)}
 .meter{display:block;margin:4px 0 6px;font-family:var(--font-display);font-weight:900}
 .meter .mtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:4px}
 .meter .mnum b{font-size:18px}.meter .mnum small{font-size:12px;color:#b8860b}
@@ -535,7 +536,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22u';
+const VER='11/22v';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1033,7 +1034,7 @@ function pick(){
 }
 const streakOf=()=>(P.streak||{})[P.stage]||0;
 /* ===== 連続メーター・あと○もん・時間バー ===== */
-let METER=null,TBAR=null,prevStreak=0;
+let METER=null,TBAR=null,prevStreak=0,SETMAX=0;
 function ensureMeter(){if(METER)return;METER=el('div','meter');
   METER.innerHTML='<div class="mtop"><span class="mlab">れんぞく</span><span class="mnum"></span><span class="mleft"></span><span class="mmode"></span></div><div class="msegs"></div>';
   const sg=METER.querySelector('.msegs');for(let i=0;i<CLEAR_STREAK;i++)sg.appendChild(el('i','seg'));$('#prog').after(METER);
@@ -1075,7 +1076,7 @@ function renderProg(){
     $('#progress').textContent='レベルアップ チャレンジ';
     $('#stageTag').textContent=`レベルアップ → Lv.${L.to+1}`;$('#stageTag').style.background=`var(${PH[STAGES[L.to].p][2]})`;return}
   /* ふつうの ときは 10もんの まる（みどり・きいろ）は 出さない。連続バーで 見せる */
-  $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
+  $('#progress').textContent=''; /* 10もんの カウンタは やめた（連続バーだけ） */
   $('#stageTag').textContent=`Lv.${cur().lv}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
 }
@@ -1554,7 +1555,7 @@ function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
   migrateLayout();
   N=pick();lastN=N;
-  if(MODE==='normal'&&setRes.length===0){P.streak=P.streak||{};P.streak[P.stage]=0;prevStreak=0} /* あたらしく はじめた ときは 連続 0 から（さいこうは のこす） */
+  if(MODE==='normal'&&setRes.length===0){P.streak=P.streak||{};P.streak[P.stage]=0;prevStreak=0;SETMAX=0} /* あたらしく はじめた ときは 連続 0 から（さいこうは のこす） */
   renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
   Q=CURSEED!=null?seeded(CURSEED,()=>STAGES[NS].gen(N)):STAGES[NS].gen(N);Q.used=false;Q.moves=0;vals=Q.fields.map(()=>'');active=0;
@@ -1597,7 +1598,7 @@ function judge(){
   const limit=(STAGES[NS].lim||P.limit)*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
   P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
-  { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);Q.ok=okQ}
+  { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
   renderMeter();
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
@@ -1632,8 +1633,9 @@ function finishItem(kind){
 
 function showResult(){
   PAIR=null;MODE='normal';
-  const LEN=setRes.length||SET,n=setRes.filter(x=>x==='p').length,kind=n===LEN?'g':n>=Math.ceil(LEN*.7)?'s':'b';P.badges[kind]++;
-  const name={g:'きん',s:'ぎん',b:'どう'}[kind],msg={g:'ぜんぶ ぱっと見！',s:'ぱっと見が ふえてきた！',b:'うごきで たしかめた。それが だいじ。'}[kind];
+  /* メダルは この 10もんの 中の 連続の さいこうで きめる: 2もん れんぞく=どう／4もん=ぎん／8もん=きん（11/22 ボス） */
+  const LEN=setRes.length||SET,n=setRes.filter(x=>x==='p').length,run=SETMAX,kind=run>=CLEAR_STREAK?'g':run>=4?'s':run>=2?'b':'';if(kind)P.badges[kind]++;
+  const name={g:'きん',s:'ぎん',b:'どう','':'メダル なし'}[kind],msg={g:'8もん れんぞく！',s:'4もん いじょう れんぞく！',b:'2もん いじょう れんぞく！','':'つぎは 2もん れんぞくを めざそう'}[kind];
   /* クリア＝この 10もんの 中で 連続8もん（前に クリアした レベルでも 同じ）。とどかなければ「つぎの レベルへ」は 出さない */
   const cleared=streakOf()>=CLEAR_STREAK;
   const canNext=cleared&&P.stage<STAGES.length-1;
@@ -1646,18 +1648,18 @@ function showResult(){
   let back=null;
   if(!cleared&&!P.cleared.includes(P.stage)){
     if(P.stage===8){P.fails=P.fails||{};P.fails[8]=(P.fails[8]||0)+1;if(P.fails[8]>=3){P.fails[8]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
-    if(P.stage===14&&kind==='b')back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
-    if((P.stage===5||P.stage===7)&&kind==='b')back={screen:true};
+    if(P.stage===14&&(kind==='b'||!kind))back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
+    if((P.stage===5||P.stage===7)&&(kind==='b'||!kind))back={screen:true};
   }else if(cleared&&P.fails)delete P.fails[P.stage];
   save();
   const r=$('#result');r.hidden=false;
   const partDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i))&&LEVELS.filter(l=>l[0]===cur().p).length===STAGES.filter(s=>s.p===cur().p).length;
   const lastReady=P.stage>=STAGES.length-1;
-  r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>Lv.${P.stage+1} クリア！</h2><p>${esc(cur().name)} が じぶんのものに なった。</p>${partDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}<p>ぱっと見で できた もんだい　${seenCount()} / ${SEENTOTAL}</p>${lastReady?'<p>つぎの レベルは じゅんび中。</p>':''}<hr style="border:none;border-top:2px dashed var(--line)">`:'')+
-  `<div class="badge ${kind}">${name}</div><h2>${msg}</h2><p>ぱっと見 ${n} こ ／ たしかめ ${LEN-n} こ</p>
+  r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>Lv.${P.stage+1} クリア！</h2><p>${esc(cur().name)} が じぶんのものに なった。</p>${partDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}${lastReady?'<p>つぎの レベルは じゅんび中。</p>':''}<hr style="border:none;border-top:2px dashed var(--line)">`:'')+
+  `<div class="badge ${kind||'none'}">${name}</div><h2>${msg}</h2><p>この 10もんの れんぞく さいこう ${run} もん</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
-  if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
+  if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
   $('#resKiroku').onclick=()=>showKiroku(P.stage,'result');
   if(back){const nb=$('#nextSet'),ss=$('#sameSet');if(ss)ss.remove();
     if(back.screen){nb.textContent='たしかめテストへ';nb.insertAdjacentHTML('beforebegin','<p>タイルを うごかすのが まだ たいへんそう。Lv.3〜5 が すらすら できるか、6もんで たしかめよう。</p>');

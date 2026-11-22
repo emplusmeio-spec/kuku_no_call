@@ -350,7 +350,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fscene.mv .ft{pointer-events:auto;cursor:pointer;touch-action:manipulation}.fscene.mv .ft:active{transform:scale(.9)}
 .fr.five{border-color:var(--accent)}
 .tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
-.sbag .tc.a{cursor:pointer}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
+.sbag .tc.a{cursor:pointer;position:relative;z-index:4}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
 .tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}.tapl .tc.gone2{background:var(--dot);opacity:.18}.tlreset{margin-top:10px}
 .tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:18px;width:100%;padding:10px 0 30px}
@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22h';
+const VER='11/22i';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1392,7 +1392,7 @@ function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);
     const bu=el('div','bush sbush'+(done?' lift':''));bu.innerHTML='<span>？</span>';r.appendChild(bu);
     r.onclick=e=>{if(phase!=='input'&&!done)return;if(!e.target.classList.contains('a'))return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;mk();if(done)fin(F().querySelector('.sbag'))};
     w.appendChild(r);f.appendChild(w);
-    const place=()=>{const hs=[...r.querySelectorAll('.tc.hid')];if(!hs.length)return;const rr=r.getBoundingClientRect(),c0=hs[0].getBoundingClientRect(),c1=hs[hs.length-1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4),px=2;
+    const place=()=>{const hs=[...r.querySelectorAll('.tc.hid')];if(!hs.length)return;const rr=r.getBoundingClientRect(),c0=hs[0].getBoundingClientRect(),c1=hs[hs.length-1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4),px=Math.max(12,c0.width*.7);
       bu.style.left=(c0.left-rr.left-px)+'px';bu.style.width=(c1.right-c0.left+px*2)+'px';bu.style.top=(c0.top-rr.top-pad)+'px';bu.style.height=(c0.height+pad*2)+'px';bu.style.right='auto';bu.style.bottom='auto'};
     place();requestAnimationFrame(place);return r};
   const draw=()=>{mk();rd('見えている タイルを おすと はんたいがわへ')};

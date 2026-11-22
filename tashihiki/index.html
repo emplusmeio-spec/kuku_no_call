@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22f';
+const VER='11/22g';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1437,7 +1437,10 @@ function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L'
   const hl=()=>{const cs=ldCells(F().querySelector('.lrow'));cs.forEach((c,k)=>c.classList.toggle('hl',k<a&&!lowOn(k)))};
   const draw=()=>{const w=ldScene();w.appendChild(rowEl(a));w.appendChild(mkLow());rd('下の だんを おすと 左よせ・右よせ')};
   const after=async()=>{if(!F().querySelector('.dlow'))draw();Q.done=true;hl();rd(`${a} と ${b} の ちがいは ${d}`)};
-  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,draw,flash:false,after,reveal:after,how:`${a}と${b}のちがい`})}
+  /* ことばだけ 1びょう（ここで こたえたら ごうかく）→ タイル（出たら ごうかくには ならない） */
+  const timeline=async alive=>{await new Promise(r=>setTimeout(r,DIFF_T1));if(!alive())return;Q.used=true;draw()};
+  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,draw:null,timeline,tlBuild:true,flash:false,after,reveal:after,how:`${a}と${b}のちがい`})}
+const DIFF_T1=1000;
 /* ---- Lv15 ひきざん（式だけ） ---- */
 function genLeftEq(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
   return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} − ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}−${b}（式だけ）`})}

@@ -528,7 +528,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22m';
+const VER='11/22n';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1650,7 +1650,7 @@ function showResult(){
     setRes=[];
     if(canNext){
       const to=P.stage+1,nf=newFactsOf(to);
-      if(nf.length&&!P.cleared.includes(to)){ /* 一度 クリアした レベルへは チャレンジ なし。レベルアップ チャレンジ：つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて */
+      if(false&&nf.length&&!P.cleared.includes(to)){ /* 11/22: クリア＝連続8もん に 一本化。レベルアップ チャレンジは 出さない */ /* 一度 クリアした レベルへは チャレンジ なし。レベルアップ チャレンジ：つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて */
         const fs=shuffle(nf.slice()).slice(0,2);P.lvup={to,facts:fs,st:{}};save();
         overlay('レベルアップ チャレンジ！',`つぎは Lv.${to+1}「${esc(STAGES[to].name)}」<br>うごきを 見てから こたえて、2しゅるいの もんだいを それぞれ ${LVUP_NEED}かい つづけて できたら レベルアップ！`,'lvintro',()=>start());return}
       P.stage++;save()}

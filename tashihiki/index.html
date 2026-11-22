@@ -506,7 +506,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'ひきざん（式だけ）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'くりさがり'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'くりさがり'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
@@ -527,7 +527,9 @@ const STAGES=[
  S('6〜10の 分解③（じかん）',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),   // Lv11 と おなじ もんだいで 時間制限あり（11/22 19:39 ボス）
  S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
  S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k)),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
- S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k),0,2),                   // ためす: 下の だんを おすと 左よせ・右よせ
+ S('のこりは（じかん）',[6,7,8,9,10],0,k=>tapLeft(k)),             // Lv14 と おなじ もんだいで 時間制限あり（11/22 22:10 ボス）
+ S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k)),                      // くらべて: 時間 なし（11/22 22:10 ボス「時間制限ありと無しにわける」）
+ S('ちがいは（じかん）',[6,7,8,9,10],0,k=>diffToggle(k),0,2),                   // ためす: 下の だんを おすと 左よせ・右よせ
  S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k)),           // なれる: 式だけ。どう（ぱっと見 6こ いか）なら Lv13 へ
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
@@ -541,7 +543,7 @@ STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
 /* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv10 定着テスト（11/22 19:26 Lv9と いれかえ）・Lv14 合格2秒・Lv15 なれる → nare
    Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv9・Lv11〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
-const KIND=['nare','teach','teach','nare','nare','try','nare','nare','try','nare','try','nare','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
+const KIND=['nare','teach','teach','nare','nare','try','nare','nare','try','nare','try','nare','try','try','nare','try','nare','nare','nare','nare','nare','nare','nare','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -553,7 +555,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z9';
+const VER='11/22z10';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1532,7 +1534,7 @@ function finishScreen(pass){const S=P.screen;if(!pass)S.ng[NS]=1;S.i++;
   if(weak!=null){P.stage=weak;save();overlay('たしかめテスト おわり',`Lv.${weak+1}「${esc(STAGES[weak].name)}」で れんしゅう しよう。<br>ここが すらすら できると、タイルを うごかすのも らくに なるよ`,'fix',()=>start(),'すすむ');return}
   P.stage=S.from;save();overlay('たしかめテスト おわり',`Lv.3〜5 は だいじょうぶ！<br>Lv.${S.from+1} で、タイルを うごかして ためして みよう`,'fix',()=>start(),'すすむ')}
 /* ---- レベルの ならびが かわった（11/22: Lv15「ひきざん（式だけ）」を 入れて うしろへ 1つ ずらす）ときの きろくの 引っこし ---- */
-function migrateLayout(){if((P.lay||1)>=4)return;if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
+function migrateLayout(){if((P.lay||1)>=5)return;if((P.lay||1)===4){migrateLay5();return}if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
   P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=k.indexOf(sep);if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');
@@ -1549,7 +1551,13 @@ function migrateLay4(){const sh=i=>i>=11?i+1:i;
   P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');
-  if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=4}
+  if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=4;migrateLayout()}
+/* lay5: Lv15 のこりは（じかん）・Lv16 ちがいは（時間 なし）を 入れたので、もとの Lv15 から うしろを 2つ ずらす（11/22 ボス） */
+function migrateLay5(){const sh=i=>i>=14?i+2:i;
+  P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
+  const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
+  P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');
+  if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=5}
 
 /* ===== 1もんの ながれ =====
    スタート → タイルを 一瞬 見せて かくす → テンキーで こたえ（ちがう 数字は 入らない。1回 0.1びょう たす）→ ぜんぶ 入ったら すぐ はんてい
@@ -1722,7 +1730,7 @@ function showResult(){
   /* 11/22 18:22 ボス「まちがえたら＞もう一度挑戦する？でそのステージ」→ しっぱいで ほかの レベルへ もどす きまりは とめる */
   if(false&&!cleared&&!P.cleared.includes(P.stage)){
     if(P.stage===9){P.fails=P.fails||{};P.fails[9]=(P.fails[9]||0)+1;if(P.fails[9]>=3){P.fails[9]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
-    if(P.stage===15&&(kind==='b'||!kind))back={to:13,msg:'Lv.14 で タイルを けして ためして から、もういちど'};
+    if(P.stage===17&&(kind==='b'||!kind))back={to:13,msg:'Lv.14 で タイルを けして ためして から、もういちど'};
     if((P.stage===5||P.stage===7)&&(kind==='b'||!kind))back={screen:true};
   }else if(cleared&&P.fails)delete P.fails[P.stage];
   save();

@@ -540,7 +540,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z3';
+const VER='11/22z4';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1671,7 +1671,8 @@ function showResult(){
   save();$('#q').hidden=true;renderProg();
   /* もどる きまり: Lv9 は 3セット クリア できなければ Lv6 へ／Lv15 は どう なら Lv13 へ／Lv6・Lv8 は どう なら たしかめテスト */
   let back=null;
-  if(!cleared&&!P.cleared.includes(P.stage)){
+  /* 11/22 18:22 ボス「まちがえたら＞もう一度挑戦する？でそのステージ」→ しっぱいで ほかの レベルへ もどす きまりは とめる */
+  if(false&&!cleared&&!P.cleared.includes(P.stage)){
     if(P.stage===8){P.fails=P.fails||{};P.fails[8]=(P.fails[8]||0)+1;if(P.fails[8]>=3){P.fails[8]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
     if(P.stage===14&&(kind==='b'||!kind))back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
     if((P.stage===5||P.stage===7)&&(kind==='b'||!kind))back={screen:true};

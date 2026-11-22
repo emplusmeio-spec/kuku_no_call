@@ -521,9 +521,9 @@ const STAGES=[
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 段の しゅるい: teach 教える／try ためす（タイルを うごかす）→ 正しく 連続8もんで クリア（時間は とわない。リーチ あり）
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
-/* ボスの 指示（11/22）より: Lv1 復習・Lv3 なれる・Lv4 このまま・Lv5 なれる・Lv6/8 時間しばり・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
-   Lv2 数字→量・Lv16 10と いくつ（桁）→ teach ／ Lv10〜13・Lv17/18（くりあがり①②）・Lv20 くりさがり（えらぶのは 子ども）→ try ／ Lv19 たしざん②・Lv21 まぜて → nare */
-const KIND=['nare','teach','nare','nare','nare','nare','nare','nare','nare','try','try','try','try','nare','nare','teach','try','try','nare','try','nare'];
+/* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv6/8 時間しばり・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
+   Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）・Lv16 10と いくつ（桁）→ teach ／ Lv10〜13・Lv17/18（くりあがり①②）・Lv20 くりさがり（えらぶのは 子ども）→ try ／ Lv19 たしざん②・Lv21 まぜて → nare */
+const KIND=['nare','teach','teach','nare','nare','nare','nare','nare','nare','try','try','try','try','nare','nare','teach','try','try','nare','try','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -535,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22t';
+const VER='11/22u';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;

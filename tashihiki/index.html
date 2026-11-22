@@ -553,7 +553,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z7';
+const VER='11/22z8';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1480,7 +1480,7 @@ function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);
   const draw=()=>{mk();rd('見えている タイルを おすと はんたいがわへ')};
   const after=async()=>{if(!F().querySelector('.sbag'))mk();done=true;fin(F().querySelector('.sbag'));rd(`${T} は ${a} と ${h}`)};
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw,flash:false,after,reveal:after,how:`${T}は${a}と□`})}
-/* ---- Lv12 10の なかま: n この かたまりを 数直線に ドラッグ（どこに おいても よい）。あいた ところが こたえ ---- */
+/* ---- Lv13 10の なかま: 下の マスを おすと n この かたまりが そこへ（どこに おいても よい）。あいた ところが こたえ ---- */
 function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
   const geo=()=>{const s0=line.children[0],s1=line.children[1],wr=W.getBoundingClientRect(),r0=s0.getBoundingClientRect();return {x0:r0.left-wr.left,y0:r0.top-wr.top,step:s1.getBoundingClientRect().left-r0.left}};
   const home=()=>{const wr=W.getBoundingClientRect(),pr=W.querySelector('.lnpool').getBoundingClientRect();blk.style.left=(pr.left-wr.left+(pr.width-blk.offsetWidth)/2)+'px';blk.style.top=(pr.top-wr.top+(pr.height-blk.offsetHeight)/2)+'px';pos=-1;mark()};
@@ -1490,13 +1490,10 @@ function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
     for(let i=0;i<10;i++){const s=el('div','lnslot'+(i===4?' l5':''));const lb=el('span','lnno');lb.textContent=i+1;s.appendChild(lb);line.appendChild(s)}
     blk=el('div','lnblk');for(let i=0;i<n;i++)blk.appendChild(el('span','tc a'));
     W.appendChild(pool);W.appendChild(line);W.appendChild(blk);f.appendChild(W);
-    let st=null;
-    blk.onpointerdown=e=>{if(phase!=='input')return;e.preventDefault();blk.setPointerCapture(e.pointerId);st={x:e.clientX,y:e.clientY,l:blk.offsetLeft,t:blk.offsetTop,m:false};blk.classList.add('drag')};
-    blk.onpointermove=e=>{if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>6)st.m=true;blk.style.left=(st.l+dx)+'px';blk.style.top=(st.t+dy)+'px'};
-    blk.onpointerup=e=>{if(!st)return;blk.classList.remove('drag');const m=st.m;st=null;Q.moves=(Q.moves||0)+1;const g=geo();
-      if(!m){snap(pos<0?0:pos===0?10-n:0);return}
-      if(Math.abs(blk.offsetTop-g.y0)<blk.offsetHeight*1.6)snap(Math.round((blk.offsetLeft-g.x0)/g.step));else home()};
-    requestAnimationFrame(home);rd('タイルを 下の 線へ ドラッグ（どこに おいても いいよ）')};
+    /* 11/22 ボス: ドラッグでは なく、下の マスを おすと そこへ うごく（はみだす ときは はしに よせる） */
+    blk.style.pointerEvents='none';blk.style.transition='left .25s ease,top .25s ease';
+    [...line.children].forEach((c,i)=>{c.style.cursor='pointer';c.onclick=e=>{e.stopPropagation();if(phase!=='input')return;Q.moves=(Q.moves||0)+1;snap(i)}});
+    requestAnimationFrame(()=>{blk.style.transition='none';home();requestAnimationFrame(()=>blk.style.transition='left .25s ease,top .25s ease')});rd('下の マスを おすと タイルが そこへ うごくよ（どこでも いいよ）')};
   const after=async()=>{if(!W||!W.isConnected)draw();if(pos<0)await new Promise(r=>requestAnimationFrame(()=>{snap(0);r()}));
     [...line.children].forEach((c,i)=>{if(!(i>=pos&&i<pos+n))c.classList.add('gap')});rd(`${n} と ${h} で 10`)};
   return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw,flash:false,after,reveal:after,how:`${n}はあと□で10`})}

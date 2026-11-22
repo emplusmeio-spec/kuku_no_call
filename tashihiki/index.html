@@ -346,6 +346,25 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
+.fscene.mv{--fd:clamp(20px,min(5.8vw,4.6vh),52px)}
+.fscene.mv .ft{pointer-events:auto;cursor:pointer;touch-action:manipulation}.fscene.mv .ft:active{transform:scale(.9)}
+.fr.five{border-color:var(--accent)}
+.tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
+.sbag .tc.a{cursor:pointer}
+.tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
+.tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}
+.tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:18px;width:100%;padding:10px 0 30px}
+.lnpool{height:calc(var(--ts)*1.6);width:90%;border:2px dashed var(--line);border-radius:14px}
+.lnline{display:flex;gap:var(--lg);padding-bottom:calc(var(--ts)*.7);border-bottom:4px solid var(--ink);position:relative}
+.lnslot{position:relative;width:var(--ts);height:var(--ts);border-radius:25%;border:2px dashed var(--line);transition:background .3s}
+.lnslot.l5::after{content:"";position:absolute;right:calc(var(--lg)*-.5 - 2px);bottom:calc(var(--ts)*-.7 - 12px);width:4px;height:14px;background:var(--ink)}
+.lnslot.gap{background:var(--five);border-color:var(--five)}
+.lnno{position:absolute;left:50%;bottom:calc(var(--ts)*-.72);transform:translateX(-50%);font-family:var(--font-display);font-weight:900;font-size:calc(var(--ts)*.42);color:var(--ink-soft,#777)}
+.lnslot.l5 .lnno,.lnslot:last-child .lnno{color:var(--ink);font-size:calc(var(--ts)*.5)}
+.lnblk{position:absolute;display:flex;gap:var(--lg);padding:0;cursor:grab;touch-action:none;transition:left .2s,top .2s;z-index:3}
+.lnblk.drag{transition:none;cursor:grabbing;filter:drop-shadow(0 6px 8px rgba(0,0,0,.25))}
+.lnblk .tc{width:var(--ts);height:var(--ts)}
+
 .tkrow{display:flex;gap:calc(var(--ts)*.35);padding:5px 8px;align-self:center}
 .tkg{display:flex;gap:2px;padding:3px;border:2px dashed var(--line);border-radius:8px}
 .tkg:nth-child(2){margin-right:calc(var(--ts)*.6)}.tkrow.low .tkg{border-color:transparent}.tkrow.low{cursor:pointer}
@@ -454,7 +473,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'5と わける'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'くりさがり'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'10の なかま'],[0,'のこりは'],[0,'ちがいは'],[0,'ひきざん（式だけ）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり②'],[0,'たしざん②'],[0,'くりさがり'],[0,'まぜて 20まで'],
  [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
  [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
  [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
@@ -462,19 +481,20 @@ const LEVELS=[
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
 const STAGES=[
  S('0〜5 まとめ',['みる','どこまで','たす','かくす'],1200,k=>gen05(k),1),   // 0〜5 の 総復習（くわしくは べつアプリ）
- S('どこまで？',[6,7,8,9,10],0,k=>genWhere(k),0,3),                      // 数→タイル（わくを タップ）
- S('5と わける',[6,7,8,9],1300,k=>genSplit5(k),0,3),                 // ドット「5と わける」
+ S('どこまで？',[6,7,8,9,10],0,k=>genWhere(k),0,3),                      // 教える: 数字→量（わくを タップ）
+ S('6〜10は いくつ',[6,7,8,9,10],0,k=>genCount(k),0,3),              // なれる: 量→数字（目かくし なし。なれない うちは かぞえて よい。時間で 判定）
  S('6〜10を 見る',[6,7,8,9,10],1000,k=>genSee(k),0,3),              // タイル→数（5と なんぼで 見る）
  S('5と いくつで',[1,2,3,4,5],0,k=>genFivePlus(k),0,3),              // 式→数（5＋□）
- S('5を こえる たしざん',[6,7,8],1500,k=>genOver5(k,false),0,3),     // 少ない ほうを うごかして 5を つくる
+ S('5を こえる たしざん',[6,7,8],0,k=>genOver5Mv(k),0,5),            // ためす: タイルを おして うごかす。時間切れで「こう うごかすと はやいよ」
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
- S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],1300,k=>genSmallAdd(k)),               // 6＋3 は 5と1と3 → 5と4
- S('6〜10の 分解①',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 見えているのが 6いじょう（5ちょうどは「5と わける」と かぶるので 出さない）
- S('6〜10の 分解②',[6,7,8,9],1500,k=>genBag(k,1,4,1,5)),                // 見えているのが 5みまん、こたえ（かくれた かず）が 5まで
- S('6〜10の 分解③',[7,8,9,10],1500,k=>genBag(k,1,4,6,9)),               // 見えているのが 5みまん、こたえが 6いじょう             // 見えているのが 5みまん（5の 中まで かくれる）
- S('10の なかま',[1,2,3,4,5,6,7,8,9],1000,k=>genFill(k),0,5.5),           // ドット「10の なかま」
- S('のこりは',[6,7,8,9,10],1300,k=>genLeft(k)),
- S('ちがいは',[6,7,8,9,10],1300,k=>genDiff(k)),
+ S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k),0,5),   // ためす（Lv6と おなじ）
+ S('6〜10の 分解①',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト。3セットで クリア できなければ Lv6 へ
+ S('6〜10の 分解②',[6,7,8,9],0,k=>sideBag(k,1,4,1,5),0,4),          // ためす: 見えている タイルを おすと 左右が いれかわる（どちらから 見るかは 子ども）
+ S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9),0,4),
+ S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
+ S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k),0,6),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
+ S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k),0,6),                   // ためす: 下の だんを おすと 左よせ・右よせ
+ S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k),0,4),           // なれる: 式だけ。どう（ぱっと見 6こ いか）なら Lv13 へ
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
  S('くりあがり②',[6,7,8,9],1500,k=>genMake(k)),                     // ドット「くりあがり② 10を つくる」
@@ -492,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22c';
+const VER='11/22d';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -969,6 +989,8 @@ const lvRemain=()=>P.lvup?P.lvup.facts.reduce((n,f)=>n+Math.max(0,LVUP_NEED-(P.l
 /* ふくしゅうは 出さない（たし算は つぎの レベルでも 数と 量に ふれつづけるので。九九ラボとの ちがい） */
 function reviewPool(){return [];const r=[];for(let i=Math.max(0,P.stage-3);i<P.stage;i++)STAGES[i].facts.forEach(k=>r.push([i,k]));return r}
 function pick(){
+  CURSEED=null;
+  if(P.screen){MODE='screen';isReview=false;NS=P.screen.list[P.screen.i][0];return P.screen.list[P.screen.i][1]}
   if(P.fix&&P.fix.length){MODE='fix';isReview=false;NS=P.fix[0][0];return P.fix[0][1]}
   if(P.lvup){MODE='lvup';isReview=false;NS=P.lvup.to;
     const todo=P.lvup.facts.filter(f=>(P.lvup.st[f]||0)<LVUP_NEED);let c=todo.filter(f=>f!==lastN);if(!c.length)c=todo;
@@ -982,9 +1004,9 @@ function pick(){
     for(let j=0;j<rp.length;j++){r-=w[j];if(r<=0){NS=rp[j][0];return rp[j][1]}}
     NS=rp[0][0];return rp[0][1]}
   isReview=false;NS=P.stage;
-  /* かたよらない ように: しゅるいを ぜんぶ 1まいずつ 入れた 山を まぜて、上から じゅんに 出す（なくなったら まぜなおし） */
-  if(!DECK||DECK.stage!==P.stage||!DECK.list.length){let l=shuffle(cur().facts.slice());if(l.length>1&&l[0]===lastN)l.push(l.shift());DECK={stage:P.stage,list:l}}
-  return DECK.list.shift();
+  /* かたよらない ように: その レベルで 出る 問題を ぜんぶ 1まいずつ 入れた 山を まぜて、上から じゅんに 出す（なくなったら まぜなおし） */
+  if(!DECK||DECK.stage!==P.stage||!DECK.list.length){let l=buildDeck(P.stage);if(l.length>1&&l[0].id===LASTID)l.push(l.shift());DECK={stage:P.stage,list:l}}
+  const c=DECK.list.shift();CURSEED=c.seed;LASTID=c.id;return c.k;
 }
 function renderProg(){
   const p=$('#prog');p.innerHTML='';
@@ -994,6 +1016,10 @@ function renderProg(){
     for(let i=0;i<tot;i++){const d=el('i');if(i<done)d.className='p';p.appendChild(d)}
     $('#progress').textContent=`たしかめ ${Math.min(done+1,tot)} / ${tot}`;
     $('#stageTag').textContent=`Lv.${P.stage+1}　まちがえた もんだいを うごきで`;$('#stageTag').style.background=`var(${PH[cur().p][2]})`;return}
+  if(MODE==='screen'&&P.screen){const S=P.screen;
+    for(let i=0;i<S.list.length;i++){const d=el('i');if(i<S.i)d.className='p';p.appendChild(d)}
+    $('#progress').textContent=`たしかめテスト ${Math.min(S.i+1,S.list.length)} / ${S.list.length}`;
+    $('#stageTag').textContent=`たしかめテスト（Lv.${NS+1}）`;$('#stageTag').style.background=`var(${PH[0][2]})`;return}
   if(MODE==='lvup'&&P.lvup){
     const L=P.lvup;
     L.facts.forEach((f,j)=>{if(j)p.appendChild(el('span','gap'));for(let i=0;i<LVUP_NEED;i++){const d=el('i');if(i<(L.st[f]||0))d.className='p';p.appendChild(d)}});
@@ -1329,6 +1355,101 @@ function genMix(k){let a,b,op;
   const ans=op==='+'?a+b:a-b,o=op==='+'?'＋':'−';
   return Object.assign(one(ans,`${a} ${o} ${b} ＝ ${ans}`),{title:`${B(a)} ${o} ${B(b)}`,flash:false,...(op==='+'?addFrames(a,b):a>10?takeFrames(a,b):leftFrames(a,b)),draw:null,reveal:null,how:`${a}${o}${b}`})}
 
+/* ===================== 新方針（11/22）: 教える／なれる／ためす。計算の しかたは おしえない ===================== */
+/* ---- 問題の 山: その レベルで 出る 問題を ぜんぶ 1まいずつ 入れて まぜる（同じ 問題が つづかない・かたよらない） ---- */
+function seeded(seed,fn){const R=Math.random;let t=seed>>>0;Math.random=()=>{t=(t+0x6D2B79F5)>>>0;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296};try{return fn()}finally{Math.random=R}}
+function buildDeck(st){const S=STAGES[st],seen=new Map(),ns=NS,pr=PAIR;NS=st;
+  for(const k of S.facts)for(let i=1;i<=120;i++){const seed=i*7919+st*104729+String(k).length;let q;try{q=seeded(seed,()=>S.gen(k))}catch(e){continue}
+    const id=String(q.mq)+'|'+String(q.title);if(!seen.has(id))seen.set(id,{k,seed,id})}
+  NS=ns;PAIR=pr;return shuffle([...seen.values()])}
+let CURSEED=null,LASTID=null;
+/* ---- Lv3 6〜10は いくつ（量→数字）: 目かくし なし。なれない うちは かぞえて よい。時間で 判定 ---- */
+function genCount(n){return Object.assign(genSee(n),{flash:false,how:`${n}は いくつ`})}
+/* ---- うごかせる わく（Lv6・Lv8）: タイルを おすと となりの わくへ。5が そろうと 光り、10で 1本に。
+   時間内に うごかさなかったら「こう うごかすと はやいよ」を 見せる（ごうかくには ならない） ---- */
+function moveFrames(a,b){
+  const lim=()=>(STAGES[NS].lim||P.limit)*1000;
+  const upd=()=>{['A','B'].forEach(id=>{const n=FS.dots.filter(d=>d.frame===id).length;FS.frames[id].classList.toggle('five',n>=5&&n<10);FS.frames[id].classList.toggle('full',n>=10)})};
+  const put=(d,id,i)=>{d.frame=id;d.idx=i;const p=fpos(id,i);d.el.style.left=p.x+'px';d.el.style.top=p.y+'px'};
+  const compact=id=>FS.dots.filter(d=>d.frame===id).sort((x,y)=>x.idx-y.idx).forEach((d,i)=>put(d,id,i));
+  const moveDot=d=>{const to=d.frame==='A'?'B':'A',n=FS.dots.filter(x=>x.frame===to).length;if(n>=10)return;const from=d.frame;put(d,to,n);compact(from);upd()};
+  const draw=()=>{fscene([{id:'A',n:a,cls:'a'},'＋',{id:'B',n:b,cls:'b'}],'mv');
+    FS.dots.forEach(d=>{d.el.onclick=e=>{e.stopPropagation();if(phase!=='input')return;Q.moves=(Q.moves||0)+1;moveDot(d)}});upd();
+    rd('タイルを おすと となりへ うごくよ')};
+  const demo=async()=>{Q.used=true;compact('A');compact('B');rd('こう うごかすと はやいよ');await wait(400);const plan=buildAddPlan(a,b);applyMoves(plan.mv);await wait(700);compact('A');compact('B');upd()};
+  const timeline=async alive=>{draw();await new Promise(r=>setTimeout(r,lim()));if(!alive()||Q.moves)return;demo()};
+  const after=async()=>{if(!FS||!FS.wrap.isConnected||!FS.frames.A)draw();upd();rd(`${a} ＋ ${b} ＝ ${a+b}`)};
+  return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
+}
+function genOver5Mv(s){const [a,b]=choice(OVER5[s]);return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`})}
+function genSmallAddMv(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`})}
+/* ---- Lv10・11 分解: ぜんぶで T。見えている a こ を おすと 左はし／右はし が いれかわる。どちらから 見ると らくかは 子どもが きめる ---- */
+function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);const a=rint(lo,hi),h=T-a;let side='L',done=false;
+  const fin=r=>{r.querySelectorAll('.tc.g').forEach(t=>{t.classList.remove('g');t.classList.add('b')});r.querySelectorAll('.g5w').forEach(g=>{if(![...g.children].some(t=>t.classList.contains('e')))g.classList.add('full')})};
+  const mk=()=>{const f=F();f.innerHTML='';const w=el('div','tscene');const r=el('div','trow sbag');
+    for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i,vis=side==='L'?k<a:(k>=T-a&&k<T);const c=el('span','tc '+(k>=T?'e':vis?'a':'g'));if(!vis&&k<T&&!done)c.textContent='？';gw.appendChild(c)}r.appendChild(gw)}
+    r.onclick=e=>{if(phase!=='input'&&!done)return;if(!e.target.classList.contains('a'))return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;mk();if(done)fin(F().querySelector('.sbag'))};
+    w.appendChild(r);f.appendChild(w);return r};
+  const draw=()=>{mk();rd('見えている タイルを おすと はんたいがわへ')};
+  const after=async()=>{if(!F().querySelector('.sbag'))mk();done=true;F().querySelectorAll('.sbag .tc').forEach(c=>c.textContent='');fin(F().querySelector('.sbag'));rd(`${T} は ${a} と ${h}`)};
+  return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw,flash:false,after,reveal:after,how:`${T}は${a}と□`})}
+/* ---- Lv12 10の なかま: n この かたまりを 数直線に ドラッグ（どこに おいても よい）。あいた ところが こたえ ---- */
+function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
+  const geo=()=>{const s0=line.children[0],s1=line.children[1],wr=W.getBoundingClientRect(),r0=s0.getBoundingClientRect();return {x0:r0.left-wr.left,y0:r0.top-wr.top,step:s1.getBoundingClientRect().left-r0.left}};
+  const home=()=>{const wr=W.getBoundingClientRect(),pr=W.querySelector('.lnpool').getBoundingClientRect();blk.style.left=(pr.left-wr.left+(pr.width-blk.offsetWidth)/2)+'px';blk.style.top=(pr.top-wr.top+(pr.height-blk.offsetHeight)/2)+'px';pos=-1;mark()};
+  const snap=s=>{const g=geo();pos=Math.max(0,Math.min(10-n,s));blk.style.left=(g.x0+pos*g.step)+'px';blk.style.top=g.y0+'px';mark()};
+  const mark=()=>{[...line.children].forEach((c,i)=>c.classList.toggle('on',pos>=0&&i>=pos&&i<pos+n))};
+  const draw=()=>{const f=F();f.innerHTML='';W=el('div','tscene lnscene');const pool=el('div','lnpool');line=el('div','lnline');
+    for(let i=0;i<10;i++){const s=el('div','lnslot'+(i===4?' l5':''));const lb=el('span','lnno');lb.textContent=i+1;s.appendChild(lb);line.appendChild(s)}
+    blk=el('div','lnblk');for(let i=0;i<n;i++)blk.appendChild(el('span','tc a'));
+    W.appendChild(pool);W.appendChild(line);W.appendChild(blk);f.appendChild(W);
+    let st=null;
+    blk.onpointerdown=e=>{if(phase!=='input')return;e.preventDefault();blk.setPointerCapture(e.pointerId);st={x:e.clientX,y:e.clientY,l:blk.offsetLeft,t:blk.offsetTop,m:false};blk.classList.add('drag')};
+    blk.onpointermove=e=>{if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(Math.abs(dx)+Math.abs(dy)>6)st.m=true;blk.style.left=(st.l+dx)+'px';blk.style.top=(st.t+dy)+'px'};
+    blk.onpointerup=e=>{if(!st)return;blk.classList.remove('drag');const m=st.m;st=null;Q.moves=(Q.moves||0)+1;const g=geo();
+      if(!m){snap(pos<0?0:pos===0?10-n:0);return}
+      if(Math.abs(blk.offsetTop-g.y0)<blk.offsetHeight*1.6)snap(Math.round((blk.offsetLeft-g.x0)/g.step));else home()};
+    requestAnimationFrame(home);rd('タイルを 下の 線へ ドラッグ（どこに おいても いいよ）')};
+  const after=async()=>{if(!W||!W.isConnected)draw();if(pos<0)await new Promise(r=>requestAnimationFrame(()=>{snap(0);r()}));
+    [...line.children].forEach((c,i)=>{if(!(i>=pos&&i<pos+n))c.classList.add('gap')});rd(`${n} と ${h} で 10`)};
+  return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw,flash:false,after,reveal:after,how:`${n}はあと□で10`})}
+/* ---- Lv13 のこりは: さいしょから タイル。おすと きえる（5の かたまりは まとめて きえる）。きえた ところを おすと もどる ---- */
+function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
+  const draw=()=>{const w=ldScene();const row=rowEl(a);row.classList.add('tapl');w.appendChild(row);
+    row.querySelectorAll('.tc').forEach((c,k)=>{if(k<a)c.classList.add('own');c.onclick=()=>{if(phase!=='input'||!c.classList.contains('own'))return;Q.moves=(Q.moves||0)+1;
+      if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const grp=cs.every(t=>t.classList.contains('a'))?cs:[c];grp.forEach(t=>t.classList.replace('a','e'))}
+      else c.classList.replace('e','a')}});
+    rd('タイルを おすと きえるよ（もう いちど おすと もどる）')};
+  const after=async()=>{if(!F().querySelector('.tapl'))draw();rd(`${a} − ${b} ＝ ${r_}`)};
+  return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,draw,flash:false,after,reveal:after,how:`${a}−${b}（のこりは）`})}
+/* ---- Lv14 ちがいは: 上に a、下に b。下の だんを おすと 左よせ・右よせ ---- */
+function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';
+  const lowOn=k=>side==='L'?k<b:(k>=a-b&&k<a);
+  const mkLow=()=>{const r=el('div','trow lrow dlow');for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i;gw.appendChild(el('span','tc '+(lowOn(k)?'b':'v')))}r.appendChild(gw)}
+    r.onclick=()=>{if(phase!=='input'&&!Q.done)return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;r.replaceWith(mkLow());if(Q.done)hl()};return r};
+  const hl=()=>{const cs=ldCells(F().querySelector('.lrow'));cs.forEach((c,k)=>c.classList.toggle('hl',k<a&&!lowOn(k)))};
+  const draw=()=>{const w=ldScene();w.appendChild(rowEl(a));w.appendChild(mkLow());rd('下の だんを おすと 左よせ・右よせ')};
+  const after=async()=>{if(!F().querySelector('.dlow'))draw();Q.done=true;hl();rd(`${a} と ${b} の ちがいは ${d}`)};
+  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,draw,flash:false,after,reveal:after,how:`${a}と${b}のちがい`})}
+/* ---- Lv15 ひきざん（式だけ） ---- */
+function genLeftEq(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
+  return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} − ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}−${b}（式だけ）`})}
+/* ---- たしかめテスト（Lv6・Lv8 で つまずいたとき）: Lv3〜5 から 2もんずつ。できなかった ところへ もどって れんしゅう ---- */
+const SCREEN_ST=[2,3,4];
+function startScreen(from){const list=[];SCREEN_ST.forEach(st=>{const fs=shuffle(STAGES[st].facts.slice());list.push([st,fs[0]],[st,fs[1]])});P.screen={from,list:shuffle(list),i:0,ng:{}};save()}
+function finishScreen(pass){const S=P.screen;if(!pass)S.ng[NS]=1;S.i++;
+  if(S.i<S.list.length){save();start();return}
+  const weak=SCREEN_ST.find(st=>S.ng[st]);delete P.screen;MODE='normal';setRes=[];
+  if(weak!=null){P.stage=weak;save();overlay('たしかめテスト おわり',`Lv.${weak+1}「${esc(STAGES[weak].name)}」で れんしゅう しよう。<br>ここが すらすら できると、タイルを うごかすのも らくに なるよ`,'fix',()=>start(),'すすむ');return}
+  P.stage=S.from;save();overlay('たしかめテスト おわり',`Lv.3〜5 は だいじょうぶ！<br>Lv.${S.from+1} で、タイルを うごかして ためして みよう`,'fix',()=>start(),'すすむ')}
+/* ---- レベルの ならびが かわった（11/22: Lv15「ひきざん（式だけ）」を 入れて うしろへ 1つ ずらす）ときの きろくの 引っこし ---- */
+function migrateLayout(){if((P.lay||1)>=2)return;const S=14,sh=i=>i>=S?i+1:i;
+  P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
+  const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=k.indexOf(sep);if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
+  P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');
+  if(P.rec){const r={};for(const [k,v] of Object.entries(P.rec))r[/^\d+$/.test(k)?String(sh(+k)):k]=v;P.rec=r}
+  if(P.lvup)P.lvup.to=sh(P.lvup.to);if(P.fix)P.fix=P.fix.map(([s,k])=>[sh(s),k]);P.lay=2}
+
 /* ===== 1もんの ながれ =====
    スタート → タイルを 一瞬 見せて かくす → テンキーで こたえ（ちがう 数字は 入らない。1回 0.1びょう たす）→ ぜんぶ 入ったら すぐ はんてい
    みどり＝ぱっと見（じかん内で、？を おして たしかめて いない）／きいろ＝たしかめて できた。じどうで つぎへ。
@@ -1372,13 +1493,14 @@ async function check(){
 }
 function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
+  migrateLayout();
   N=pick();lastN=N;renderProg();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
-  Q=STAGES[NS].gen(N);Q.used=false;vals=Q.fields.map(()=>'');active=0;
+  Q=CURSEED!=null?seeded(CURSEED,()=>STAGES[NS].gen(N)):STAGES[NS].gen(N);Q.used=false;Q.moves=0;vals=Q.fields.map(()=>'');active=0;
   $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';
   const f=F();f.innerHTML='';f.classList.remove('tap');f.onclick=()=>{if(phase==='input'&&f.classList.contains('tap'))check()};
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
-  const build=MODE!=='normal';
+  const build=MODE==='fix'||MODE==='lvup';
   document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent=build?'うごきで たしかめよう':'スタート';$('#stagewrap').appendChild(flash);
   const token=++qToken;
   const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now()};
@@ -1404,14 +1526,15 @@ function judge(){
   attempts++;phase='shown';$('#pad').classList.add('locked');
   const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
   Q.fields.forEach((_,j)=>{$('#in'+j).classList.remove('active');$('#in'+j).classList.add('ok')});
-  if(MODE!=='normal'){
+  if(MODE==='fix'||MODE==='lvup'){
     const success=MODE==='fix'||rejects===0;
     P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:true,att:attempts,rej:rejects,r:false,at:Date.now(),b:MODE});if(P.hist.length>300)P.hist=P.hist.slice(-300);
     P.days[today()]=(P.days[today()]||0)+1;save();
     const n=success&&MODE==='lvup'?(P.lvup.st[N]||0)+1:0;
     showMark(success,MODE==='fix'?'うごきで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));return}
   const limit=(STAGES[NS].lim||P.limit)*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
-  P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now()});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
   P.days[today()]=(P.days[today()]||0)+1;save();
@@ -1453,6 +1576,14 @@ function showResult(){
     const hs=P.hist.filter(h=>!h.b).slice(-SET),tt=hs.reduce((a,h)=>a+h.t,0);
     P.rec=P.rec||{};const k=String(P.stage);(P.rec[k]=P.rec[k]||[]).push({at:Date.now(),c:n,n:SET,t:tt});if(P.rec[k].length>30)P.rec[k]=P.rec[k].slice(-30)}
   save();$('#q').hidden=true;renderProg();
+  /* もどる きまり: Lv9 は 3セット クリア できなければ Lv6 へ／Lv15 は どう なら Lv13 へ／Lv6・Lv8 は どう なら たしかめテスト */
+  let back=null;
+  if(!P.cleared.includes(P.stage)){
+    if(P.stage===8){P.fails=P.fails||{};P.fails[8]=(P.fails[8]||0)+1;if(P.fails[8]>=3){P.fails[8]=0;back={to:5,msg:'6〜10の 分解が まだ あやしいので、Lv.6 から タイルを うごかして もういちど'}}}
+    if(P.stage===14&&kind==='b')back={to:12,msg:'Lv.13 で タイルを けして ためして から、もういちど'};
+    if((P.stage===5||P.stage===7)&&kind==='b')back={screen:true};
+  }else if(P.fails)delete P.fails[P.stage];
+  save();
   const r=$('#result');r.hidden=false;
   const partDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i))&&LEVELS.filter(l=>l[0]===cur().p).length===STAGES.filter(s=>s.p===cur().p).length;
   const lastReady=P.stage>=STAGES.length-1;
@@ -1462,11 +1593,16 @@ function showResult(){
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
   if(window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
   $('#resKiroku').onclick=()=>showKiroku(P.stage,'result');
+  if(back){const nb=$('#nextSet'),ss=$('#sameSet');if(ss)ss.remove();
+    if(back.screen){nb.textContent='たしかめテストへ';nb.insertAdjacentHTML('beforebegin','<p>タイルを うごかすのが まだ たいへんそう。Lv.3〜5 が すらすら できるか、6もんで たしかめよう。</p>');
+      nb.onclick=()=>{setRes=[];startScreen(P.stage);start()};return}
+    nb.textContent=`Lv.${back.to+1} へ`;nb.insertAdjacentHTML('beforebegin',`<p>${back.msg}</p>`);
+    nb.onclick=()=>{setRes=[];P.stage=back.to;delete P.lvup;save();start()};return}
   $('#nextSet').onclick=()=>{
     setRes=[];
     if(canNext){
       const to=P.stage+1,nf=newFactsOf(to);
-      if(nf.length){ /* レベルアップ チャレンジ：つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて */
+      if(nf.length&&!P.cleared.includes(to)){ /* 一度 クリアした レベルへは チャレンジ なし。レベルアップ チャレンジ：つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて */
         const fs=shuffle(nf.slice()).slice(0,2);P.lvup={to,facts:fs,st:{}};save();
         overlay('レベルアップ チャレンジ！',`つぎは Lv.${to+1}「${esc(STAGES[to].name)}」<br>うごきを 見てから こたえて、2しゅるいの もんだいを それぞれ ${LVUP_NEED}かい つづけて できたら レベルアップ！`,'lvintro',()=>start());return}
       P.stage++;save()}
@@ -1497,8 +1633,8 @@ function renderMap(){
 $('#licBtn').onclick=()=>{const b=$('#licBox');b.hidden=!b.hidden;if(b.hidden)return;
   b.innerHTML=`<div class="lic"><div class="seal">10を<br>つくる<br>とる</div><div class="t">TASHIHIKI LAB LICENSE</div><h2>ばらの せかい ライセンス</h2>
   <input id="licName" placeholder="なまえ" value="${esc(P.name)}">
-  <div class="row"><span>Lv.1〜20 ぜんぶ クリア</span></div>
-  <div class="row"><span>8＋5 は「8は あと2で 10、のこり3」、13−8 は「10から8を とって2、2と3で5」が できる</span></div></div>`;
+  <div class="row"><span>Lv.1〜21 ぜんぶ クリア</span></div>
+  <div class="row"><span>8＋5 や 13−8 を、じぶんで 見つけた やり方で すばやく とける</span></div></div>`;
   $('#licName').oninput=e=>{P.name=e.target.value;save()}};
 function alert_(m){const e=$('#err');if(e){e.textContent=m;setTimeout(()=>{if(e.textContent===m)e.textContent=''},3000)}}
 /* ===== おうちへ ===== */
@@ -1510,14 +1646,14 @@ function reportText(){
 いまの場所: Lv.${cur().lv}「${cur().name}」（Lv.${LEVELS.length} まで。いまは ${P.cleared.length} レベル クリア）
 さいきんの 30問: できた ${ok} 問
 この1週間: ${weekCount()}問
-※10の合成・分解から、たし算・ひき算の意味（あわせて・のこりは・ちがいは）、くりあがり（8＋5＝「8は あと2で10、のこり3」）、くりさがり（13−8＝「10から8をとって2、2と3で5」）へ進みます。ここまでが「ばらの せかい」。このあと 同じ考え方を 10のぼう・100のいたで くりかえし、3けたまで 進みます。`;
+※6〜10を「5と いくつ」で とらえ、10の合成・分解に なれたら、タイルを じぶんで うごかして「らくに はやく」とける やり方を さがします。計算の しかたは おしえず、えらぶのは 子ども自身です。ここまでが「ばらの せかい」。このあと 同じ考え方を 10のぼう・100のいたで くりかえし、3けたまで 進みます。`;
 }
 function renderReport(){
   const b=$('#repBody');
   b.innerHTML=`<div class="rep"><h3>連絡帳・LINE 用</h3><textarea id="repTxt" readonly>${esc(reportText())}</textarea>
   <div class="pbar"><button class="btn sm" id="repCopy">コピー</button></div></div>
   <div class="rep"><h3>おうちで できる こえかけ 3 つ</h3>
-  ① おやつを 手で かくして「ぜんぶで 7こ。見えているのは 4こ。かくれているのは？」<br>② 8＋5 は「まず 10を つくろう」と 声を かける<br>③ 13−8 は「10から 8を とったら？」と 聞いてみる</div>`;
+  ① おやつを 手で かくして「ぜんぶで 7こ。見えているのは 4こ。かくれているのは？」<br>② 8＋5 は やり方を 教えずに「どうやったら はやい？」と 聞いて、子どもの やり方を 聞く<br>③ 13−8 も やり方は まかせる。じぶんの ことばで せつめい できたら ほめる</div>`;
   $('#repCopy').onclick=()=>{const t=$('#repTxt');navigator.clipboard?.writeText(t.value).then(()=>alert_('コピーしました')).catch(()=>t.select())};
 }
 /* ===== おとな ===== */
@@ -1580,8 +1716,8 @@ function showKiroku(st,from){
 /* ===== デバッグモード（リンクの末尾に #debug）: 好きな場面を すぐ たしかめる ===== */
 const DBG={next:null,mode:null,h:null};
 if(DEBUG){
-  const _pick=pick;pick=function(){if(DBG.next!=null){const v=DBG.next;DBG.next=null;isReview=false;NS=P.stage;PAIR=null;return cur().facts.find(f=>String(f)===v)??v}return _pick()};
-  window.__T={get Q(){return Q},get phase(){return phase},get P(){return P},get setRes(){return setRes},answer:v=>answer(v),start:()=>start()};
+  const _pick=pick;pick=function(){if(DBG.next!=null){const v=DBG.next;DBG.next=null;CURSEED=null;isReview=false;NS=P.stage;PAIR=null;return cur().facts.find(f=>String(f)===v)??v}return _pick()};
+  window.__T={get Q(){return Q},showResult:()=>showResult(),buildDeck:i=>buildDeck(i),get phase(){return phase},get P(){return P},get setRes(){return setRes},answer:v=>answer(v),start:()=>start()};
   const st=document.createElement('style');st.textContent=`
   #dbgBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--font-display);font-weight:900;border:none;border-radius:999px;padding:10px 16px;background:var(--ink);color:var(--paper);box-shadow:0 4px 12px rgba(0,0,0,.2);cursor:pointer}
   #dbg{position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:50;max-width:520px;margin-left:auto;max-height:70vh;overflow:auto;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:12px 14px;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}

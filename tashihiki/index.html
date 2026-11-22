@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22g';
+const VER='11/22h';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1511,7 +1511,7 @@ function start(){
   const f=F();f.innerHTML='';f.classList.remove('tap');f.onclick=()=>{if(phase==='input'&&f.classList.contains('tap'))check()};
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
   const build=MODE==='fix'||MODE==='lvup';
-  document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent=build?'うごきで たしかめよう':'スタート';$('#stagewrap').appendChild(flash);
+  document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent='うごきで たしかめよう';if(build)$('#stagewrap').appendChild(flash);
   const token=++qToken;
   const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now()};
   setTimeout(async()=>{if(token!==qToken)return;flash.remove();
@@ -1525,7 +1525,7 @@ function start(){
         setTimeout(()=>{if(token!==qToken||phase!=='input'||Q.used)return;if(Q.hcover){const bu=f.querySelector('.bush');if(bu)bu.classList.remove('off')}else cover();f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'},ms)}
       else if(Q.hcover){f.classList.add('tap');$('#read').textContent='わからなければ ？を おして たしかめよう'}}
     else{f.innerHTML='<div class="qmark hide">？</div>';f.classList.add('tap');ready()}
-  },FLASH);
+  },build?FLASH:0); /* ふつうは 問題が 出たら すぐ 入力できる（まちじかん なし） */
   if(MODE==='lvup'&&lvRemain()===1)overlay('⚡ リーチ！ ⚡',`あと 1かいで レベルアップ！`,'reach',null,'いくぞ！');
   renderAdult();
 }

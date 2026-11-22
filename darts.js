@@ -1,4 +1,4 @@
-// ダーツ（ごほうび）… 九九ラボ・よむよむ 共通
+// ダーツ（ごほうび）… 九九ラボ・よむよむ・たしひきラボ 共通
 //
 // サーバー（Firestore の darts コレクション）に 子ども1人の「財布」を 1つ おく。
 //   darts/{wid} = { balance:いま持っている本数, earned:もらった合計, paid:先生が支払った合計,
@@ -161,18 +161,19 @@ const DARTS = (() => {
   // ---------- 先生画面：財布の 一覧・支払い・まとめる ----------
   async function teacherPanel(box, tdb) {
     box.innerHTML = '<p>ダーツを よみこみ中…</p>';
-    const [ws, ku, yo] = await Promise.all([
+    const [ws, ku, yo, ta] = await Promise.all([
       tdb.collection(COL).get(),
       tdb.collection("users").get().catch(() => ({ docs: [] })),
       tdb.collection("rst_users").get().catch(() => ({ docs: [] })),
+      tdb.collection("tashihiki_users").get().catch(() => ({ docs: [] })),
     ]);
     const wallets = ws.docs.map((d) => ({ id: d.id, ...d.data() }));
-    const kids = [...ku.docs.map((d) => ({ id: d.id, app: "九九", col: "users", ...d.data() })), ...yo.docs.map((d) => ({ id: d.id, app: "よむよむ", col: "rst_users", ...d.data() }))];
+    const kids = [...ku.docs.map((d) => ({ id: d.id, app: "九九", col: "users", ...d.data() })), ...yo.docs.map((d) => ({ id: d.id, app: "よむよむ", col: "rst_users", ...d.data() })), ...ta.docs.map((d) => ({ id: d.id, app: "たしひき", col: "tashihiki_users", ...d.data() }))];
     const kidsOf = (w) => kids.filter((k) => k.wid === w.id);
     const rows = wallets.filter((w) => kidsOf(w).length || w.balance).sort((a, b) => (b.balance || 0) - (a.balance || 0));
     const sum = rows.reduce((n, w) => n + (w.balance || 0), 0);
-    box.innerHTML = `<h3>ダーツ（九九・よむよむ 共通）　<span style="font-weight:400;font-size:.85em">支払っていない本数の合計 ${sum}本</span></h3>
-      <p style="font-size:.85em;color:#8d7b6a">同じ子の 九九と よむよむの 財布は、2つに チェックを入れて「1つにまとめる」。支払いの欄は、はじめは 全部の本数です。</p>
+    box.innerHTML = `<h3>ダーツ（九九・よむよむ・たしひき 共通）　<span style="font-weight:400;font-size:.85em">支払っていない本数の合計 ${sum}本</span></h3>
+      <p style="font-size:.85em;color:#8d7b6a">同じ子の アプリごとの 財布は、2つに チェックを入れて「1つにまとめる」。支払いの欄は、はじめは 全部の本数です。</p>
       <div class="dt-wrap"><table class="dt-tab"><tr><th></th><th>子ども（アプリ）</th><th>メモ</th><th>いま</th><th>もらった</th><th>支払った</th><th>支払い</th></tr>
       ${rows.map((w) => `<tr data-w="${esc(w.id)}"><td><input type="checkbox" class="dt-sel"></td><td>${kidsOf(w).map((k) => `${esc(k.nick)}<small>（${k.app}）</small>`).join("<br>") || "<small>つながっていない</small>"}</td>
         <td><input class="dt-name" value="${esc(w.name || "")}" placeholder="本名など" style="width:7em"></td><td><b>${w.balance || 0}</b></td><td>${w.earned || 0}</td><td>${w.paid || 0}</td>

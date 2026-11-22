@@ -535,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22r';
+const VER='11/22s';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1553,7 +1553,9 @@ async function check(){
 function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
   migrateLayout();
-  N=pick();lastN=N;renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
+  N=pick();lastN=N;
+  if(MODE==='normal'&&setRes.length===0){P.streak=P.streak||{};P.streak[P.stage]=0;prevStreak=0} /* あたらしく はじめた ときは 連続 0 から（さいこうは のこす） */
+  renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
   Q=CURSEED!=null?seeded(CURSEED,()=>STAGES[NS].gen(N)):STAGES[NS].gen(N);Q.used=false;Q.moves=0;vals=Q.fields.map(()=>'');active=0;
   $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';

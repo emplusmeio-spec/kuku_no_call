@@ -347,6 +347,10 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
 .badge.none{background:var(--line);color:var(--ink)}
+.stagewrap,.field{min-height:clamp(120px,24vh,290px)}
+@media (max-width:600px){.stagewrap{min-height:0}.field{min-height:clamp(110px,20vh,220px)}#padwrap{min-height:0;flex:0 0 auto}.pad{height:clamp(160px,30vh,250px);max-height:none;gap:6px;margin-top:4px}.key{font-size:clamp(22px,6.5vw,34px);border-radius:12px}.read{min-height:1.1em;margin-top:0}.answerrow{margin-top:2px}}
+@media (max-height:620px){.seg{height:14px}.meter{margin:2px 0}.meter .mtop{font-size:12px;margin-bottom:2px}.meter .mnum b{font-size:15px}.meter .mleft{font-size:15px}.qtitle{margin:0 0 2px}.tbar{height:6px;margin-bottom:3px!important}}
+.tight .numin{height:38px;font-size:24px}.tight .answerrow .lb{font-size:16px}.tight .answerrow .lb b{font-size:1.4em}.tight .read{min-height:0;font-size:14px}.tight .key{border-width:2px}
 .meter{display:block;margin:4px 0 6px;font-family:var(--font-display);font-weight:900}
 .meter .mtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:4px}
 .meter .mnum b{font-size:18px}.meter .mnum small{font-size:12px;color:#b8860b}
@@ -370,7 +374,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .sbag .tc.a{cursor:pointer;position:relative;z-index:4}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
 .tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}.tapl .tc.gone2{background:var(--dot);opacity:.18}.tlreset{margin-top:10px}
-.tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:18px;width:100%;padding:10px 0 30px}
+.tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:12px;width:100%;padding:6px 0 22px}
 .lnpool{height:calc(var(--ts)*1.6);width:90%;border:2px dashed var(--line);border-radius:14px}
 .lnline{display:flex;gap:var(--lg);padding-bottom:calc(var(--ts)*.7);border-bottom:4px solid var(--ink);position:relative}
 .lnslot{position:relative;width:var(--ts);height:var(--ts);border-radius:25%;border:2px dashed var(--line);transition:background .3s}
@@ -502,16 +506,16 @@ const STAGES=[
  S('6〜10は いくつ',[6,7,8,9,10],0,k=>genCount(k),0,3),              // なれる: 量→数字（目かくし なし。なれない うちは かぞえて よい。時間で 判定）
  S('6〜10を 見る',[6,7,8,9,10],1000,k=>genSee(k),0,3),              // タイル→数（5と なんぼで 見る）
  S('5と いくつで',[1,2,3,4,5],0,k=>genFivePlus(k),0,3),              // 式→数（5＋□）
- S('5を こえる たしざん',[6,7,8],0,k=>genOver5Mv(k),0,5),            // ためす: タイルを おして うごかす。時間切れで「こう うごかすと はやいよ」
+ S('5を こえる たしざん',[6,7,8],0,k=>genOver5Mv(k),0,3),            // ためす: タイルを おして うごかす。時間切れで「こう うごかすと はやいよ」
  S('5を こえる（式だけ）',[6,7,8],0,k=>genOver5(k,true),0,3),
- S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k),0,5),   // ためす（Lv6と おなじ）
+ S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),   // ためす（Lv6と おなじ）
  S('6〜10の 分解①',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト。3セットで クリア できなければ Lv6 へ
- S('6〜10の 分解②',[6,7,8,9],0,k=>sideBag(k,1,4,1,5),0,4),          // ためす: 見えている タイルを おすと 左右が いれかわる（どちらから 見るかは 子ども）
- S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9),0,4),
+ S('6〜10の 分解②',[6,7,8,9],0,k=>sideBag(k,1,4,1,5)),          // ためす: 見えている タイルを おすと 左右が いれかわる（どちらから 見るかは 子ども）
+ S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),
  S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
- S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k),0,6),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
+ S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k)),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
  S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k),0,2),                   // ためす: 下の だんを おすと 左よせ・右よせ
- S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k),0,4),           // なれる: 式だけ。どう（ぱっと見 6こ いか）なら Lv13 へ
+ S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k)),           // なれる: 式だけ。どう（ぱっと見 6こ いか）なら Lv13 へ
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
  S('くりあがり②',[6,7,8,9],1500,k=>genMake(k)),                     // ドット「くりあがり② 10を つくる」
@@ -523,8 +527,8 @@ STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 段の しゅるい: teach 教える／try ためす（タイルを うごかす）→ 正しく 連続8もんで クリア（時間は とわない。リーチ あり）
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
 /* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv6/8 時間しばり・Lv7 なれる・Lv9 定着テスト・Lv14 合格2秒・Lv15 なれる → nare
-   Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）・Lv16 10と いくつ（桁）→ teach ／ Lv10〜13・Lv17/18（くりあがり①②）・Lv20 くりさがり（えらぶのは 子ども）→ try ／ Lv19 たしざん②・Lv21 まぜて → nare */
-const KIND=['nare','teach','teach','nare','nare','nare','nare','nare','nare','try','try','try','try','nare','nare','teach','try','try','nare','try','nare'];
+   Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv10〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
+const KIND=['nare','teach','teach','nare','nare','nare','nare','nare','nare','try','try','try','try','nare','nare','nare','nare','nare','nare','nare','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -536,7 +540,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22v';
+const VER='11/22y';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1033,6 +1037,17 @@ function pick(){
   const c=DECK.list.shift();CURSEED=c.seed;LASTID=c.id;return c.k;
 }
 const streakOf=()=>(P.streak||{})[P.stage]||0;
+/* ===== スマホで テンキーが 見切れない ように: はみ出したら テンキー → わくの すきま の じゅんに ちぢめる ===== */
+let FIT_RAF=0;
+function fitScreen(){cancelAnimationFrame(FIT_RAF);FIT_RAF=requestAnimationFrame(()=>{const pad=$('#pad'),f=F();if(!pad||$('#q').hidden)return;
+  pad.style.height='';f.style.minHeight='';document.body.classList.remove('tight');pad.querySelectorAll('.key').forEach(k=>k.style.fontSize='');
+  const H=window.innerHeight,de=document.documentElement;let over=de.scrollHeight-H;
+  if(over>0){document.body.classList.add('tight');over=de.scrollHeight-H}                       /* ①こたえの 欄を ちいさく */
+  if(over>0){const fh=f.getBoundingClientRect().height;f.style.minHeight=Math.max(80,fh-over)+'px';over=de.scrollHeight-H}  /* ②わくの 下の すきま */
+  if(over>0){const ph=pad.getBoundingClientRect().height;pad.style.height=Math.max(124,ph-over)+'px'}  /* ③テンキーを みじかく */
+  const rh=(pad.getBoundingClientRect().height-18)/4;if(rh<56)pad.querySelectorAll('.key').forEach(k=>k.style.fontSize=Math.max(16,Math.round(rh*.62))+'px')})}
+window.addEventListener('resize',fitScreen);
+new MutationObserver(fitScreen).observe(document.querySelector('#field'),{childList:true,subtree:true});
 /* ===== 連続メーター・あと○もん・時間バー ===== */
 let METER=null,TBAR=null,prevStreak=0,SETMAX=0;
 function ensureMeter(){if(METER)return;METER=el('div','meter');
@@ -1389,7 +1404,7 @@ function genFivePlus(h){const n=5+h;
 /* 5を こえる たしざん（1〜4 どうし、こたえ 6〜8）。少ない ほうを うごかして 5を つくる。eq=true は 式だけ */
 const OVER5={6:[[2,4],[4,2],[3,3]],7:[[3,4],[4,3]],8:[[4,4]]};
 function genOver5(s,eq){const [a,b]=choice(OVER5[s]);const v=addFrames(a,b);
-  return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:!eq,...v,...(eq?{draw:null}:{}),how:`${a}＋${b}（5を こえる）`})}
+  return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:!eq,...v,...(eq?{draw:null,reveal:null}:{}),how:`${a}＋${b}（5を こえる）`})}
 /* 6〜9 ＋ 小さい数（10まで）: 6＋3 は 5と1と3 → 5と4 */
 function genSmallAdd(k){const [a,b]=String(k).split('+').map(Number);
   return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（10まで）`})}
@@ -1559,7 +1574,7 @@ function start(){
   renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
   Q=CURSEED!=null?seeded(CURSEED,()=>STAGES[NS].gen(N)):STAGES[NS].gen(N);Q.used=false;Q.moves=0;vals=Q.fields.map(()=>'');active=0;
-  $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';
+  $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';fitScreen();
   const f=F();f.innerHTML='';f.classList.remove('tap');f.onclick=()=>{if(phase==='input'&&f.classList.contains('tap'))check()};
   const pad=$('#pad');pad.classList.add('locked');$('#go').disabled=true;
   const build=MODE==='fix'||MODE==='lvup';

@@ -493,7 +493,7 @@ const STAGES=[
  S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9),0,4),
  S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
  S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k),0,6),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
- S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k),0,6),                   // ためす: 下の だんを おすと 左よせ・右よせ
+ S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k),0,2),                   // ためす: 下の だんを おすと 左よせ・右よせ
  S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k),0,4),           // なれる: 式だけ。どう（ぱっと見 6こ いか）なら Lv13 へ
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
  S('くりあがり①',[6,7,8,9],1500,k=>genFive(k)),                     // ドット「くりあがり① 5と5で 10」
@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22j';
+const VER='11/22k';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1440,7 +1440,7 @@ function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L'
   /* ことばだけ 1びょう（ここで こたえたら ごうかく）→ タイル（出たら ごうかくには ならない） */
   const timeline=async alive=>{await new Promise(r=>setTimeout(r,DIFF_T1));if(!alive())return;Q.used=true;draw()};
   return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,draw:null,timeline,tlBuild:true,flash:false,after,reveal:after,how:`${a}と${b}のちがい`})}
-const DIFF_T1=1000;
+const DIFF_T1=2000;
 /* ---- Lv15 ひきざん（式だけ） ---- */
 function genLeftEq(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
   return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} − ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}−${b}（式だけ）`})}

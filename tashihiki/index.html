@@ -540,7 +540,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22y';
+const VER='11/22z';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1045,7 +1045,10 @@ function fitScreen(){cancelAnimationFrame(FIT_RAF);FIT_RAF=requestAnimationFrame
   if(over>0){document.body.classList.add('tight');over=de.scrollHeight-H}                       /* ①こたえの 欄を ちいさく */
   if(over>0){const fh=f.getBoundingClientRect().height;f.style.minHeight=Math.max(80,fh-over)+'px';over=de.scrollHeight-H}  /* ②わくの 下の すきま */
   if(over>0){const ph=pad.getBoundingClientRect().height;pad.style.height=Math.max(124,ph-over)+'px'}  /* ③テンキーを みじかく */
-  const rh=(pad.getBoundingClientRect().height-18)/4;if(rh<56)pad.querySelectorAll('.key').forEach(k=>k.style.fontSize=Math.max(16,Math.round(rh*.62))+'px')})}
+  const rh=(pad.getBoundingClientRect().height-18)/4;if(rh<56)pad.querySelectorAll('.key').forEach(k=>k.style.fontSize=Math.max(16,Math.round(rh*.62))+'px');
+  padIntoView()})}
+/* テンキーの 0が かくれないよう、いちばん 下まで じどうで スクロール（問題が かわる たび） */
+function padIntoView(){const go=()=>{const pad=$('#pad');if(!pad||$('#q').hidden)return;const vh=(window.visualViewport&&visualViewport.height)||innerHeight;const b=pad.getBoundingClientRect().bottom;if(b>vh-2)window.scrollBy(0,b-vh+6)};go();setTimeout(go,250);setTimeout(go,700)}
 window.addEventListener('resize',fitScreen);
 new MutationObserver(fitScreen).observe(document.querySelector('#field'),{childList:true,subtree:true});
 /* ===== 連続メーター・あと○もん・時間バー ===== */

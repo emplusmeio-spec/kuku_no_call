@@ -346,7 +346,18 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
-.fscene.mv{--fd:clamp(20px,min(5.8vw,4.6vh),52px)}
+.meter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-display);font-weight:900;font-size:14px;margin:2px 0 4px}
+.meter .mdots{display:flex;gap:4px}.meter .mdots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);display:block;transition:background .25s,transform .25s}
+.meter .mdots i.on{background:var(--accent);border-color:var(--accent);transform:scale(1.1)}
+.meter .mleft{color:var(--ng);font-size:18px}.meter .mleft.hot{animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.12)}}
+.meter .mmode{margin-left:auto;font-size:13px;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--ok) 18%,var(--paper))}
+.meter.nare .mmode{background:color-mix(in srgb,var(--ng) 16%,var(--paper))}
+.meter.reset .mdots{animation:shake .45s}@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.meter[hidden],.tbar[hidden]{display:none!important}
+.tbar{height:10px;max-width:640px;margin:0 auto 6px!important;border-radius:99px;background:color-mix(in srgb,var(--line) 60%,var(--paper));overflow:hidden;margin:0 0 6px}
+.tbar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:99px}
+.tbar.over{background:color-mix(in srgb,var(--ng) 25%,var(--paper))}
+.fscene.mv{--fd:clamp(20px,min(5.6vw,4.6vh),38px)}
 .fscene.mv .ft{pointer-events:auto;cursor:pointer;touch-action:manipulation}.fscene.mv .ft:active{transform:scale(.9)}
 .fr.five{border-color:var(--accent)}
 .tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
@@ -517,7 +528,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22l';
+const VER='11/22m';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1014,6 +1025,23 @@ function pick(){
   const c=DECK.list.shift();CURSEED=c.seed;LASTID=c.id;return c.k;
 }
 const streakOf=()=>(P.streak||{})[P.stage]||0;
+/* ===== 連続メーター・あと○もん・時間バー ===== */
+let METER=null,TBAR=null,prevStreak=0;
+function ensureMeter(){if(METER)return;METER=el('div','meter');METER.innerHTML='<span class="mlab">れんぞく</span><span class="mdots"></span><span class="mleft"></span><span class="mmode"></span>';$('#prog').after(METER);
+  TBAR=el('div','tbar');TBAR.innerHTML='<i></i>';$('#stagewrap').before(TBAR)}
+function renderMeter(){ensureMeter();const show=MODE==='normal'&&!P.cleared.includes(P.stage);METER.hidden=!(show||MODE==='screen');
+  const kind=MODE==='screen'?'nare':cur().kind;METER.className='meter '+(kind==='nare'?'nare':'jk');
+  METER.querySelector('.mmode').textContent=kind==='nare'?'⏱ じかん せいげん あり':'🤔 じっくり かんがえて いいよ';
+  const s=streakOf(),d=METER.querySelector('.mdots');
+  if(MODE==='screen'){METER.querySelector('.mlab').textContent='たしかめテスト';d.innerHTML='';METER.querySelector('.mleft').textContent='';return}
+  METER.querySelector('.mlab').textContent='れんぞく';
+  d.innerHTML=Array.from({length:CLEAR_STREAK},(_,i)=>`<i class="${i<s?'on':''}"></i>`).join('');
+  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
+  if(prevStreak>0&&s===0){METER.classList.remove('reset');void METER.offsetWidth;METER.classList.add('reset')}prevStreak=s}
+function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||MODE==='screen';TBAR.hidden=!timed;if(!timed)return;
+  const ms=(STAGES[NS].lim||P.limit)*1000*Q.fields.length,b=TBAR.querySelector('i');TBAR.classList.remove('over');b.style.transition='none';b.style.width='100%';void b.offsetWidth;
+  b.style.transition=`width ${ms}ms linear`;b.style.width='0%';clearTimeout(TBAR._t);TBAR._t=setTimeout(()=>TBAR.classList.add('over'),ms)}
+function barStop(){if(!TBAR)return;const b=TBAR.querySelector('i');b.style.width=getComputedStyle(b).width;b.style.transition='none';clearTimeout(TBAR._t)}
 function renderProg(){
   const p=$('#prog');p.innerHTML='';
   $('#who').textContent=ME?ME.nick:'';
@@ -1032,7 +1060,7 @@ function renderProg(){
     $('#progress').textContent='レベルアップ チャレンジ';
     $('#stageTag').textContent=`レベルアップ → Lv.${L.to+1}`;$('#stageTag').style.background=`var(${PH[STAGES[L.to].p][2]})`;return}
   for(let i=0;i<SET;i++){const d=el('i');if(setRes[i])d.className=setRes[i];p.appendChild(d)}
-  $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`+(P.cleared.includes(P.stage)?'':`　れんぞく ${streakOf()}/${CLEAR_STREAK}`);
+  $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
   $('#stageTag').textContent=`Lv.${cur().lv}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
 }
@@ -1510,7 +1538,7 @@ async function check(){
 function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
   migrateLayout();
-  N=pick();lastN=N;renderProg();phase='ready';attempts=0;rejects=0;
+  N=pick();lastN=N;renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
   $('#q').hidden=false;$('#result').hidden=true;clearMsg();$('#read').textContent='';
   Q=CURSEED!=null?seeded(CURSEED,()=>STAGES[NS].gen(N)):STAGES[NS].gen(N);Q.used=false;Q.moves=0;vals=Q.fields.map(()=>'');active=0;
   $('#qtitle').innerHTML=Q.title.replace(/(<b>.*?<\/b>)|(\d+)/g,(m,b,d)=>b||`<b class="k">${d}</b>`);renderFields();showVals();buildPad();$('#padwrap').style.display=Q.tap?'none':'';
@@ -1519,7 +1547,7 @@ function start(){
   const build=MODE==='fix'||MODE==='lvup';
   document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent='うごきで たしかめよう';if(build)$('#stagewrap').appendChild(flash);
   const token=++qToken;
-  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now()};
+  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now();if(!build)barStart();else if(TBAR)TBAR.hidden=true};
   setTimeout(async()=>{if(token!==qToken)return;flash.remove();
     if(build){ /* たしかめ・チャレンジ: 絵を 見せて うごきを 見てから こたえる（時間は はからない） */
       if(Q.tlBuild){f.innerHTML='';ready();Q.used=true;Q.timeline(()=>token===qToken&&phase==='input');return}
@@ -1540,7 +1568,7 @@ function judge(){
   if(phase!=='input')return;
   const empty=Q.fields.map((_,j)=>j).filter(j=>vals[j]==='');
   if(empty.length){$('#err').textContent='すうじを ぜんぶ いれてね';setActive(empty[0]);return}
-  attempts++;phase='shown';$('#pad').classList.add('locked');
+  attempts++;phase='shown';$('#pad').classList.add('locked');barStop();
   const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
   Q.fields.forEach((_,j)=>{$('#in'+j).classList.remove('active');$('#in'+j).classList.add('ok')});
   if(MODE==='fix'||MODE==='lvup'){
@@ -1553,6 +1581,7 @@ function judge(){
   P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;Q.ok=okQ}
+  renderMeter();
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
   P.days[today()]=(P.days[today()]||0)+1;save();

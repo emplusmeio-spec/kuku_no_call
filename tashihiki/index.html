@@ -540,7 +540,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z2';
+const VER='11/22z3';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1569,9 +1569,20 @@ async function check(){
   $('#read').textContent='';F().classList.remove('tap');
   try{await Q.after()}catch(e){}
 }
+/* ===== スタート画面: ステージに 入ったら まず ここ。スタートで 連続 0 から ===== */
+let ARMED=false;
+function showStart(){MODE='normal';NS=P.stage;qToken++;phase='ready';P.streak=P.streak||{};P.streak[P.stage]=0;prevStreak=0;SETMAX=0;
+  renderProg();renderMeter();if(TBAR)TBAR.hidden=true;document.querySelectorAll('.mark').forEach(x=>x.remove());
+  $('#q').hidden=true;const r=$('#result');r.hidden=false;const s=cur(),nare=s.kind==='nare';
+  r.innerHTML=`<div class="badge st" style="background:var(${PH[s.p][2]})">${s.lv}</div><h2>Lv.${s.lv}　${esc(s.name)}</h2>
+  <p style="font-size:1.1rem">${nare?'⏱ じかん せいげん あり<br>じかんの うちに 8もん つづけて せいかい で クリア':'🤔 じっくり かんがえて いいよ<br>8もん つづけて せいかい で クリア'}</p>
+  <button class="btn" id="goStart" style="font-size:1.5rem;padding:.6em 2.6em">スタート</button>`;
+  $('#goStart').onclick=()=>{ARMED=true;start()}}
 function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
   migrateLayout();
+  if(!P.screen){delete P.fix;delete P.fixTotal} /* 10もんの あとの たしかめは やめた（11/22 ボス） */
+  if(setRes.length===0&&!P.screen&&!P.lvup){if(!ARMED){showStart();return}ARMED=false} /* どの ステージも「スタート」を おしてから 0もんめ */
   N=pick();lastN=N;
   if(MODE==='normal'&&setRes.length===0){P.streak=P.streak||{};P.streak[P.stage]=0;prevStreak=0;SETMAX=0} /* あたらしく はじめた ときは 連続 0 から（さいこうは のこす） */
   renderProg();renderMeter();phase='ready';attempts=0;rejects=0;
@@ -1617,7 +1628,7 @@ function judge(){
   P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
-  renderMeter();
+  if(Q.ok)renderMeter();
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}
   P.days[today()]=(P.days[today()]||0)+1;save();
@@ -1639,22 +1650,18 @@ function finishBuild(success){
 function finishItem(kind){
   if(!setRes.length)setFacts=[];
   setRes.push(kind);setFacts.push({st:NS,k:N,rej:rejects,how:Q.how});
-  const reached=MODE==='normal'&&streakOf()>=CLEAR_STREAK; /* 8もん つづいたら その場で おわり（前に クリアずみでも） */
-  if(setRes.length>=SET||reached){
-    /* ちがう 数字を 入れようと した もんだいを、うごきで たしかめて 1回ずつ */
-    const m=new Map();setFacts.filter(x=>x.rej>0).forEach(x=>m.set(x.st+':'+x.k,[x.st,x.k]));
-    if(m.size&&!reached){P.fix=[...m.values()];P.fixTotal=P.fix.length;save();
-      overlay('うごきで たしかめよう',`まちがえた もんだいと おなじ しゅるいを、<br>タイルの うごきを 見てから といて みよう`,'fix',()=>start());return}
-    showResult();return}
+  /* 8もん つづいたら クリア。しっぱい したら 連続が 0に くずれる アニメの あと けっか（10もんの まとまりは やめた） */
+  if(MODE==='normal'&&streakOf()>=CLEAR_STREAK){showResult();return}
+  if(MODE==='normal'&&Q.ok===false){const lost=prevStreak;renderMeter();const tk=qToken;setTimeout(()=>{if(tk===qToken)showResult()},lost?700+lost*110+300:500);return}
   start();
 }
 
 function showResult(){
   PAIR=null;MODE='normal';
-  /* メダルは この 10もんの 中の 連続の さいこうで きめる: 2もん れんぞく=どう／4もん=ぎん／8もん=きん（11/22 ボス） */
+  /* メダルは この ちょうせんの 連続の さいこうで きめる: 2もん れんぞく=どう／4もん=ぎん／8もん=きん（11/22 ボス） */
   const LEN=setRes.length||SET,n=setRes.filter(x=>x==='p').length,run=SETMAX,kind=run>=CLEAR_STREAK?'g':run>=4?'s':run>=2?'b':'';if(kind)P.badges[kind]++;
   const name={g:'きん',s:'ぎん',b:'どう','':'メダル なし'}[kind],msg={g:'8もん れんぞく！',s:'4もん いじょう れんぞく！',b:'2もん いじょう れんぞく！','':'つぎは 2もん れんぞくを めざそう'}[kind];
-  /* クリア＝この 10もんの 中で 連続8もん（前に クリアした レベルでも 同じ）。とどかなければ「つぎの レベルへ」は 出さない */
+  /* クリア＝連続8もん（前に クリアした レベルでも 同じ）。とどかなければ「つぎの レベルへ」は 出さない */
   const cleared=streakOf()>=CLEAR_STREAK;
   const canNext=cleared&&P.stage<STAGES.length-1;
   if(cleared&&!P.cleared.includes(P.stage))P.cleared.push(P.stage);
@@ -1674,9 +1681,9 @@ function showResult(){
   const partDone=cleared&&STAGES.every((s,i)=>s.p!==cur().p||P.cleared.includes(i))&&LEVELS.filter(l=>l[0]===cur().p).length===STAGES.filter(s=>s.p===cur().p).length;
   const lastReady=P.stage>=STAGES.length-1;
   r.innerHTML=(cleared?`<div class="badge st" style="background:var(${PH[cur().p][2]})">${P.stage+1}</div><h2>Lv.${P.stage+1} クリア！</h2><p>${esc(cur().name)} が じぶんのものに なった。</p>${partDone?`<h2 style="color:var(${PH[cur().p][2]})">${ISLAND[cur().p]} の メダル！</h2>`:''}${lastReady?'<p>つぎの レベルは じゅんび中。</p>':''}<hr style="border:none;border-top:2px dashed var(--line)">`:'')+
-  `<div class="badge ${kind||'none'}">${name}</div><h2>${msg}</h2><p>この 10もんの れんぞく さいこう ${run} もん</p>
+  `<div class="badge ${kind||'none'}">${name}</div><h2>${msg}</h2><p>れんぞく さいこう ${run} もん</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
-  <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'つぎの 10もん'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
+  <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'もういちど ちょうせん する？'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
   if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
   $('#resKiroku').onclick=()=>showKiroku(P.stage,'result');
   if(back){const nb=$('#nextSet'),ss=$('#sameSet');if(ss)ss.remove();
@@ -1691,9 +1698,9 @@ function showResult(){
       if(false&&nf.length&&!P.cleared.includes(to)){ /* 11/22: クリア＝連続8もん に 一本化。レベルアップ チャレンジは 出さない */ /* 一度 クリアした レベルへは チャレンジ なし。レベルアップ チャレンジ：つぎの レベルの もんだいを 2しゅるい、それぞれ 3回 つづけて */
         const fs=shuffle(nf.slice()).slice(0,2);P.lvup={to,facts:fs,st:{}};save();
         overlay('レベルアップ チャレンジ！',`つぎは Lv.${to+1}「${esc(STAGES[to].name)}」<br>うごきを 見てから こたえて、2しゅるいの もんだいを それぞれ ${LVUP_NEED}かい つづけて できたら レベルアップ！`,'lvintro',()=>start());return}
-      P.stage++;save()}
-    start()};
-  const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];start()};
+      P.stage++;save();start();return} /* つぎの レベルは スタート画面から */
+    ARMED=true;start()};
+  const ss=$('#sameSet');if(ss)ss.onclick=()=>{setRes=[];ARMED=true;start()};
 }
 /* ===== ちず: Lv1〜30 を 3つの せかいに。まだ ない レベルは「じゅんび中」 ===== */
 $('#mapBtn').onclick=()=>{renderMap();$('#invBox').hidden=true;showOnly('map')};

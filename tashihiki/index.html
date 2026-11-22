@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22i';
+const VER='11/22j';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1420,10 +1420,10 @@ function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
   return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw,flash:false,after,reveal:after,how:`${n}はあと□で10`})}
 /* ---- Lv13 のこりは: さいしょから タイル。おすと きえる（5の かたまりは まとめて きえる）。きえた ところを おすと もどる ---- */
 function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
-  /* けした タイルは うすい 色で のこる（もう いちど おすと もどる）。リセットで ぜんぶ もとどおり */
+  /* とる数が 5いじょうの ときだけ、そろった 5の かたまりは まとめて きえる。けした タイルは うすい 色で のこる（もう いちど おすと もどる）。リセットで ぜんぶ もとどおり */
   const draw=()=>{const w=ldScene();const row=rowEl(a);row.classList.add('tapl');w.appendChild(row);
     row.querySelectorAll('.tc').forEach((c,k)=>{if(k<a)c.classList.add('own');c.onclick=()=>{if(phase!=='input'||!c.classList.contains('own'))return;Q.moves=(Q.moves||0)+1;
-      if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const grp=cs.every(t=>t.classList.contains('a'))?cs:[c];grp.forEach(t=>t.classList.replace('a','gone2'))}
+      if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const grp=b>=5&&cs.every(t=>t.classList.contains('a'))?cs:[c];grp.forEach(t=>t.classList.replace('a','gone2'))}
       else c.classList.replace('gone2','a')}});
     const rs=el('button','btn ghost sm tlreset');rs.textContent='リセット';rs.onclick=e=>{e.stopPropagation();if(phase!=='input')return;row.querySelectorAll('.tc.gone2').forEach(t=>t.classList.replace('gone2','a'))};w.appendChild(rs);
     rd('タイルを おすと きえるよ（もう いちど おすと もどる）')};

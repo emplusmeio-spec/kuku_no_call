@@ -347,12 +347,17 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
 .meter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-display);font-weight:900;font-size:14px;margin:2px 0 4px}
-.meter .mdots{display:flex;gap:4px}.meter .mdots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);display:block;transition:background .25s,transform .25s}
-.meter .mdots i.on{background:var(--accent);border-color:var(--accent);transform:scale(1.1)}
+.meter .mdots{display:flex;gap:10px;align-items:center;flex:1 1 260px;min-width:200px}
+.sbar{position:relative;flex:1;height:26px;border-radius:99px;background:color-mix(in srgb,var(--line) 55%,var(--paper));overflow:visible}
+.meter .sbar i{display:block;height:100%;border:none;border-radius:99px;background:var(--ok);transform:none;transition:width .35s}
+.sbar b{position:absolute;top:-5px;bottom:-5px;width:4px;margin-left:-2px;background:var(--ink);border-radius:2px}
+.sbar em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:15px;color:var(--ink)}
+.sbest{font-size:13px;white-space:nowrap}.meter .mdots i.on{}
+
 .meter .mleft{color:var(--ng);font-size:18px}.meter .mleft.hot{animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.12)}}
 .meter .mmode{margin-left:auto;font-size:13px;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--ok) 18%,var(--paper))}
 .meter.nare .mmode{background:color-mix(in srgb,var(--ng) 16%,var(--paper))}
-.meter.reset .mdots{animation:shake .45s}@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.meter.reset .sbar{animation:shake .45s}@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 .meter[hidden],.tbar[hidden]{display:none!important}
 .tbar{height:10px;max-width:640px;margin:0 auto 6px!important;border-radius:99px;background:color-mix(in srgb,var(--line) 60%,var(--paper));overflow:hidden;margin:0 0 6px}
 .tbar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:99px}
@@ -530,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22o';
+const VER='11/22p';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1037,7 +1042,8 @@ function renderMeter(){ensureMeter();const show=MODE==='normal'&&!P.cleared.incl
   const s=streakOf(),d=METER.querySelector('.mdots');
   if(MODE==='screen'){METER.querySelector('.mlab').textContent='たしかめテスト';d.innerHTML='';METER.querySelector('.mleft').textContent='';return}
   METER.querySelector('.mlab').textContent='れんぞく';
-  d.innerHTML=Array.from({length:CLEAR_STREAK},(_,i)=>`<i class="${i<s?'on':''}"></i>`).join('');
+  const best=Math.min(CLEAR_STREAK,(P.best||{})[P.stage]||0);
+  d.innerHTML=`<span class="sbar"><i style="width:${s/CLEAR_STREAK*100}%"></i>${best?`<b style="left:${best/CLEAR_STREAK*100}%"></b>`:''}<em>${s} / ${CLEAR_STREAK}</em></span><span class="sbest">さいこう ${best}</span>`;
   const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
   if(prevStreak>0&&s===0){METER.classList.remove('reset');void METER.offsetWidth;METER.classList.add('reset')}prevStreak=s}
 function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||MODE==='screen';TBAR.hidden=!timed;if(!timed)return;
@@ -1061,7 +1067,7 @@ function renderProg(){
     L.facts.forEach((f,j)=>{if(j)p.appendChild(el('span','gap'));for(let i=0;i<LVUP_NEED;i++){const d=el('i');if(i<(L.st[f]||0))d.className='p';p.appendChild(d)}});
     $('#progress').textContent='レベルアップ チャレンジ';
     $('#stageTag').textContent=`レベルアップ → Lv.${L.to+1}`;$('#stageTag').style.background=`var(${PH[STAGES[L.to].p][2]})`;return}
-  for(let i=0;i<SET;i++){const d=el('i');if(setRes[i])d.className=setRes[i];p.appendChild(d)}
+  /* ふつうの ときは 10もんの まる（みどり・きいろ）は 出さない。連続バーで 見せる */
   $('#progress').textContent=`${Math.min(setRes.length+1,SET)} / ${SET}　◯${setRes.filter(x=>x==='p').length}`;
   $('#stageTag').textContent=`Lv.${cur().lv}　${cur().name}`;
   $('#stageTag').style.background=`var(${PH[cur().p][2]})`;
@@ -1582,7 +1588,7 @@ function judge(){
   const limit=(STAGES[NS].lim||P.limit)*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
   P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
-  { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;Q.ok=okQ}
+  { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);Q.ok=okQ}
   renderMeter();
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}

@@ -346,18 +346,18 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fr.five .fc2:nth-child(-n+5){border:2px solid var(--accent)}
 .tscene.ldscene{flex-direction:column;align-items:center;gap:0}
 .ldscene .lrow{padding:6px 12px}
-.meter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-display);font-weight:900;font-size:14px;margin:2px 0 4px}
-.meter .mdots{display:flex;gap:10px;align-items:center;flex:1 1 260px;min-width:200px}
-.sbar{position:relative;flex:1;height:26px;border-radius:99px;background:color-mix(in srgb,var(--line) 55%,var(--paper));overflow:visible}
-.meter .sbar i{display:block;height:100%;border:none;border-radius:99px;background:var(--ok);transform:none;transition:width .35s}
-.sbar b{position:absolute;top:-5px;bottom:-5px;width:4px;margin-left:-2px;background:var(--ink);border-radius:2px}
-.sbar em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:15px;color:var(--ink)}
-.sbest{font-size:13px;white-space:nowrap}.meter .mdots i.on{}
-
+.meter{display:block;margin:4px 0 6px;font-family:var(--font-display);font-weight:900}
+.meter .mtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;margin-bottom:4px}
+.meter .mnum b{font-size:18px}.meter .mnum small{font-size:12px;color:#b8860b}
 .meter .mleft{color:var(--ng);font-size:18px}.meter .mleft.hot{animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.12)}}
 .meter .mmode{margin-left:auto;font-size:13px;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--ok) 18%,var(--paper))}
 .meter.nare .mmode{background:color-mix(in srgb,var(--ng) 16%,var(--paper))}
-.meter.reset .sbar{animation:shake .45s}@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.msegs{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;width:100%}
+.seg{display:block;height:24px;border-radius:7px;background:color-mix(in srgb,var(--line) 55%,var(--paper));box-shadow:inset 0 0 0 2px transparent;transition:background .25s}
+.seg.best{box-shadow:inset 0 0 0 3px #e6b422;background:color-mix(in srgb,#e6b422 18%,var(--paper))}
+.seg.on{background:var(--ok)}
+.seg.pop{animation:segpop .35s}@keyframes segpop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.seg.lose{animation:seglose .6s both}@keyframes seglose{0%{background:var(--ok);transform:none;opacity:1}30%{background:var(--ng);transform:translateY(-4px) rotate(-6deg)}100%{background:var(--ng);transform:translateY(26px) rotate(18deg) scale(.5);opacity:0}}
 .meter[hidden],.tbar[hidden]{display:none!important}
 .tbar{height:10px;max-width:640px;margin:0 auto 6px!important;border-radius:99px;background:color-mix(in srgb,var(--line) 60%,var(--paper));overflow:hidden;margin:0 0 6px}
 .tbar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:99px}
@@ -535,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22q';
+const VER='11/22r';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1034,18 +1034,25 @@ function pick(){
 const streakOf=()=>(P.streak||{})[P.stage]||0;
 /* ===== 連続メーター・あと○もん・時間バー ===== */
 let METER=null,TBAR=null,prevStreak=0;
-function ensureMeter(){if(METER)return;METER=el('div','meter');METER.innerHTML='<span class="mlab">れんぞく</span><span class="mdots"></span><span class="mleft"></span><span class="mmode"></span>';$('#prog').after(METER);
+function ensureMeter(){if(METER)return;METER=el('div','meter');
+  METER.innerHTML='<div class="mtop"><span class="mlab">れんぞく</span><span class="mnum"></span><span class="mleft"></span><span class="mmode"></span></div><div class="msegs"></div>';
+  const sg=METER.querySelector('.msegs');for(let i=0;i<CLEAR_STREAK;i++)sg.appendChild(el('i','seg'));$('#prog').after(METER);
   TBAR=el('div','tbar');TBAR.innerHTML='<i></i>';$('#stagewrap').before(TBAR)}
-function renderMeter(){ensureMeter();const show=MODE==='normal'; /* クリアずみの レベルでも 出す（見本モードで ためすとき など） */METER.hidden=!(show||MODE==='screen');
+/* 画面はばを 8つに わけた マス。正解で 1つ すすむ。さいこうきろくまでは 金色の わく。まちがえると とった マスが 1つずつ くずれて きえる */
+function renderMeter(){ensureMeter();const show=MODE==='normal';METER.hidden=!(show||MODE==='screen');
   const kind=MODE==='screen'?'nare':cur().kind;METER.className='meter '+(kind==='nare'?'nare':'jk');
   METER.querySelector('.mmode').textContent=kind==='nare'?'⏱ じかん せいげん あり':'🤔 じっくり かんがえて いいよ';
-  const s=streakOf(),d=METER.querySelector('.mdots');
-  if(MODE==='screen'){METER.querySelector('.mlab').textContent='たしかめテスト';d.innerHTML='';METER.querySelector('.mleft').textContent='';return}
+  const segs=[...METER.querySelectorAll('.seg')];
+  if(MODE==='screen'){METER.querySelector('.mlab').textContent='たしかめテスト';METER.querySelector('.mnum').textContent='';METER.querySelector('.mleft').textContent='';segs.forEach(g=>g.className='seg');prevStreak=0;return}
   METER.querySelector('.mlab').textContent='れんぞく';
-  const best=Math.min(CLEAR_STREAK,(P.best||{})[P.stage]||0);
-  d.innerHTML=`<span class="sbar"><i style="width:${s/CLEAR_STREAK*100}%"></i>${best?`<b style="left:${best/CLEAR_STREAK*100}%"></b>`:''}<em>${s} / ${CLEAR_STREAK}</em></span><span class="sbest">さいこう ${best}</span>`;
-  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=P.cleared.includes(P.stage)?'✔ クリアずみ':left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
-  if(prevStreak>0&&s===0){METER.classList.remove('reset');void METER.offsetWidth;METER.classList.add('reset')}prevStreak=s}
+  const s=streakOf(),best=Math.min(CLEAR_STREAK,(P.best||{})[P.stage]||0);
+  METER.querySelector('.mnum').innerHTML=`<b>${s}</b> / ${CLEAR_STREAK}　<small>さいこう ${best}</small>`;
+  const lost=METER._stage===P.stage&&prevStreak>s?prevStreak:0;METER._stage=P.stage;
+  segs.forEach((g,i)=>{g.classList.toggle('best',i<best);
+    if(lost&&i>=s&&i<lost){g.classList.remove('lose');void g.offsetWidth;g.style.animationDelay=((lost-1-i)*110)+'ms';g.classList.add('lose');g.classList.remove('on');setTimeout(()=>g.classList.remove('lose'),700+(lost-1-i)*110)}
+    else{g.classList.toggle('on',i<s);if(i===s-1&&s>prevStreak){g.classList.remove('pop');void g.offsetWidth;g.classList.add('pop')}}});
+  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=P.cleared.includes(P.stage)?'✔ クリアずみ':left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3&&!P.cleared.includes(P.stage));
+  prevStreak=s}
 function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||MODE==='screen';TBAR.hidden=!timed;if(!timed)return;
   const ms=(STAGES[NS].lim||P.limit)*1000*Q.fields.length,b=TBAR.querySelector('i');TBAR.classList.remove('over');b.style.transition='none';b.style.width='100%';void b.offsetWidth;
   b.style.transition=`width ${ms}ms linear`;b.style.width='0%';clearTimeout(TBAR._t);TBAR._t=setTimeout(()=>TBAR.classList.add('over'),ms)}

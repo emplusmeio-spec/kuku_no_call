@@ -488,7 +488,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22a';
+const VER='11/22b';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1203,14 +1203,28 @@ function genPair(k,carry){
   const s=a+b;if(pairOK)PAIR={stage:P.stage,key:k,a,b,s};
   return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:true,...addFrames(a,b),how:`${a}＋${b}（たしてひいて）`})}
 /* ---- Lv7 10と いくつ（くりあがり・くりさがり なし） ---- */
+/* ---- 10と いくつ（Lv13・14と おなじ 見せ方: ①ことばだけ → ②はじめの 数（10の れつ＋ばらの れつ）→ ③たす数・とる数） ---- */
+function teenTL(a,b,plus){const o=a-10,ans=plus?a+b:a-b;
+  const base=()=>{const w=ldScene();w.appendChild(rowEl(10));w.appendChild(rowEl(o));return w};
+  const step=w=>{const cs=ldCells(w.querySelectorAll('.lrow')[1]);
+    if(plus){for(let i=o;i<o+b;i++)cs[i].classList.replace('e','b')}else{for(let i=o-b;i<o;i++)cs[i].classList.replace('a','x')}};
+  const timeline=async alive=>{const sl=ms=>new Promise(r=>setTimeout(r,ms));
+    await sl(LD_T1);if(!alive())return;Q.used=true;const w=base();
+    await sl(LD_T2);if(!alive())return;step(w)};
+  const after=async()=>{let w=F().querySelector('.ldscene');if(!w){w=base();step(w)}
+    const cs=ldCells(w.querySelectorAll('.lrow')[1]);
+    if(!plus){if(!cs.some(c=>c.classList.contains('x')))step(w);await wait(350);cs.forEach(c=>{if(c.classList.contains('x')){c.classList.remove('x');c.classList.add('e')}})}else if(!cs.some(c=>c.classList.contains('b')))step(w);
+    $('#read').textContent=`${a} ${plus?'＋':'−'} ${b} ＝ ${ans}`};
+  return {draw:null,flash:false,timeline,tlBuild:true,after,reveal:after};
+}
 function genTeen(k){let a,b,op;
   if(k==='10たす'){a=10;b=rint(1,9);op='+'}
   else if(k==='じゅうたす'){const o=rint(1,8);a=10+o;b=rint(1,9-o);op='+'}
   else if(k==='じゅうひくばら'){const o=rint(1,9);a=10+o;b=o;op='-'}
   else{const o=rint(2,9);a=10+o;b=rint(1,o-1);op='-'}
   const ans=op==='+'?a+b:a-b,o=op==='+'?'＋':'−';
-  const vis=op==='+'?teenFrames(a,b):teenSubFrames(a,b);
-  return Object.assign(one(ans,`${a} ${o} ${b} ＝ ${ans}`),{title:`${B(a)} ${o} ${B(b)}`,flash:true,...vis,how:`${a}${o}${b}`})}
+  const vis=teenTL(a,b,op==='+');
+  return Object.assign(one(ans,`${a} ${o} ${b} ＝ ${ans}`),{title:`${B(a)} ${o} ${B(b)}`,...vis,how:`${a}${o}${b}`})}
 /* ---- Lv8 あと いくつで 10（わくの あきを 一瞬 見せてから くさむらで かくす） ---- */
 function genFill(n){const h=10-n;
   /* 見せ方は 3だんかい: ①文字だけ → ②タイルと くさむら（ここまでに こたえたら ごうかく）→ ③くさむらが とれる（ヒント。ごうかくには ならない） */
@@ -1286,7 +1300,7 @@ function genCarry(big){const small=rint(11-big,big),[a,b]=Math.random()<.5?[big,
 function genMix(k){let a,b,op;
   if(k==='くりあがり'){const big=rint(6,9),small=rint(11-big,big);[a,b]=Math.random()<.5?[big,small]:[small,big];op='+'}
   else if(k==='くりさがり'){const m=rint(2,9),r=rint(1,m-1);a=10+r;b=m;op='-'}
-  else if(k==='10と いくつ'){return Object.assign(genTeen(choice(['10たす','じゅうたす','じゅうひくばら','じゅうひく'])),{draw:null,flash:false,reveal:null})}
+  else if(k==='10と いくつ'){return Object.assign(genTeen(choice(['10たす','じゅうたす','じゅうひくばら','じゅうひく'])),{draw:null,flash:false,reveal:null,timeline:null,tlBuild:false})}
   else{if(Math.random()<.5){a=rint(1,9);b=rint(1,10-a);op='+'}else{a=rint(2,10);b=rint(1,a-1);op='-'}}
   const ans=op==='+'?a+b:a-b,o=op==='+'?'＋':'−';
   return Object.assign(one(ans,`${a} ${o} ${b} ＝ ${ans}`),{title:`${B(a)} ${o} ${B(b)}`,flash:false,...(op==='+'?addFrames(a,b):a>10?takeFrames(a,b):leftFrames(a,b)),draw:null,reveal:null,how:`${a}${o}${b}`})}

@@ -535,7 +535,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22p';
+const VER='11/22q';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1036,7 +1036,7 @@ const streakOf=()=>(P.streak||{})[P.stage]||0;
 let METER=null,TBAR=null,prevStreak=0;
 function ensureMeter(){if(METER)return;METER=el('div','meter');METER.innerHTML='<span class="mlab">れんぞく</span><span class="mdots"></span><span class="mleft"></span><span class="mmode"></span>';$('#prog').after(METER);
   TBAR=el('div','tbar');TBAR.innerHTML='<i></i>';$('#stagewrap').before(TBAR)}
-function renderMeter(){ensureMeter();const show=MODE==='normal'&&!P.cleared.includes(P.stage);METER.hidden=!(show||MODE==='screen');
+function renderMeter(){ensureMeter();const show=MODE==='normal'; /* クリアずみの レベルでも 出す（見本モードで ためすとき など） */METER.hidden=!(show||MODE==='screen');
   const kind=MODE==='screen'?'nare':cur().kind;METER.className='meter '+(kind==='nare'?'nare':'jk');
   METER.querySelector('.mmode').textContent=kind==='nare'?'⏱ じかん せいげん あり':'🤔 じっくり かんがえて いいよ';
   const s=streakOf(),d=METER.querySelector('.mdots');
@@ -1044,7 +1044,7 @@ function renderMeter(){ensureMeter();const show=MODE==='normal'&&!P.cleared.incl
   METER.querySelector('.mlab').textContent='れんぞく';
   const best=Math.min(CLEAR_STREAK,(P.best||{})[P.stage]||0);
   d.innerHTML=`<span class="sbar"><i style="width:${s/CLEAR_STREAK*100}%"></i>${best?`<b style="left:${best/CLEAR_STREAK*100}%"></b>`:''}<em>${s} / ${CLEAR_STREAK}</em></span><span class="sbest">さいこう ${best}</span>`;
-  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
+  const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=P.cleared.includes(P.stage)?'✔ クリアずみ':left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
   if(prevStreak>0&&s===0){METER.classList.remove('reset');void METER.offsetWidth;METER.classList.add('reset')}prevStreak=s}
 function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||MODE==='screen';TBAR.hidden=!timed;if(!timed)return;
   const ms=(STAGES[NS].lim||P.limit)*1000*Q.fields.length,b=TBAR.querySelector('i');TBAR.classList.remove('over');b.style.transition='none';b.style.width='100%';void b.offsetWidth;

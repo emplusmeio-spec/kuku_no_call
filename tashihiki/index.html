@@ -350,7 +350,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .fscene.mv .ft{pointer-events:auto;cursor:pointer;touch-action:manipulation}.fscene.mv .ft:active{transform:scale(.9)}
 .fr.five{border-color:var(--accent)}
 .tc.g{background:color-mix(in srgb,var(--ok) 42%,var(--paper));box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--ok) 70%,var(--paper));color:#fff;font-weight:900;display:flex!important;align-items:center;justify-content:center;font-size:calc(var(--ts)*.55)}
-.sbag .tc.a{cursor:pointer}
+.sbag .tc.a{cursor:pointer}.sbag .sbush{z-index:3;border-radius:18px;pointer-events:none}.sbag .sbush span{font-size:calc(var(--ts)*1.1)}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
 .tapl .tc.own{cursor:pointer;touch-action:manipulation}.tapl .tc{transition:background .25s,opacity .25s}
 .tscene.lnscene{--ts:clamp(24px,min(6.6vw,5vh),52px);--lg:calc(var(--ts)*.14);position:relative;flex-direction:column;align-items:center;gap:18px;width:100%;padding:10px 0 30px}
@@ -512,7 +512,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22d';
+const VER='11/22e';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1385,13 +1385,18 @@ function genOver5Mv(s){const [a,b]=choice(OVER5[s]);return Object.assign(one(s,`
 function genSmallAddMv(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`})}
 /* ---- Lv10・11 分解: ぜんぶで T。見えている a こ を おすと 左はし／右はし が いれかわる。どちらから 見ると らくかは 子どもが きめる ---- */
 function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);const a=rint(lo,hi),h=T-a;let side='L',done=false;
-  const fin=r=>{r.querySelectorAll('.tc.g').forEach(t=>{t.classList.remove('g');t.classList.add('b')});r.querySelectorAll('.g5w').forEach(g=>{if(![...g.children].some(t=>t.classList.contains('e')))g.classList.add('full')})};
+  /* かくれている ところは 大きな くさむら 1つで おおう（中は オレンジの タイル。こたえで くさむらが どく） */
+  const fin=r=>{const bu=r.querySelector('.sbush');if(bu)bu.classList.add('lift');r.querySelectorAll('.g5w').forEach(g=>{if(![...g.children].some(t=>t.classList.contains('e')))g.classList.add('full')})};
   const mk=()=>{const f=F();f.innerHTML='';const w=el('div','tscene');const r=el('div','trow sbag');
-    for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i,vis=side==='L'?k<a:(k>=T-a&&k<T);const c=el('span','tc '+(k>=T?'e':vis?'a':'g'));if(!vis&&k<T&&!done)c.textContent='？';gw.appendChild(c)}r.appendChild(gw)}
+    for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i,vis=side==='L'?k<a:(k>=T-a&&k<T);gw.appendChild(el('span','tc '+(k>=T?'e':vis?'a':'b hid')))}r.appendChild(gw)}
+    const bu=el('div','bush sbush'+(done?' lift':''));bu.innerHTML='<span>？</span>';r.appendChild(bu);
     r.onclick=e=>{if(phase!=='input'&&!done)return;if(!e.target.classList.contains('a'))return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;mk();if(done)fin(F().querySelector('.sbag'))};
-    w.appendChild(r);f.appendChild(w);return r};
+    w.appendChild(r);f.appendChild(w);
+    const place=()=>{const hs=[...r.querySelectorAll('.tc.hid')];if(!hs.length)return;const rr=r.getBoundingClientRect(),c0=hs[0].getBoundingClientRect(),c1=hs[hs.length-1].getBoundingClientRect(),pad=Math.max(10,c0.width*.4),px=2;
+      bu.style.left=(c0.left-rr.left-px)+'px';bu.style.width=(c1.right-c0.left+px*2)+'px';bu.style.top=(c0.top-rr.top-pad)+'px';bu.style.height=(c0.height+pad*2)+'px';bu.style.right='auto';bu.style.bottom='auto'};
+    place();requestAnimationFrame(place);return r};
   const draw=()=>{mk();rd('見えている タイルを おすと はんたいがわへ')};
-  const after=async()=>{if(!F().querySelector('.sbag'))mk();done=true;F().querySelectorAll('.sbag .tc').forEach(c=>c.textContent='');fin(F().querySelector('.sbag'));rd(`${T} は ${a} と ${h}`)};
+  const after=async()=>{if(!F().querySelector('.sbag'))mk();done=true;fin(F().querySelector('.sbag'));rd(`${T} は ${a} と ${h}`)};
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`ぜんぶで ${B(T)}。くさむらの なかは？`,draw,flash:false,after,reveal:after,how:`${T}は${a}と□`})}
 /* ---- Lv12 10の なかま: n この かたまりを 数直線に ドラッグ（どこに おいても よい）。あいた ところが こたえ ---- */
 function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;

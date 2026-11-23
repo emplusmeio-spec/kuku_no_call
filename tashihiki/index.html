@@ -298,6 +298,10 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .t3f{fill:var(--dot);stroke:var(--paper);stroke-width:1.5}
 .t3l{stroke:var(--paper);stroke-width:1;opacity:.6;fill:none}
 .t3svg.hid{visibility:hidden}
+.hissan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;line-height:1.12}
+.hg{display:grid;grid-template-columns:repeat(4,.8em);justify-items:center}
+.hg i{grid-column:1 / -1;justify-self:stretch;height:.06em;background:currentColor;margin:.06em 0;border-radius:2px}
+.hg .hs{font-size:.7em;align-self:center}
 .pad.pad3{grid-template-rows:repeat(3,1fr)}
 .pad3 .key.zero3{grid-column:4;grid-row:1 / span 3}
 #ans.row3{flex-direction:row;justify-content:center;align-items:center;gap:6px;flex-wrap:nowrap}
@@ -609,7 +613,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23p';
+const VER='11/23q';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1584,7 +1588,12 @@ function gen3(k,sub,mode){const [a,b]=num3(k,sub),r_=sub?a-b:a+b,op=sub?'−':'�
   if(mode==='e')return Object.assign(one(r_,mq),{title:`${B(a)} ${op} ${B(b)}`,pad3:true,flash:false,draw:null,after,reveal:null,how:`${a}${op}${b}（${k}・式だけ）`});
   const q={title:sub?'ちがいは いくつ？':'あわせて いくつ？',pad3:true,row3:true,flash:false,draw,after,reveal:after,mq,
     fields:[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:r_}],how:`${a}${op}${b}（${k}・${mode==='v'?'タイルが きえる':'タイル'}）`};
-  if(mode==='v')q.onField=()=>{if(vals[0]===String(a)&&vals[1]===String(b)){const sv=F().querySelector('.t3svg');if(sv)sv.classList.add('hid')}};
+  if(mode==='v'){ /* タイルが きえた ところに、くらいを そろえて たてに ならべた 形（遠山の いう 筆算の 形）を 大きめの 数字で（11/23 22:35 ボス） */
+    const hissan=ans=>{const w=F().querySelector('.t3scene');if(!w)return;const sv=w.querySelector('.t3svg');if(sv)sv.classList.add('hid');let h=w.querySelector('.hissan');if(!h){h=el('div','hissan');w.appendChild(h)}
+      const row=(sg,n)=>`<span class="hs">${sg}</span>`+String(n).padStart(3,' ').split('').map(c=>`<span>${c===' '?'':c}</span>`).join('');
+      h.innerHTML=`<div class="hg">${row('',a)}${row(op,b)}<i></i>${ans?row('',r_):''}</div>`;h.style.fontSize=Math.max(20,Math.min(84,w.clientHeight/4.1))+'px'};
+    q.onField=()=>{if(vals[0]===String(a)&&vals[1]===String(b))hissan(false)};
+    q.after=q.reveal=async()=>{if(!F().querySelector('.t3scene'))draw();hissan(true);rd(mq)}}
   return q}
 /* ---- Lv3 6〜10は いくつ（量→数字）: 目かくし なし。なれない うちは かぞえて よい。時間で 判定 ---- */
 function genCount(n){return Object.assign(genSee(n),{flash:false,how:`${n}は いくつ`})}

@@ -565,7 +565,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23e';
+const VER='11/23f';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1507,11 +1507,14 @@ function moveFrames(a,b,hint){
     const big=a>=b?'A':'B',sm=big==='A'?'B':'A',nb=Math.max(a,b);
     FS.dots.filter(d=>d.frame===sm).sort((x,y)=>y.idx-x.idx).slice(0,10-nb).forEach((d,i)=>put(d,big,nb+i));upd();rd(`${frameName(big)}を 10に すると…`);
     await sl(1000);if(!ok())return end();initial();rd('');
-    if(a>=5&&b>=5){await sl(1000);if(!ok())return end();
+    {await sl(1000);if(!ok())return end();
+      if(a>=5&&b>=5){const qa=a-5,qb=b-5,keep=qa>=qb?'A':'B',src=keep==='A'?'B':'A',qk=Math.max(qa,qb),qs=Math.min(qa,qb),mvn=Math.min(qs,5-qk);
+        FS.dots.filter(d=>d.frame===src&&d.idx>=5).sort((x,y)=>y.idx-x.idx).slice(0,mvn).forEach((d,i)=>put(d,keep,5+qk+i))}
+      else{ /* 片方が 5みまん（9＋4 など）: 大きい ほうの 下の だんから 小さい ほうの 上の だんへ うつして 5に → 上の 5と 5で 10。のこりは 大きい ほうの 下 */
+        const need=5-Math.min(a,b);FS.dots.filter(d=>d.frame===big&&d.idx>=5).sort((x,y)=>y.idx-x.idx).slice(0,need).forEach((d,i)=>put(d,sm,Math.min(a,b)+i));upd()}
+      await sl(350);if(!ok())return end();
       const p0=fpos('A',0),p1=fpos('B',4),sz=FS.dots[0].el.offsetWidth,ring=el('div','hring');ring.innerHTML='<span>10</span>';
-      ring.style.left=(p0.x-6)+'px';ring.style.top=(p0.y-6)+'px';ring.style.width=(p1.x+sz-p0.x+12)+'px';ring.style.height=(sz+12)+'px';FS.wrap.appendChild(ring);
-      const qa=a-5,qb=b-5,keep=qa>=qb?'A':'B',src=keep==='A'?'B':'A',qk=Math.max(qa,qb),qs=Math.min(qa,qb),mvn=Math.min(qs,5-qk);
-      FS.dots.filter(d=>d.frame===src&&d.idx>=5).sort((x,y)=>y.idx-x.idx).slice(0,mvn).forEach((d,i)=>put(d,keep,5+qk+i));rd('上の 5と 5で 10。下は…');
+      ring.style.left=(p0.x-6)+'px';ring.style.top=(p0.y-6)+'px';ring.style.width=(p1.x+sz-p0.x+12)+'px';ring.style.height=(sz+12)+'px';FS.wrap.appendChild(ring);rd('上の 5と 5で 10。下は…');
       await sl(1000);if(!ok())return end();ring.remove();initial();rd('')}
     snap.forEach(([d,f,i])=>put(d,f,i));upd();rd('タイルを おすと となりへ うごくよ');end()};
   const demo=async()=>{Q.used=true;compact('A');compact('B');rd('こう うごかすと はやいよ');await wait(400);const plan=buildAddPlan(a,b);applyMoves(plan.mv);await wait(700);compact('A');compact('B');upd()};

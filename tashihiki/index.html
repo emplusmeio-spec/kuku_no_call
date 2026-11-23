@@ -580,7 +580,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23i';
+const VER='11/23j';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1910,7 +1910,9 @@ function renderMap(){
     ids.forEach(i=>{const c=el('button','step');const has=i<STAGES.length,done=P.cleared.includes(i),open=has&&(FREE||i<=maxOpen);
       c.innerHTML=`<span style="font-size:.95rem">${i+1}</span><small>${esc(LEVELS[i][1])}</small>`;c.title=`Lv.${i+1} ${LEVELS[i][1]}${has?'':'（じゅんび中）'}`;
       if(done)c.classList.add('done');if(i===P.stage)c.classList.add('cur');if(!open&&!done)c.classList.add('lock');
-      c.onclick=()=>{if(!open&&!done)return;P.stage=i;setRes=[];PAIR=null;delete P.screen;delete P.fix;delete P.fixTotal;delete P.lvup;save();showOnly('play');start()};
+      c.onclick=()=>{if(!open&&!done)return;
+        if(P.screen&&P.screen.mode){overlay(`いまは ${modeName()} モード`,'ノーミスで 1しゅう できたら、<br>ちずから えらべる ように なるよ','fix',()=>showOnly('play'),'もどる');return} /* モード中は ちずから 出られない（11/23 ボス） */
+        P.stage=i;setRes=[];PAIR=null;delete P.fix;delete P.fixTotal;delete P.lvup;save();showOnly('play');start()};
       foot.appendChild(c)});
     sec.appendChild(foot);m.appendChild(sec)});
   $('#licBtn').hidden=!STAGES.every((s,i)=>s.p!==0||P.cleared.includes(i));$('#licBox').hidden=true;

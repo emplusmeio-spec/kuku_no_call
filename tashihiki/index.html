@@ -298,6 +298,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .t3f{fill:var(--dot);stroke:var(--paper);stroke-width:1.5}
 .t3l{stroke:var(--paper);stroke-width:1;opacity:.6;fill:none}
 .t3svg.hid{visibility:hidden}
+.t3scene.t3e{min-height:clamp(170px,30vh,300px)}
 .t3ring{fill:none;stroke:var(--accent,#e8562e);stroke-width:5}
 #ans.row3 .numin.ans.dg{width:clamp(36px,9vw,60px);transition:transform .15s}
 #ans.row3 .numin.ans.dg.active{transform:scale(1.2);z-index:2;position:relative;margin:0 4px}
@@ -619,7 +620,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23r';
+const VER='11/23s';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1598,21 +1599,27 @@ function gen3(k,sub,mode){const [a,b]=num3(k,sub),r_=sub?a-b:a+b,op=sub?'−':'�
   const KN={o:'一の くらい',t:'十の くらい',h:'百の くらい'};
   const draw=()=>{t3scene([a,op,b])};
   const after=async()=>{if(!F().querySelector('.t3scene'))draw();t3ring(null);rd(mq)};
-  if(mode==='e')return {title:`${B(a)} ${op} ${B(b)}`,pad3:true,row3:true,flash:false,draw:null,after,reveal:null,mq,fields:dg,
-    onActive:i=>{if(!Q.used)rd(`${KN['oth'[i]]}から じゅんに 入れよう`.replace(/^(十|百)の くらいから じゅんに 入れよう$/,'$1の くらいは？'))},how:`${a}${op}${b}（${k}・式だけ）`};
-  const q={title:sub?'ちがいは いくつ？':'あわせて いくつ？',pad3:true,row3:true,flash:false,draw,after,reveal:after,mq,
-    fields:[{pre:'',ans:a,ord:1},{pre:op,ans:b,ord:2},...dg],how:`${a}${op}${b}（${k}・${mode==='v'?'タイルが きえる':'タイル'}）`};
-  const guide=i=>{rd(i===0?'うえの タイルは いくつ？':i===1?'したの タイルは いくつ？':i===2?'一の くらいから じゅんに 入れよう':`${KN['oth'[i-2]]}は？`)};
-  if(mode==='t'){q.onActive=i=>{t3ring(i<2?i:'oth'[i-2]);guide(i)};return q}
-  /* 'v': 上・下の 数を 入れたら タイルが きえて、くらいを そろえて たてに ならべた 形（遠山の いう 筆算の 形）を 大きめの 数字で（11/23 22:35 ボス）。こたえは 線の 下にも 出る */
+  /* くらいを そろえて たてに ならべた 形（遠山の いう 筆算の 形）を 大きめの 数字で（11/23 22:35 ボス）。こたえは 線の 下にも 出る。o0=一のくらいの らんの 番号 */
+  const o0=mode==='e'?0:2;
   const hissan=(col,full)=>{const w=F().querySelector('.t3scene');if(!w)return;const sv=w.querySelector('.t3svg');if(sv)sv.classList.add('hid');t3ring(null);let h=w.querySelector('.hissan');if(!h){h=el('div','hissan');w.appendChild(h)}
     const cell=(c,r,t,cl)=>`<span${cl?` class="${cl}"`:''} style="grid-column:${c};grid-row:${r}">${t}</span>`;
     const row=(r,sg,str)=>cell(1,r,sg,'hs')+str.split('').map((ch,x)=>cell(x+2,r,ch===' '?'':ch)).join('');
-    const got=full?D:[vals[4]||' ',vals[3]||' ',vals[2]||' '].join('');
+    const got=full?D:[vals[o0+2]||' ',vals[o0+1]||' ',vals[o0]||' '].join('');
     h.innerHTML=`<div class="hg">${row(1,'',String(a))}${row(2,op,String(b))}<i style="grid-row:3"></i>${row(4,'',got)}${col?`<b class="hcol" style="grid-column:${col};grid-row:1 / span 4"></b>`:''}</div>`;h.style.fontSize=Math.max(18,Math.min(76,w.clientHeight/5.2))+'px'};
+  const colOf=i=>({0:4,1:3,2:2}[i-o0]||0);
+  const guide=i=>{rd(i<o0?(i===0?'うえの タイルは いくつ？':'したの タイルは いくつ？'):i===o0?'一の くらいから じゅんに 入れよう':`${KN['oth'[i-o0]]}は？`)};
+  if(mode==='e'){ /* 式だけ: 「？」の かわりに たての 形を 出す（11/23 23:10 ボス） */
+    const drawE=()=>{const w=ldScene();w.classList.add('t3scene','t3e');hissan(0,false)};
+    return {title:`${B(a)} ${op} ${B(b)}`,pad3:true,row3:true,flash:false,draw:drawE,mq,fields:dg,
+      after:async()=>{if(!F().querySelector('.t3scene'))drawE();hissan(0,true);rd(mq)},reveal:null,
+      onActive:i=>{guide(i);hissan(colOf(i),false)},onField:()=>hissan(colOf(active),false),how:`${a}${op}${b}（${k}・式だけ）`}}
+  const q={title:sub?'ちがいは いくつ？':'あわせて いくつ？',pad3:true,row3:true,flash:false,draw,after,reveal:after,mq,
+    fields:[{pre:'',ans:a,ord:1},{pre:op,ans:b,ord:2},...dg],how:`${a}${op}${b}（${k}・${mode==='v'?'タイルが きえる':'タイル'}）`};
+  if(mode==='t'){q.onActive=i=>{t3ring(i<2?i:'oth'[i-2]);guide(i)};return q}
+  /* 'v': 上・下の 数を 入れたら タイルが きえて、たての 形に */
   const both=()=>vals[0]===String(a)&&vals[1]===String(b);
-  q.onActive=i=>{if(i<2&&!both()){t3ring(i);guide(i);return}guide(Math.max(2,i));hissan({2:4,3:3,4:2}[i]||0,false)};
-  q.onField=()=>{if(both())hissan({2:4,3:3,4:2}[active]||0,false)};
+  q.onActive=i=>{if(i<2&&!both()){t3ring(i);guide(i);return}guide(Math.max(2,i));hissan(colOf(i),false)};
+  q.onField=()=>{if(both())hissan(colOf(active),false)};
   q.after=q.reveal=async()=>{if(!F().querySelector('.t3scene'))draw();hissan(0,true);rd(mq)};
   return q}
 /* ---- Lv3 6〜10は いくつ（量→数字）: 目かくし なし。なれない うちは かぞえて よい。時間で 判定 ---- */

@@ -298,6 +298,12 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .t3f{fill:var(--dot);stroke:var(--paper);stroke-width:1.5}
 .t3l{stroke:var(--paper);stroke-width:1;opacity:.6;fill:none}
 .t3svg.hid{visibility:hidden}
+.t3ring{fill:none;stroke:var(--accent,#e8562e);stroke-width:5}
+#ans.row3 .numin.ans.dg{width:clamp(36px,9vw,60px);transition:transform .15s}
+#ans.row3 .numin.ans.dg.active{transform:scale(1.2);z-index:2;position:relative;margin:0 4px}
+#ans.row3 .answerrow{gap:4px}
+.hg span{min-height:1.12em}
+.hcol{border:.07em solid var(--accent,#e8562e);border-radius:.3em;justify-self:stretch;margin:-.04em .02em;pointer-events:none}
 .hissan{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;line-height:1.12}
 .hg{display:grid;grid-template-columns:repeat(4,.8em);justify-items:center}
 .hg i{grid-column:1 / -1;justify-self:stretch;height:.06em;background:currentColor;margin:.06em 0;border-radius:2px}
@@ -306,7 +312,7 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .pad3 .key.zero3{grid-column:4;grid-row:1 / span 3}
 #ans.row3{flex-direction:row;justify-content:center;align-items:center;gap:6px;flex-wrap:nowrap}
 #ans.row3 .answerrow{flex-wrap:nowrap;margin-top:0;gap:6px}
-#ans.row3 .numin.ans{width:clamp(70px,20vw,120px)}
+#ans.row3 .numin.ans{width:clamp(62px,18vw,120px)}
 .t3.tp{cursor:pointer}
 .t3h{fill:transparent}
 .t3.gone .t3f{fill:#f6b8b8}
@@ -613,7 +619,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23q';
+const VER='11/23r';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1562,8 +1568,13 @@ function t3block(n,tap,y0){const h=n/100|0,t=(n/10|0)%10,o=n%10;let g='';const c
   return [g,h>5?208:100]}
 /* 1まいの 絵に まとめる（上の数と 下の数で タイルの 大きさが かわらない ように。11/23 ボス） */
 function t3scene(parts,tap){const w=ldScene();w.classList.add('t3scene');let y=0,g='';
-  parts.forEach(p=>{if(typeof p==='string'){g+=`<text class="t3op" x="377" y="${y+30}" text-anchor="middle">${p}</text>`;y+=40}else{const [gg,hh]=t3block(p,tap,y);g+=gg;y+=hh+8}});
-  w.innerHTML=`<svg class="t3svg" viewBox="-4 -4 762 ${y}">${g}</svg>`;return w}
+  const rows=[];parts.forEach(p=>{if(typeof p==='string'){g+=`<text class="t3op" x="377" y="${y+30}" text-anchor="middle">${p}</text>`;y+=40}else{const [gg,hh]=t3block(p,tap,y);rows.push([y,hh]);g+=gg;y+=hh+8}});
+  w.innerHTML=`<svg class="t3svg" viewBox="-12 -12 778 ${y+16}">${g}<rect class="t3ring" rx="16" visibility="hidden"/></svg>`;w._rows=rows;return w}
+/* いま こたえて いる ところを まるで かこむ。what: 0=上の数 1=下の数 'o'=一のくらい 't'=十のくらい 'h'=百のくらい（上下 まとめて） null=けす（11/23 22:51 ボス） */
+function t3ring(what){const w=F().querySelector('.t3scene');if(!w||!w._rows)return;const r=w.querySelector('.t3ring');if(!r)return;if(what==null){r.setAttribute('visibility','hidden');return}
+  const R=w._rows,last=R[R.length-1];let x=-8,wd=766,y=R[0][0]-8,h=last[0]+last[1]-R[0][0]+16;
+  if(what===0||what===1){const q=R[what];if(!q)return;y=q[0]-8;h=q[1]+16}else{[x,wd]=what==='h'?[-8,540]:what==='t'?[538,160]:[699,60]}
+  r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',wd);r.setAttribute('height',h);r.setAttribute('visibility','visible')}
 const d29=()=>rint(2,9),d19=()=>rint(1,9);
 /* タイル → 数字（かく）。せいかいで よみ（こえ と ひらがな）。key: ふつう（1も 0も なし）／1xx（百が1）／x1x（十が1）／11x ／x0x ／xx0 ／x00 */
 function genRead3(k){let h=d29(),t=d29(),o=d29();
@@ -1582,18 +1593,27 @@ function num3(k,sub){
    'v'=おなじ。上の数・下の数を 入れたら タイルが きえて、それから こたえ ／ 'e'=タイル なし。数字（式）だけ
    ひきざんは くらべる ならべかた（上に ひかれる数、下に ひく数） */
 function gen3(k,sub,mode){const [a,b]=num3(k,sub),r_=sub?a-b:a+b,op=sub?'−':'＋',mq=`${a} ${op} ${b} ＝ ${r_}`;
+  /* こたえは くらいごとの らん。水道方式の 筆算に あわせて 一のくらい → 十 → 百 の じゅんに 入れる（11/23 22:51 ボス）。タイルの 数（上・下）は いままで どおり 上の くらいから */
+  const D=String(r_).padStart(3,'0'),dg=[{pre:'',ans:+D[2],cls:'dg',ord:5},{pre:'',ans:+D[1],cls:'dg',ord:4},{pre:'＝',ans:+D[0],cls:'dg',ord:3}];
+  const KN={o:'一の くらい',t:'十の くらい',h:'百の くらい'};
   const draw=()=>{t3scene([a,op,b])};
-  const show=()=>{if(!F().querySelector('.t3scene'))draw();const sv=F().querySelector('.t3svg');if(sv)sv.classList.remove('hid')};
-  const after=async()=>{show();rd(mq)};
-  if(mode==='e')return Object.assign(one(r_,mq),{title:`${B(a)} ${op} ${B(b)}`,pad3:true,flash:false,draw:null,after,reveal:null,how:`${a}${op}${b}（${k}・式だけ）`});
+  const after=async()=>{if(!F().querySelector('.t3scene'))draw();t3ring(null);rd(mq)};
+  if(mode==='e')return {title:`${B(a)} ${op} ${B(b)}`,pad3:true,row3:true,flash:false,draw:null,after,reveal:null,mq,fields:dg,
+    onActive:i=>{if(!Q.used)rd(`${KN['oth'[i]]}から じゅんに 入れよう`.replace(/^(十|百)の くらいから じゅんに 入れよう$/,'$1の くらいは？'))},how:`${a}${op}${b}（${k}・式だけ）`};
   const q={title:sub?'ちがいは いくつ？':'あわせて いくつ？',pad3:true,row3:true,flash:false,draw,after,reveal:after,mq,
-    fields:[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:r_}],how:`${a}${op}${b}（${k}・${mode==='v'?'タイルが きえる':'タイル'}）`};
-  if(mode==='v'){ /* タイルが きえた ところに、くらいを そろえて たてに ならべた 形（遠山の いう 筆算の 形）を 大きめの 数字で（11/23 22:35 ボス） */
-    const hissan=ans=>{const w=F().querySelector('.t3scene');if(!w)return;const sv=w.querySelector('.t3svg');if(sv)sv.classList.add('hid');let h=w.querySelector('.hissan');if(!h){h=el('div','hissan');w.appendChild(h)}
-      const row=(sg,n)=>`<span class="hs">${sg}</span>`+String(n).padStart(3,' ').split('').map(c=>`<span>${c===' '?'':c}</span>`).join('');
-      h.innerHTML=`<div class="hg">${row('',a)}${row(op,b)}<i></i>${ans?row('',r_):''}</div>`;h.style.fontSize=Math.max(20,Math.min(84,w.clientHeight/4.1))+'px'};
-    q.onField=()=>{if(vals[0]===String(a)&&vals[1]===String(b))hissan(false)};
-    q.after=q.reveal=async()=>{if(!F().querySelector('.t3scene'))draw();hissan(true);rd(mq)}}
+    fields:[{pre:'',ans:a,ord:1},{pre:op,ans:b,ord:2},...dg],how:`${a}${op}${b}（${k}・${mode==='v'?'タイルが きえる':'タイル'}）`};
+  const guide=i=>{rd(i===0?'うえの タイルは いくつ？':i===1?'したの タイルは いくつ？':i===2?'一の くらいから じゅんに 入れよう':`${KN['oth'[i-2]]}は？`)};
+  if(mode==='t'){q.onActive=i=>{t3ring(i<2?i:'oth'[i-2]);guide(i)};return q}
+  /* 'v': 上・下の 数を 入れたら タイルが きえて、くらいを そろえて たてに ならべた 形（遠山の いう 筆算の 形）を 大きめの 数字で（11/23 22:35 ボス）。こたえは 線の 下にも 出る */
+  const hissan=(col,full)=>{const w=F().querySelector('.t3scene');if(!w)return;const sv=w.querySelector('.t3svg');if(sv)sv.classList.add('hid');t3ring(null);let h=w.querySelector('.hissan');if(!h){h=el('div','hissan');w.appendChild(h)}
+    const cell=(c,r,t,cl)=>`<span${cl?` class="${cl}"`:''} style="grid-column:${c};grid-row:${r}">${t}</span>`;
+    const row=(r,sg,str)=>cell(1,r,sg,'hs')+str.split('').map((ch,x)=>cell(x+2,r,ch===' '?'':ch)).join('');
+    const got=full?D:[vals[4]||' ',vals[3]||' ',vals[2]||' '].join('');
+    h.innerHTML=`<div class="hg">${row(1,'',String(a))}${row(2,op,String(b))}<i style="grid-row:3"></i>${row(4,'',got)}${col?`<b class="hcol" style="grid-column:${col};grid-row:1 / span 4"></b>`:''}</div>`;h.style.fontSize=Math.max(18,Math.min(76,w.clientHeight/5.2))+'px'};
+  const both=()=>vals[0]===String(a)&&vals[1]===String(b);
+  q.onActive=i=>{if(i<2&&!both()){t3ring(i);guide(i);return}guide(Math.max(2,i));hissan({2:4,3:3,4:2}[i]||0,false)};
+  q.onField=()=>{if(both())hissan({2:4,3:3,4:2}[active]||0,false)};
+  q.after=q.reveal=async()=>{if(!F().querySelector('.t3scene'))draw();hissan(0,true);rd(mq)};
   return q}
 /* ---- Lv3 6〜10は いくつ（量→数字）: 目かくし なし。なれない うちは かぞえて よい。時間で 判定 ---- */
 function genCount(n){return Object.assign(genSee(n),{flash:false,how:`${n}は いくつ`})}
@@ -1778,11 +1798,11 @@ function renderFields(){
   const w=$('#ans');w.innerHTML='';w.classList.toggle('row3',!!Q.row3);
   Q.fields.forEach((f,i)=>{const r=el('div','answerrow');
     if(f.pre){const l=el('span','lb');l.innerHTML=esc(f.pre).replace(/(\d+)/g,'<b>$1</b>');r.appendChild(l)}
-    const b=el('div','numin ans');b.id='in'+i;b.onclick=()=>setActive(i);r.appendChild(b);
+    const b=el('div','numin ans'+(f.cls?' '+f.cls:''));b.id='in'+i;b.onclick=()=>setActive(i);r.appendChild(b);if(f.ord)r.style.order=f.ord;
     if(f.post){const l=el('span','lb');l.innerHTML=esc(f.post).replace(/(\d+)/g,'<b>$1</b>');r.appendChild(l)}
     w.appendChild(r)});
 }
-function setActive(i){if(phase!=='input')return;active=i;Q.fields.forEach((_,j)=>$('#in'+j).classList.toggle('active',j===i))}
+function setActive(i){if(phase!=='input')return;active=i;Q.fields.forEach((_,j)=>$('#in'+j).classList.toggle('active',j===i));if(Q.onActive)Q.onActive(i)}
 function showVals(){Q.fields.forEach((_,j)=>$('#in'+j).textContent=vals[j])}
 function typeKey(k){
   if(phase!=='input'||active==null)return;$('#err').textContent='';

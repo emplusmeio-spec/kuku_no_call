@@ -291,10 +291,10 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .ryo .sign{position:absolute;left:0;top:0;font-family:var(--font-display);font-weight:900;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:transform var(--dur),opacity var(--dur)}
 .ryo .note{position:absolute;right:8px;top:6px;font-family:var(--font-display);font-weight:900;color:var(--ng);font-size:clamp(16px,3vw,22px)}
 /* ===== 部品ここまで（CSS） ===== */
-.t3scene{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;position:relative}
-.t3row{width:100%;flex:1 1 0;min-height:0;display:flex;justify-content:center}
-.t3svg{width:100%;height:100%;max-width:720px}
-.t3op{font-size:1.3rem;font-weight:800;line-height:1}
+.t3scene{display:block;width:100%;padding:10px 8px;position:relative;text-align:center}
+.field:has(.t3scene){width:min(96vw,900px)}
+.t3svg{display:block;width:100%;height:auto;max-height:50vh}
+.t3op{font-size:34px;font-weight:800;fill:currentColor}
 .t3f{fill:var(--dot);stroke:var(--paper);stroke-width:1.5}
 .t3l{stroke:var(--paper);stroke-width:1;opacity:.6;fill:none}
 .t3.tp{cursor:pointer}
@@ -598,7 +598,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23m';
+const VER='11/23n';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1125,7 +1125,9 @@ const streakOf=()=>(P.streak||{})[P.stage]||0;
 let FIT_RAF=0;
 function fitScreen(){cancelAnimationFrame(FIT_RAF);FIT_RAF=requestAnimationFrame(()=>{const pad=$('#pad'),f=F();if(!pad||$('#q').hidden)return;
   pad.style.height='';f.style.minHeight='';document.body.classList.remove('tight');pad.querySelectorAll('.key').forEach(k=>k.style.fontSize='');
-  const H=window.innerHeight,de=document.documentElement;let over=de.scrollHeight-H;
+  /* 3けたの タイルは 大きく 見せる。上の 3行（ちず・れんぞく・じっくり）は 見きれて よい（スクロールで 出せる）（11/23 ボス） */
+  const big=!!f.querySelector('.t3scene'),top3=big?Math.max(0,$('#qtitle').getBoundingClientRect().top+window.scrollY-4):0;
+  const H=window.innerHeight+top3,de=document.documentElement;let over=de.scrollHeight-H;
   if(over>0){document.body.classList.add('tight');over=de.scrollHeight-H}                       /* ①こたえの 欄を ちいさく */
   if(over>0){const fh=f.getBoundingClientRect().height;f.style.minHeight=Math.max(80,fh-over)+'px';over=de.scrollHeight-H}  /* ②わくの 下の すきま */
   if(over>0){const ph=pad.getBoundingClientRect().height;pad.style.height=Math.max(124,ph-over)+'px'}  /* ③テンキーを みじかく */
@@ -1537,12 +1539,15 @@ let CURSEED=null,LASTID=null;
 const YH=['','ひゃく','にひゃく','さんびゃく','よんひゃく','ごひゃく','ろっぴゃく','ななひゃく','はっぴゃく','きゅうひゃく'];
 const YT=['','じゅう','にじゅう','さんじゅう','よんじゅう','ごじゅう','ろくじゅう','ななじゅう','はちじゅう','きゅうじゅう'];
 const yomi3=n=>n===0?'ゼロ':[YH[n/100|0],YT[(n/10|0)%10],n%10?YOMI[n%10]:''].filter(Boolean).join(' ');
-function t3svg(n,tap){const h=n/100|0,t=(n/10|0)%10,o=n%10;let g='';const c=tap?' tp':'';
-  for(let i=0;i<h;i++){const x=(i%5)*108,y=(i/5|0)*108;g+=`<g class="t3${c}"><rect class="t3f" x="${x}" y="${y}" width="100" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x+k*10} ${y}v100M${x} ${y+k*10}h100`).join('')}"/></g>`}
-  for(let j=0;j<t;j++){const x=572+j*16+(j>=5?10:0);g+=`<g class="t3${c}"><rect class="t3h" x="${x-3}" y="0" width="16" height="100"/><rect class="t3f" x="${x}" y="0" width="10" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x} ${k*10}h10`).join('')}"/></g>`}
-  for(let k=0;k<o;k++){const x=760+(k/5|0)*16,y=(k%5)*16;g+=`<g class="t3${c}"><rect class="t3h" x="${x-3}" y="${y-3}" width="16" height="16"/><rect class="t3f" x="${x}" y="${y}" width="10" height="10"/></g>`}
-  return `<svg class="t3svg" viewBox="-4 -4 794 ${h>5?216:108}" preserveAspectRatio="xMidYMid meet">${g}</svg>`}
-function t3scene(parts,tap){const w=ldScene();w.classList.add('t3scene');parts.forEach(p=>{const d=el('div',typeof p==='string'?'t3op':'t3row');if(typeof p==='string')d.textContent=p;else d.innerHTML=t3svg(p,tap);w.appendChild(d)});return w}
+function t3block(n,tap,y0){const h=n/100|0,t=(n/10|0)%10,o=n%10;let g='';const c=tap?' tp':'';
+  for(let i=0;i<h;i++){const x=(i%5)*106,y=y0+(i/5|0)*108;g+=`<g class="t3${c}"><rect class="t3f" x="${x}" y="${y}" width="100" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x+k*10} ${y}v100M${x} ${y+k*10}h100`).join('')}"/></g>`}
+  for(let j=0;j<t;j++){const x=548+j*15+(j>=5?8:0);g+=`<g class="t3${c}"><rect class="t3h" x="${x-2.5}" y="${y0}" width="15" height="100"/><rect class="t3f" x="${x}" y="${y0}" width="10" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x} ${y0+k*10}h10`).join('')}"/></g>`}
+  for(let k=0;k<o;k++){const x=708+(k/5|0)*15,y=y0+(k%5)*15;g+=`<g class="t3${c}"><rect class="t3h" x="${x-2.5}" y="${y-2.5}" width="15" height="15"/><rect class="t3f" x="${x}" y="${y}" width="10" height="10"/></g>`}
+  return [g,h>5?208:100]}
+/* 1まいの 絵に まとめる（上の数と 下の数で タイルの 大きさが かわらない ように。11/23 ボス） */
+function t3scene(parts,tap){const w=ldScene();w.classList.add('t3scene');let y=0,g='';
+  parts.forEach(p=>{if(typeof p==='string'){g+=`<text class="t3op" x="366" y="${y+30}" text-anchor="middle">${p}</text>`;y+=40}else{const [gg,hh]=t3block(p,tap,y);g+=gg;y+=hh+8}});
+  w.innerHTML=`<svg class="t3svg" viewBox="-4 -4 741 ${y}">${g}</svg>`;return w}
 const d29=()=>rint(2,9),d19=()=>rint(1,9);
 /* タイル → 数字（かく）。せいかいで よみ（こえ と ひらがな）。key: ふつう（1も 0も なし）／1xx（百が1）／x1x（十が1）／11x ／x0x ／xx0 ／x00 */
 function genRead3(k){let h=d29(),t=d29(),o=d29();

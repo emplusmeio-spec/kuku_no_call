@@ -580,7 +580,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23j';
+const VER='11/23k';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1183,6 +1183,9 @@ function overlay(title,sub,kind,then,btn){
   o.innerHTML=`${kind==='reach'||kind==='lvup'?['12%','82%','30%','64%'].map((l,i)=>`<span class="spark" style="left:${l};top:${60+i*6}%;animation-delay:${i*.3}s">${kind==='reach'?'⚡':'⭐'}</span>`).join(''):''}<div class="ovbox"><div class="ovt">${title}</div><div class="ovs">${sub}</div><button class="btn" style="font-size:1.2rem">${btn||'はじめる'}</button></div>`;
   document.body.appendChild(o);o.querySelector('.btn').onclick=()=>{o.remove();if(then)then()};
 }
+/* Lv1〜4 の よみあげ（11/23 ボス「数字・タイル・読みが一致するように音声」）: せいかい した ときに 数を よむ。0 は ゼロ（ボス）。よむよむ と おなじ 端末の よみあげ */
+const YOMI=['ゼロ','いち','に','さん','よん','ご','ろく','なな','はち','きゅう','じゅう'];
+function sayQ(){try{if(NS>3||!Q||Q.say==null||!YOMI[Q.say]||!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(YOMI[Q.say]);u.lang='ja-JP';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
 function showMark(green,sub,then){
   const o=el('div','mark '+(green?'g':'y'));o.innerHTML=`<div class="mk"></div><div class="mq">${Q.mq}</div>${sub?`<div class="ms">${sub}</div>`:''}`;
   document.body.appendChild(o);setTimeout(()=>{o.remove();then()},sub?MARK_MS:MARK_MS/2); /* ふつうの こたえあわせは 半分の 時間で つぎへ */
@@ -1462,7 +1465,7 @@ function genWhere(n){const h=n-5;
   const after=async()=>{await fensure(draw,'A');FS.dots.forEach(d=>d.el.remove());FS.dots=[];fdots('A',n,h>0?[...cells(5,'a'),...cells(h,'b')]:cells(n,'a'),0);
     rd(h>0?`${n} は 5 と ${h}`:`${n}`)};
   return {title:`${B(n)} は どこまで？`,tap:true,flash:false,draw,after,reveal:after,
-    fields:[{pre:'わくを おしてね',ans:n,post:'こめ'}],mq:h>0?`${n} は 5 と ${h}`:`${n}`,how:`${n}はどこまで`}}
+    say:n,fields:[{pre:'わくを おしてね',ans:n,post:'こめ'}],mq:h>0?`${n} は 5 と ${h}`:`${n}`,how:`${n}はどこまで`}}
 /* ---- 5と わける の 階段 ③「数字だけで わける」: タイルは 出さない。こたえた あとに 5の かたまりで こたえあわせ ---- */
 function genSplitNum(n){const h=n-5;
   const after=async()=>{uncover();const r=hrow(10,5,h,false);reveal();rd(`${n} は 5 と ${h}`)};
@@ -1473,7 +1476,7 @@ function genSplitNum(n){const h=n-5;
 function genSee(n){const h=n-5;
   const draw=()=>{fscene([{id:'A',n,cls:'a'}]);if(n===10)FS.frames.A.classList.add('full')};
   const after=async()=>{await fensure(draw,'A');if(h>0)fset('A',5,n,'b');rd(h>0?`${n} は 5 と ${h}`:`${n}`)};
-  return Object.assign(one(n,h>0?`${n} は 5 と ${h}`:`${n}`),{title:'いくつ？',flash:true,draw,after,reveal:after,how:`${n}をみる`})}
+  return Object.assign(one(n,h>0?`${n} は 5 と ${h}`:`${n}`),{title:'いくつ？',say:n,flash:true,draw,after,reveal:after,how:`${n}をみる`})}
 /* Lv1 0〜5 まとめ: みる・どこまで・たす・かくす を まぜて */
 function gen05(k){
   if(k==='みる')return genSee(Math.random()<.8?rint(3,4):5); /* 1・2は 出さない。3・4 中心 */
@@ -1814,9 +1817,9 @@ function judge(){
     showMark(success,MODE==='fix'?'うごきで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));return}
   const limit=limOf()*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
   histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:(P.screen&&P.screen.mode)||'screen'}:{})});
-  if(MODE==='screen'){const ok=P.screen.mode?rejects===0:pass;P.days[today()]=(P.days[today()]||0)+1;save();showMark(ok,'',()=>finishScreen(ok));return}
+  if(MODE==='screen'){const ok=P.screen.mode?rejects===0:pass;if(ok)sayQ();P.days[today()]=(P.days[today()]||0)+1;save();showMark(ok,'',()=>finishScreen(ok));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
-  if(Q.ok)renderMeter();
+  if(Q.ok){renderMeter();sayQ()}
   if(MODE==='normal'&&!Q.ok){P.days[today()]=(P.days[today()]||0)+1;save();failOut(true);return}
   if(pass){if(isReview)delete P.weak[NS+':'+N];else{setSp(N,sp(N)+1);if(sp(N)>=need())P.seen[P.stage+'-'+N]=true}}
   else{if(isReview)P.weak[NS+':'+N]=true;else setSp(N,0)}

@@ -13,6 +13,12 @@
                     && request.resource.data.root == resource.data.root;
       allow delete: if teacher();
     }
+    // 解答ログ（1日 1ドキュメント。1もんごとの 時間・正誤を ぜんぶ のこす）。書けるのは 鍵（URL）を もつ その子だけ、読めるのは 先生だけ（11/23 追加）
+    match /tashihiki_users/{token}/log/{day} {
+      allow read: if teacher();
+      allow create, update: if exists(/databases/$(database)/documents/tashihiki_users/$(token))
+                    && request.resource.data.a is list && request.resource.data.a.size() <= 5000;
+    }
     // みんなの様子（生徒も読める表示用）。ドキュメントIDは公開の招待コード。鍵（ひきつぎURL）は入らない
     match /tashihiki_board/{code} {
       allow read: if true;

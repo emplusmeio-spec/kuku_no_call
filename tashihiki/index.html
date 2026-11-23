@@ -555,7 +555,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/22z10';
+const VER='11/23a';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -569,6 +569,12 @@ function cloudSave(){
   if(!db||!TOKEN)return;clearTimeout(syncTimer);
   syncTimer=setTimeout(()=>{db.collection(COL.users).doc(TOKEN).update({progress:P,stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});boardSave()},1500);
 }
+/* 解答ログ: 1日 1ドキュメントに 追記（arrayUnion）。2びょう まとめて おくる。とじる ときにも おくる */
+let LOGQ=[],logTimer=null;
+function logAnswer(e){if(!db||!TOKEN)return;const o={v:VER};for(const [k,v] of Object.entries(e))if(v!==undefined)o[k]=v;LOGQ.push(o);clearTimeout(logTimer);logTimer=setTimeout(flushLog,2000)}
+function flushLog(){if(!db||!TOKEN||!LOGQ.length)return;const items=LOGQ.splice(0);
+  db.collection(COL.users).doc(TOKEN).collection('log').doc(today()).set({a:firebase.firestore.FieldValue.arrayUnion(...items),nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(()=>{LOGQ.unshift(...items)})}
+addEventListener('pagehide',flushLog);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushLog()});
 function boardSave(){
   if(!db||!ME||!ME.code)return;
   db.collection(COL.board).doc(ME.code).set({nick:ME.nick,root:ME.root||'',stage:Math.min(P.stage,STAGES.length-1),cl:P.cleared.slice(0,STAGES.length),seen:seenCount(),updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
@@ -698,6 +704,23 @@ $('#matesBtn').onclick=()=>{showOnly('mates');renderMates()};
 $('#matesBack').onclick=()=>{renderMap();showOnly('map')};
 $('#matesReload').onclick=renderMates;
 /* 先生画面（?teacher） */
+/* 先生: 解答ログの 集計（レベルごと）と CSV */
+async function logReport(users){const out=$('#logOut');out.innerHTML='<p>読みこみ中…</p>';const rows=[];
+  try{for(const u of users){const ds=await db.collection(COL.users).doc(u.id).collection('log').get();ds.forEach(d=>(d.data().a||[]).forEach(e=>rows.push({...e,nick:u.nick,uid:u.id,day:d.id})))}}
+  catch(e){out.innerHTML=`<p class="err">ログを 読めません（Firestore の ルールに log を 追加したか たしかめてください）: ${esc(e.code||e.message)}</p>`;return}
+  if(!rows.length){out.innerHTML='<p>まだ ログが ありません。</p>';return}
+  rows.sort((a,b)=>(a.at||0)-(b.at||0));
+  const med=a=>{if(!a.length)return 0;const b=a.slice().sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2};
+  const by={};rows.forEach(r=>{const k=r.lv;(by[k]=by[k]||{ans:[],clear:[],kids:new Set()});if(r.ev==='clear')by[k].clear.push(r);else{by[k].ans.push(r);by[k].kids.add(r.uid)}});
+  /* クリアまでの 解答数（その子が その レベルで はじめて クリア するまで） */
+  const toClear=lv=>{const res=[];const kids=new Set(rows.filter(r=>r.lv==lv).map(r=>r.uid));kids.forEach(id=>{let n=0;for(const r of rows){if(r.uid!==id||r.lv!=lv)continue;if(r.ev==='clear'){res.push(n);return}n++}});return res};
+  const lvs=Object.keys(by).map(Number).sort((a,b)=>a-b);
+  out.innerHTML=`<p>${rows.length} 件 ／ ${new Set(rows.map(r=>r.uid)).size} 人</p><div class="tbl"><table class="tt"><tr><th>Lv</th><th>なまえ</th><th>時間</th><th>人</th><th>解答</th><th>時間 中央</th><th>時間内 ○</th><th>しっぱい</th><th>クリア 人</th><th>クリアまで 中央</th></tr>${lvs.map(lv=>{const b=by[lv],a=b.ans,ts=a.map(r=>r.t/10),ok=a.filter(r=>r.pass).length,ng=a.filter(r=>(r.rej||0)>0||(r.k==='nare'&&!r.pass)).length,tc=toClear(lv),st=STAGES[lv-1];
+    return `<tr><td>${lv}</td><td>${esc(st?st.name:'')}</td><td>${a[0]&&a[0].k==='nare'?'あり':'なし'}</td><td>${b.kids.size}</td><td>${a.length}</td><td>${med(ts).toFixed(1)}秒</td><td>${a.length?Math.round(ok/a.length*100):0}%</td><td>${a.length?Math.round(ng/a.length*100):0}%</td><td>${new Set(b.clear.map(r=>r.uid)).size}</td><td>${tc.length?med(tc)+'もん':'-'}</td></tr>`}).join('')}</table></div>`;
+  const cb=$('#logCsv');cb.hidden=false;cb.onclick=()=>{const head=['日時','なまえ','版','Lv','もんだい','しゅるい','時間(秒)','時間内○','まちがえキー','たしかめ','うごかした','直前の連続','時間せいげん(秒)','モード','できごと'];
+    const q=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+    const lines=[head.join(',')].concat(rows.map(r=>[new Date(r.at||0).toLocaleString('ja-JP'),r.nick,r.v,r.lv,r.n,r.how,r.t!=null?(r.t/10).toFixed(1):'',r.pass==null?'':r.pass?1:0,r.rej,r.used==null?'':r.used?1:0,r.mv,r.sk,r.lim,r.b||'',r.ev||''].map(q).join(',')));
+    const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`tashihiki-log-${today()}.csv`;a.click()}}
 async function teacherScreen(){
   showOnly('teacher');const T=$('#teacherBody');
   if(!db){T.innerHTML='Firebase に つながっていません。自分のサイトに置いた版で ?teacher を開いてください。';return}
@@ -734,9 +757,11 @@ async function teacherScreen(){
     const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
     if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">${umeta(u)}</span></li>`).join('')}</ul></div>`;
     html+=`<div class="rep"><h3>一覧（最終利用順）</h3><div class="tbl"><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>できた</th><th>最終</th><th>この子の URL</th><th>飛び級</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/${SEENTOTAL}</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-u="${esc(urlOf(u))}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族以外に送らない）\n${urlOf(u)}`)}">LINE</a></td><td><select class="jSel" data-t="${esc(u.id)}" style="font-size:.85rem">${STAGES.map((st,i)=>`<option value="${i}" ${i===(u.stage||0)?'selected':''}>Lv.${i+1} ${esc(st.name)}</option>`).join('')}</select> <button class="btn sm jBtn" data-t="${esc(u.id)}">移動</button></td></tr>`).join('')}</table></div><p class="mt" style="color:var(--muted);font-size:.8rem">飛び級: 選んだステージへ移し、それより前をクリア扱いにします。子どもの端末には、次にアプリを開いたとき（または次の10問の始め）に反映されます。<br>この子の URL はその子の鍵です（どの端末でも これを ひらけば つづき）。保護者本人にだけ送ってください。</p></div></div>`;
+    html+=`<div class="rep" id="logPanel"><h3>解答ログ（どこが 重い・軽い）</h3><p class="mt" style="color:var(--muted);font-size:.8rem">1もんごとの きろく（11/23 から）。レベル番号は 記録した ときの 版の もの。</p><div class="pbar"><button class="btn sm" id="logLoad">集計する</button><button class="btn ghost sm" id="logCsv" hidden>CSV ダウンロード</button></div><div id="logOut"></div></div>`;
     html+=`<div class="rep" id="dtPanel"></div>`;
     T.innerHTML=html;
     if(window.DARTS)DARTS.teacherPanel($('#dtPanel'),db).catch(e=>$('#dtPanel').innerHTML=`<p class="err">ダーツを よみこめません: ${esc(e.message||e)}</p>`);
+    $('#logLoad').onclick=()=>logReport(users);
     $('#tReload').onclick=dashboard;$('#tOut').onclick=()=>fbAuth.signOut();
     document.querySelectorAll('.jBtn').forEach(b=>b.onclick=async()=>{const sel=document.querySelector(`.jSel[data-t="${b.dataset.t}"]`),to=+sel.value;b.disabled=true;
       try{await db.collection(COL.users).doc(b.dataset.t).update({jump:{to,at:Date.now()},stage:to});b.textContent='移動しました'}catch(e){b.textContent='失敗';b.disabled=false}});
@@ -1647,7 +1672,7 @@ function failOut(judged){
   if(!judged){ /* まちがった キーを おした とき */
     phase='shown';$('#pad').classList.add('locked');barStop();
     const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
-    P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+    histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0});
     P.streak=P.streak||{};P.streak[P.stage]=0;Q.ok=false;if(!isReview)setSp(N,0);P.days[today()]=(P.days[today()]||0)+1;save()}
   Q.fields.forEach((_,j)=>{vals[j]=String(expOf(j));const e=$('#in'+j);e.classList.remove('active','ok');e.classList.add('ansshow')});showVals();
   if(Q.tap&&Q.reveal){Promise.resolve().then(()=>Q.reveal()).catch(()=>{})}
@@ -1666,6 +1691,9 @@ function failOut(judged){
   $('#padwrap').after(fb);fitScreen();
   if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
   const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();b.onclick=()=>{fb.remove();setRes=[];ARMED=true;start()}},lost?700+lost*110:300)}
+/* 1もんごとの きろく。手もとは 300もんまで、クラウドの ログ（tashihiki_users/{鍵}/log/{日}）には ぜんぶ のこす（11/23 ボス） */
+function histPush(e){P.hist.push(e);if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  const s=STAGES[NS]||{};logAnswer({...e,st:NS,k:s.kind||'',lim:s.kind==='nare'?(s.lim||P.limit):0,sk:streakOf()})}
 function judge(){
   if(phase!=='input')return;
   const empty=Q.fields.map((_,j)=>j).filter(j=>vals[j]==='');
@@ -1675,12 +1703,12 @@ function judge(){
   Q.fields.forEach((_,j)=>{$('#in'+j).classList.remove('active');$('#in'+j).classList.add('ok')});
   if(MODE==='fix'||MODE==='lvup'){
     const success=MODE==='fix'||rejects===0;
-    P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:true,att:attempts,rej:rejects,r:false,at:Date.now(),b:MODE});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+    histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:true,att:attempts,rej:rejects,r:false,at:Date.now(),b:MODE});
     P.days[today()]=(P.days[today()]||0)+1;save();
     const n=success&&MODE==='lvup'?(P.lvup.st[N]||0)+1:0;
     showMark(success,MODE==='fix'?'うごきで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));return}
   const limit=(STAGES[NS].lim||P.limit)*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
-  P.hist.push({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});if(P.hist.length>300)P.hist=P.hist.slice(-300);
+  histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:'screen'}:{})});
   if(MODE==='screen'){P.days[today()]=(P.days[today()]||0)+1;save();showMark(pass,'',()=>finishScreen(pass));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
   if(Q.ok)renderMeter();
@@ -1721,6 +1749,7 @@ function showResult(){
   const cleared=streakOf()>=CLEAR_STREAK;
   const canNext=cleared&&P.stage<STAGES.length-1;
   if(cleared&&!P.cleared.includes(P.stage))P.cleared.push(P.stage);
+  if(cleared)logAnswer({ev:'clear',lv:P.stage+1,st:P.stage,at:Date.now(),k:cur().kind});
   { /* きろく（ドットと 同じ: いつ・ぱっと見・じかん）。1レベル 30かいまで */
     const hs=P.hist.filter(h=>!h.b).slice(-LEN),tt=hs.reduce((a,h)=>a+h.t,0);
     P.rec=P.rec||{};const k=String(P.stage);(P.rec[k]=P.rec[k]||[]).push({at:Date.now(),c:n,n:LEN,t:tt});if(P.rec[k].length>30)P.rec[k]=P.rec[k].slice(-30)}
@@ -1867,7 +1896,7 @@ function showKiroku(st,from){
 const DBG={next:null,mode:null,h:null};
 if(DEBUG){
   const _pick=pick;pick=function(){if(DBG.next!=null){const v=DBG.next;DBG.next=null;CURSEED=null;isReview=false;NS=P.stage;PAIR=null;return cur().facts.find(f=>String(f)===v)??v}return _pick()};
-  window.__T={get Q(){return Q},showResult:()=>showResult(),buildDeck:i=>buildDeck(i),get phase(){return phase},get P(){return P},get setRes(){return setRes},answer:v=>answer(v),start:()=>start()};
+  window.__T={get Q(){return Q},showResult:()=>showResult(),buildDeck:i=>buildDeck(i),get phase(){return phase},get P(){return P},get setRes(){return setRes},answer:v=>answer(v),start:()=>start(),get STAGES(){return STAGES},flushLog:()=>flushLog(),logReport:u=>logReport(u),setCloud:(d,t,m)=>{db=d;TOKEN=t;ME=m}};
   const st=document.createElement('style');st.textContent=`
   #dbgBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;font-family:var(--font-display);font-weight:900;border:none;border-radius:999px;padding:10px 16px;background:var(--ink);color:var(--paper);box-shadow:0 4px 12px rgba(0,0,0,.2);cursor:pointer}
   #dbg{position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:50;max-width:520px;margin-left:auto;max-height:70vh;overflow:auto;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:16px;padding:12px 14px;font-size:.85rem;box-shadow:0 8px 24px rgba(0,0,0,.25)}

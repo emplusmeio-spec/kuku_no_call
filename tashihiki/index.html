@@ -291,6 +291,17 @@ button:focus-visible{outline:3px solid var(--dot);outline-offset:2px}
 .ryo .sign{position:absolute;left:0;top:0;font-family:var(--font-display);font-weight:900;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:transform var(--dur),opacity var(--dur)}
 .ryo .note{position:absolute;right:8px;top:6px;font-family:var(--font-display);font-weight:900;color:var(--ng);font-size:clamp(16px,3vw,22px)}
 /* ===== 部品ここまで（CSS） ===== */
+.t3scene{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;width:100%;height:100%;position:relative}
+.t3row{width:100%;flex:1 1 0;min-height:0;display:flex;justify-content:center}
+.t3svg{width:100%;height:100%;max-width:720px}
+.t3op{font-size:1.3rem;font-weight:800;line-height:1}
+.t3f{fill:var(--dot);stroke:var(--paper);stroke-width:1.5}
+.t3l{stroke:var(--paper);stroke-width:1;opacity:.6;fill:none}
+.t3.tp{cursor:pointer}
+.t3h{fill:transparent}
+.t3.gone .t3f{fill:#f6b8b8}
+.yomi{display:block;font-size:.5em;font-weight:700;margin-top:.2em}
+
 /* たしひきラボ: 九九ラボの 見た目に タイルの 絵を のせる */
 .stagewrap{min-height:clamp(190px,30vh,290px)}
 .field{position:relative;width:min(94vw,640px);background:var(--paper);border:3px solid var(--line);border-radius:22px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:clamp(190px,30vh,290px)}
@@ -512,17 +523,17 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 /* ===== レベル（30段階案。いまは Lv1〜20「ばらの せかい」まで。Lv1 は 0〜5 まとめ、Lv2〜13 で 6〜10 を 手あつく。ドットの 7コース（5の なかま〜たしざん②）を ふくむ） =====
    第1部 ばらの せかい（10をつくる・10からとる）／第2部 ぼうの せかい（100をつくる・100からとる）／第3部 いたの せかい（3けた）
    facts は そのレベルで 出す問題の しゅるい（key）。key ごとに 2回つづけて できたら「できた」。 */
-const PH=[['1','ばらの せかい','--pA'],['2','ぼうの せかい','--pB'],['3','いたの せかい','--pC']];
+const PH=[['1','ばらの せかい','--pA'],['2','いたの せかい','--pC']];   /* 11/23 ボス「２桁とばして３桁で完結」→ ぼうの せかい（じゅんび中）は なくした */
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
  [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる（式だけ）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'ひきざん（式だけ・じかん）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり①（じかん）'],[0,'くりあがり②'],[0,'くりあがり②（じかん）'],[0,'くりあがり そうテスト'],[0,'くりさがり'],[0,'くりさがり（じかん）'],[0,'まぜて 20まで'],
- [1,'何十の たしひき'],[1,'100は いくつと いくつ'],[1,'2けたと 1けた'],[1,'つぎの 何十を つくる'],[1,'ぼうから とる'],[1,'2けたと 2けた'],
- [1,'何十で 100を こえる'],[1,'100を つくる'],[1,'100から とる'],[1,'たして ひいて 200まで'],[1,'まぜて 200まで'],
- [2,'何百の たしひき'],[2,'何百から とる'],[2,'3けたと 1・2けた'],[2,'3けたの たしざん'],[2,'3けたの ひきざん'],[2,'1000まで まとめ'],
+ [1,'3けたの かず①'],[1,'3けたの かず②（1が ある）'],[1,'3けたの かず③（0が ある）'],[1,'3けたの かず（じかん）'],[1,'3けたの たしざん'],[1,'3けたの ひきざん'],
 ];
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
 const CARRY_A=(()=>{const r=[];for(let a=6;a<=9;a++)for(let b=1;b<=5;b++)if(a+b>10){r.push(a+'+'+b);r.push(b+'+'+a)}return r})();   /* 6〜9＋1〜5（10を こえる もの。いれかえも） */
 const CARRY_B=(()=>{const r=[];for(let a=6;a<=9;a++)for(let b=6;b<=9;b++)r.push(a+'+'+b);return r})();                               /* 6〜9＋6〜9 */
+const T3A=[];for(const t of 'nabz')for(const o of 'nabz')T3A.push(o+t);   /* 一のくらい・十のくらいの 0の はいりかた 4×4＝16の かた */
+const T3S=[];for(const t of 'nbez')for(const o of 'nbez')T3S.push(o+t);
 const STAGES=[
  S('0〜5 まとめ',['みる','どこまで','たす','かくす'],1200,k=>gen05(k),1),   // 0〜5 の 総復習（くわしくは べつアプリ）
  S('どこまで？',[6,7,8,9,10],0,k=>genWhere(k),0,3),                      // 教える: 数字→量（わくを タップ）
@@ -553,10 +564,17 @@ const STAGES=[
  S('くりさがり',[2,3,4,5,6,7,8,9],0,k=>takeToggle(k)),              // Lv26 じっくり: くらべる ならべかた。下の だんを おすと 左 → 10に そろえる（減加）→ 右はし（減減）（11/23 ボス）
  S('くりさがり（じかん）',[2,3,4,5,6,7,8,9],1500,k=>genTake(k)),    // Lv27 もとの くりさがり（時間あり。なかみは そのまま）
  S('まぜて 20まで',['くりあがり','くりさがり','10と いくつ','10まで'],0,k=>genMix(k),1),
+ /* Lv29〜34 3けた（11/23 21:52 ボス「タイルから読み・書き（０の有無、先頭が１、それ以外で）４レベルぐらい作ったあと、繰り上がりなし加法、減法をひとつのレベルで」） */
+ S('3けたの かず①',['ふつう'],0,k=>genRead3(k)),                       // Lv29 1も 0も ない（234 など）
+ S('3けたの かず②（1が ある）',['1xx','x1x','11x'],0,k=>genRead3(k)),   // Lv30 ひゃく・じゅう（「いちひゃく」と いわない）
+ S('3けたの かず③（0が ある）',['x0x','xx0','x00'],0,k=>genRead3(k)),   // Lv31 からの くらい
+ S('3けたの かず（じかん）',['ふつう','1xx','x1x','11x','x0x','xx0','x00'],0,k=>genRead3(k),0,6),   // Lv32 Lv29〜31 の テスト
+ S('3けたの たしざん',T3A,0,k=>genAdd3(k)),                             // Lv33 くりあがり なし 16の かた
+ S('3けたの ひきざん',T3S,0,k=>genSub3(k)),                             // Lv34 くりさがり なし
 ];
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 学校で ならう 時期の めやす（教育出版 令和6年度版。ひき算は 推測）。スタート画面に 出す（11/23 ボス） */
-const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=7?'小1 6月ごろ':i<=12?'小1 5〜6月ごろ':i<=14?'小1 6〜7月ごろ':i<=18?'小1 7月ごろ':i===19?'小1 9月ごろ':i<=24?'小1 10〜11月ごろ':i<=26?'小1 12月ごろ':'小1 1月ごろ';
+const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=7?'小1 6月ごろ':i<=12?'小1 5〜6月ごろ':i<=14?'小1 6〜7月ごろ':i<=18?'小1 7月ごろ':i===19?'小1 9月ごろ':i<=24?'小1 10〜11月ごろ':i<=26?'小1 12月ごろ':i===27?'小1 1月ごろ':i<=31?'小2 6月ごろ':'小3 5月ごろ';
 /* つまずきの 多い 段 と、その ベースに なる 段（0はじまり）。ていたい だっしゅつ・ふりかえりで ベースを ノーミスで 1しゅう する（11/23 ボス）
    Lv3→Lv1 ／ Lv4→Lv3 ／ Lv5→Lv4 ／ Lv9〜12（分解）→Lv5〜8（11/23 19:57 ボス）／ Lv13（10の なかま）→Lv10 ／ Lv16・17（ちがいは）→Lv14 ／ Lv21〜25（くりあがり）・Lv26・27（くりさがり）→Lv13 */
 const BASE={2:0,3:2,4:3,8:[4,5,6,7],9:[4,5,6,7],10:[4,5,6,7],11:[4,5,6,7],12:9,15:13,16:13,20:12,21:12,22:12,23:12,24:12,25:12,26:12};
@@ -568,7 +586,7 @@ const baseLabel=bs=>bs.length>1?`Lv.${bs[0]+1}〜${bs[bs.length-1]+1}`:`Lv.${bs[
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
 /* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv10 定着テスト（11/22 19:26 Lv9と いれかえ）・Lv14 合格2秒・Lv15 なれる → nare
    Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv9・Lv11〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
-const KIND=['nare','teach','teach','nare','nare','try','nare','nare','try','nare','try','nare','try','try','nare','try','nare','try','nare','nare','try','nare','try','nare','nare','try','nare','nare'];
+const KIND=['nare','teach','teach','nare','nare','try','nare','nare','try','nare','try','nare','try','try','nare','try','nare','try','nare','nare','try','nare','try','nare','nare','try','nare','nare','teach','teach','teach','nare','try','try'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -580,7 +598,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23k';
+const VER='11/23m';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1185,7 +1203,7 @@ function overlay(title,sub,kind,then,btn){
 }
 /* Lv1〜4 の よみあげ（11/23 ボス「数字・タイル・読みが一致するように音声」）: せいかい した ときに 数を よむ。0 は ゼロ（ボス）。よむよむ と おなじ 端末の よみあげ */
 const YOMI=['ゼロ','いち','に','さん','よん','ご','ろく','なな','はち','きゅう','じゅう'];
-function sayQ(){try{if(NS>3||!Q||Q.say==null||!YOMI[Q.say]||!('speechSynthesis' in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(YOMI[Q.say]);u.lang='ja-JP';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
+function sayQ(){try{if(!Q||!('speechSynthesis' in window))return;const tx=Q.sayT||(NS<=3&&Q.say!=null?YOMI[Q.say]:'');if(!tx)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(tx);u.lang='ja-JP';u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
 function showMark(green,sub,then){
   const o=el('div','mark '+(green?'g':'y'));o.innerHTML=`<div class="mk"></div><div class="mq">${Q.mq}</div>${sub?`<div class="ms">${sub}</div>`:''}`;
   document.body.appendChild(o);setTimeout(()=>{o.remove();then()},sub?MARK_MS:MARK_MS/2); /* ふつうの こたえあわせは 半分の 時間で つぎへ */
@@ -1514,6 +1532,38 @@ function buildDeck(st){const S=STAGES[st],seen=new Map(),ns=NS,pr=PAIR;NS=st;
     const id=String(q.mq)+'|'+String(q.title);if(!seen.has(id))seen.set(id,{k,seed,id})}
   NS=ns;PAIR=pr;return shuffle([...seen.values()])}
 let CURSEED=null,LASTID=null;
+/* ===================== 3けた（いたの せかい）11/23 ボス「２桁とばして３桁で完結」 =====================
+   タイルは いた（100）・ぼう（10）・ばら（1）。いたは 5まいで 1だん、ぼう・ばらも 5で すきま */
+const YH=['','ひゃく','にひゃく','さんびゃく','よんひゃく','ごひゃく','ろっぴゃく','ななひゃく','はっぴゃく','きゅうひゃく'];
+const YT=['','じゅう','にじゅう','さんじゅう','よんじゅう','ごじゅう','ろくじゅう','ななじゅう','はちじゅう','きゅうじゅう'];
+const yomi3=n=>n===0?'ゼロ':[YH[n/100|0],YT[(n/10|0)%10],n%10?YOMI[n%10]:''].filter(Boolean).join(' ');
+function t3svg(n,tap){const h=n/100|0,t=(n/10|0)%10,o=n%10;let g='';const c=tap?' tp':'';
+  for(let i=0;i<h;i++){const x=(i%5)*108,y=(i/5|0)*108;g+=`<g class="t3${c}"><rect class="t3f" x="${x}" y="${y}" width="100" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x+k*10} ${y}v100M${x} ${y+k*10}h100`).join('')}"/></g>`}
+  for(let j=0;j<t;j++){const x=572+j*16+(j>=5?10:0);g+=`<g class="t3${c}"><rect class="t3h" x="${x-3}" y="0" width="16" height="100"/><rect class="t3f" x="${x}" y="0" width="10" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(k=>`M${x} ${k*10}h10`).join('')}"/></g>`}
+  for(let k=0;k<o;k++){const x=760+(k/5|0)*16,y=(k%5)*16;g+=`<g class="t3${c}"><rect class="t3h" x="${x-3}" y="${y-3}" width="16" height="16"/><rect class="t3f" x="${x}" y="${y}" width="10" height="10"/></g>`}
+  return `<svg class="t3svg" viewBox="-4 -4 794 ${h>5?216:108}" preserveAspectRatio="xMidYMid meet">${g}</svg>`}
+function t3scene(parts,tap){const w=ldScene();w.classList.add('t3scene');parts.forEach(p=>{const d=el('div',typeof p==='string'?'t3op':'t3row');if(typeof p==='string')d.textContent=p;else d.innerHTML=t3svg(p,tap);w.appendChild(d)});return w}
+const d29=()=>rint(2,9),d19=()=>rint(1,9);
+/* タイル → 数字（かく）。せいかいで よみ（こえ と ひらがな）。key: ふつう（1も 0も なし）／1xx（百が1）／x1x（十が1）／11x ／x0x ／xx0 ／x00 */
+function genRead3(k){let h=d29(),t=d29(),o=d29();
+  if(k==='1xx')h=1;else if(k==='x1x')t=1;else if(k==='11x'){h=1;t=1}
+  else if(k==='x0x'){h=d19();t=0;o=d19()}else if(k==='xx0'){h=d19();t=d19();o=0}else if(k==='x00'){h=d19();t=0;o=0}
+  const n=h*100+t*10+o,y=yomi3(n);
+  const draw=()=>{t3scene([n])};const after=async()=>{if(!F().querySelector('.t3scene'))draw();rd(`${n}　${y}`)};
+  return Object.assign(one(n,`${n}　${y}`),{title:'いくつ？',sayT:y,flash:false,draw,after,reveal:after,how:`${n}をかく（${k}）`})}
+/* くらいごとの 0の はいりかた: n=0なし a=上が0 b=下が0 z=両方0（たしざん）／ n=ふつう b=下が0 e=おなじ数（こたえが0） z=0−0（ひきざん） */
+function genAdd3(k){const col=c=>{if(c==='z')return [0,0];if(c==='a')return [0,d19()];if(c==='b')return [d19(),0];const x=rint(1,8);return [x,rint(1,9-x)]};
+  const [o1,o2]=col(k[0]),[t1,t2]=col(k[1]),h1=rint(1,8),h2=rint(1,9-h1),a=h1*100+t1*10+o1,b=h2*100+t2*10+o2,s=a+b;
+  const draw=()=>{t3scene([a,'＋',b])};const after=async()=>{if(!F().querySelector('.t3scene'))draw();rd(`${a} ＋ ${b} ＝ ${s}`)};
+  return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,flash:false,draw,after,reveal:after,how:`${a}＋${b}（${k}）`})}
+function genSub3(k){const col=c=>{if(c==='z')return [0,0];if(c==='b')return [d19(),0];if(c==='e'){const x=d19();return [x,x]}const x=rint(2,9);return [x,rint(1,x-1)]};
+  const [o1,o2]=col(k[0]),[t1,t2]=col(k[1]),h1=rint(2,9),h2=rint(1,h1-1),a=h1*100+t1*10+o1,b=h2*100+t2*10+o2,r_=a-b;
+  /* タイルを おすと うすい 赤に なる（もう いちど おすと もどる）。Lv14 と おなじ かんがえ */
+  const draw=()=>{const w=t3scene([a],true);w.querySelectorAll('.t3.tp').forEach(g=>{g.onclick=()=>{if(phase!=='input')return;Q.moves=(Q.moves||0)+1;g.classList.toggle('gone')}});
+    const rs=el('button','btn ghost sm tlreset');rs.textContent='リセット';rs.onclick=e=>{e.stopPropagation();if(phase!=='input')return;w.querySelectorAll('.t3.gone').forEach(g=>g.classList.remove('gone'))};w.appendChild(rs);
+    rd('タイルを おすと きえるよ（もう いちど おすと もどる）')};
+  const after=async()=>{if(!F().querySelector('.t3scene'))draw();const rs=F().querySelector('.tlreset');if(rs)rs.remove();rd(`${a} − ${b} ＝ ${r_}`)};
+  return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} − ${B(b)}`,flash:false,draw,after,reveal:after,how:`${a}−${b}（${k}）`})}
 /* ---- Lv3 6〜10は いくつ（量→数字）: 目かくし なし。なれない うちは かぞえて よい。時間で 判定 ---- */
 function genCount(n){return Object.assign(genSee(n),{flash:false,how:`${n}は いくつ`})}
 /* ---- うごかせる わく（Lv6・Lv8）: タイルを おすと となりの わくへ。5が そろうと 光り、10で 1本に。

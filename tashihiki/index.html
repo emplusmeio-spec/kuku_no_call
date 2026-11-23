@@ -529,7 +529,7 @@ const STAGES=[
  S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k)),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
  S('のこりは（じかん）',[6,7,8,9,10],0,k=>tapLeft(k)),             // Lv14 と おなじ もんだいで 時間制限あり（11/22 22:10 ボス）
  S('ちがいは',[6,7,8,9,10],0,k=>diffToggle(k)),                      // Lv16 じっくり: さいしょから タイル。下の だんを おすと 左よせ・右よせ（11/23 ボス）
- S('ちがいは（じかん）',[6,7,8,9,10],0,k=>diffToggle(k)),             // Lv17 Lv16 の テスト（時間は ほかと おなじ）
+ S('ちがいは（じかん）',[6,7,8,9,10],0,k=>diffToggle(k,true)),             // Lv17 Lv16 の テスト（時間は ほかと おなじ）
  S('ひきざん（式だけ）',[6,7,8,9,10],0,k=>genLeftEq(k)),           // Lv18 じっくり（11/23 ボス）
  S('ひきざん（式だけ・じかん）',[6,7,8,9,10],0,k=>genLeftEq(k)),   // Lv19 Lv18 の テスト
  S('10と いくつ',['10たす','じゅうたす','じゅうひくばら','じゅうひく'],1200,k=>genTeen(k)),
@@ -556,7 +556,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/23b';
+const VER='11/23c';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1537,7 +1537,7 @@ function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
   const after=async()=>{if(!F().querySelector('.tapl'))draw();const rs=F().querySelector('.tlreset');if(rs)rs.remove();rd(`${a} − ${b} ＝ ${r_}`)};
   return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,draw,flash:false,after,reveal:after,how:`${a}−${b}（のこりは）`})}
 /* ---- Lv14 ちがいは: 上に a、下に b。下の だんを おすと 左よせ・右よせ ---- */
-function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';
+function diffToggle(a,noTiles){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';
   const lowOn=k=>side==='L'?k<b:(k>=a-b&&k<a);
   const mkLow=()=>{const r=el('div','trow lrow dlow');for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i;gw.appendChild(el('span','tc '+(lowOn(k)?'b':'v')))}r.appendChild(gw)}
     r.onclick=()=>{if(phase!=='input'&&!Q.done)return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;r.replaceWith(mkLow());if(Q.done)hl()};return r};
@@ -1545,7 +1545,7 @@ function diffToggle(a){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L'
   const draw=()=>{const w=ldScene();w.appendChild(rowEl(a));w.appendChild(mkLow());rd('下の だんを おすと 左よせ・右よせ')};
   const after=async()=>{if(!F().querySelector('.dlow'))draw();Q.done=true;hl();rd(`${a} と ${b} の ちがいは ${d}`)};
   /* 11/23 ボス: さいしょから タイルを 出す（ことばだけの 2びょうは やめた） */
-  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,draw,flash:false,after,reveal:after,how:`${a}と${b}のちがい`})}
+  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,flash:false,...(noTiles?{draw:null,after:null,reveal:null}:{draw,after,reveal:after}), /* Lv17（テスト）は タイル なし（11/23 ボス） */how:`${a}と${b}のちがい`})}
 const DIFF_T1=2000;
 /* ---- Lv15 ひきざん（式だけ） ---- */
 function genLeftEq(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;

@@ -623,6 +623,7 @@ const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=7?'小1 
 /* つまずきの 多い 段 と、その ベースに なる 段（0はじまり）。ていたい だっしゅつ・ふりかえりで ベースを ノーミスで 1しゅう する（11/23 ボス）
    Lv3→Lv1 ／ Lv4→Lv3 ／ Lv5→Lv4 ／ Lv9〜12（分解）→Lv5〜8（11/23 19:57 ボス）／ Lv13（10の なかま）→Lv10 ／ Lv16・17（ちがいは）→Lv14 ／ Lv21〜25（くりあがり）・Lv26・27（くりさがり）→Lv13 */
 const BASE={2:0,3:2,4:3,8:[4,5,6,7],9:[4,5,6,7],10:[4,5,6,7],11:[4,5,6,7],12:9,15:13,16:13,20:12,21:12,22:12,23:12,24:12,25:12,26:12};
+const AID_N=3;      /* くりあがりの 式だけの レベル: つづけて これだけ しっぱい したら ほじょりん あり（11/24 ボス） */
 const STALL_N=3;    /* さいこうきろくが のびない ちょうせんが これだけ つづいたら「ていたい」 */
 const AWAY_DAYS=2;  /* 11/23 19:57 ボス「日にちは２日」 */
 const basesOf=st=>BASE[st]==null?null:[].concat(BASE[st]);
@@ -643,7 +644,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/24a';
+const VER='11/24b';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1619,7 +1620,8 @@ function num3(k,sub){
 /* たての 形を かく。got=線の 下の 3もじ、col=まるで かこむ 列（2=百 3=十 4=一、0=なし）、mark=くりあがりの 小さい 1 を 十のくらいの 右下に */
 function hs3(a,b,op,got,col,mark){const w=F().querySelector('.t3scene');if(!w)return;const sv=w.querySelector('.t3svg');if(sv)sv.classList.add('hid');t3ring(null);let h=w.querySelector('.hissan');if(!h){h=el('div','hissan');w.appendChild(h)}
   const cell=(c,r,t,cl)=>`<span${cl?` class="${cl}"`:''} style="grid-column:${c};grid-row:${r}">${t}</span>`;
-  const row=(r,sg,str,mk)=>cell(1,r,sg,'hs')+str.split('').map((ch,x)=>cell(x+2,r,(ch===' '?'':ch)+(mk&&x===1?'<em class="cm">1</em>':''),mk&&x===1?'cmh':'')).join('');
+  /* mk=[十へ, 百へ, 千へ] の くりあがりの 小さい 1（うけとる くらいの 右下） */
+  const row=(r,sg,str,mk)=>{const m=x=>!!(mk&&mk[x]),one='<em class="cm">1</em>';return cell(1,r,sg+(m(2)?one:''),'hs'+(m(2)?' cmh':''))+str.split('').map((ch,x)=>cell(x+2,r,(ch===' '?'':ch)+(m(1-x)?one:''),m(1-x)?'cmh':'')).join('')};
   if(got.length===3)got=' '+got; /* 4もじめ（千のくらい）は 記号の 列に 出す */
   h.innerHTML=`<div class="hg">${row(1,'',String(a))}${row(2,op,String(b),mark)}<i style="grid-row:3"></i>${cell(1,4,got[0]===' '?'':got[0])}${row(4,'',got.slice(1)).replace(/^<span class="hs"[^>]*><\/span>/,'')}${col?`<b class="hcol" style="grid-column:${col};grid-row:1 / span 4"></b>`:''}</div>`;h.style.fontSize=Math.max(18,Math.min(76,w.clientHeight/5.2))+'px'}
 /* ===== 3けたの くりあがり（一のくらい → 十のくらい）11/23 23:28・23:31 ボス =====
@@ -1650,12 +1652,14 @@ function carryQ(a,b,mode,place,k){const s_=a+b,op='＋',mq=`${a} ${op} ${b} ＝ 
   const dg=[];for(let i=0;i<n;i++)dg.push({pre:i===n-1?'＝':'',ans:+D[n-1-i],cls:'dg',ord:6-i});
   const KN=['一の くらい','十の くらい','百の くらい','千の くらい'],guide=i=>rd(i===0?'一の くらいから じゅんに 入れよう':`${KN[i]}は？`);
   const base={title:`${B(a)} ${op} ${B(b)}`,pad3:true,row3:true,flash:false,mq,fields:dg,reveal:null};
-  if(mode!=='t'){const mk=()=>mode==='m'&&vals[0]!=='';
+  if(mode!=='t'){const dgt=(v,i)=>Math.floor(v/10**i)%10,c1=dgt(a,0)+dgt(b,0)>=10,c2=dgt(a,1)+dgt(b,1)+c1>=10,c3=dgt(a,2)+dgt(b,2)+c2>=10,cr=[c1,c2,c3];
+    /* ほじょりん: 'm' の レベルと、3かい つづけて しっぱい した あと（P.aid）は、下の くらいを 入れると くりあがりの 1 が 出る。しっぱい した もんだいには ぜんぶ 出す（11/24 11:19 ボス） */
+    const aid=mode==='m'||!!(P.aid||{})[P.stage],mk=all=>all?cr:aid?cr.map((c,i)=>c&&vals[i]!==''):null;
     const got=()=>[3,2,1,0].map(i=>i<n?(vals[i]||' '):' ').join('');
-    const hs=(col,full)=>hs3(a,b,op,full?D.padStart(4,' '):got(),col,full?mode==='m':mk());
+    const hs=(col,full,all)=>hs3(a,b,op,full?D.padStart(4,' '):got(),col,mk(all||(full&&aid)));
     const drawE=()=>{const w=ldScene();w.classList.add('t3scene','t3e');hs(0,false)};
     return Object.assign(base,{draw:drawE,after:async()=>{if(!F().querySelector('.t3scene'))drawE();hs(0,true);rd(mq)},
-      onActive:i=>{guide(i);hs(4-i,false)},onField:()=>hs(4-active,false),how:`${a}${op}${b}（${k}・${mode==='m'?'1を かく':'式だけ'}）`})}
+      onActive:i=>{guide(i);hs(4-i,false)},onField:()=>hs(4-active,false),aidable:mode==='e',onFail:()=>{if(!F().querySelector('.t3scene'))drawE();hs(0,true,true)},how:`${a}${op}${b}（${k}・${mode==='m'?'1を かく':'式だけ'}）`})}
   let carried=false;const gi=place==='o'?0:1,cls=place==='o'?'tu':'tb',rem=place==='o'?s_%10:((a/10|0)%10+(b/10|0)%10)%10;
   const carry=quiet=>{if(carried)return;carried=true;const w=F().querySelector('.t3scene');if(!w)return;const ring=w.querySelector('.t3ring'),R=w._rows,y=R[1][0];
     w.querySelectorAll(`.${cls}.r0`).forEach(g=>g.classList.add('gonev'));[...w.querySelectorAll(`.${cls}.r1`)].forEach((g,x)=>{if(x>=rem)g.classList.add('gonev')});
@@ -1963,6 +1967,7 @@ function failOut(judged){
     histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0});
     P.streak=P.streak||{};P.streak[P.stage]=0;Q.ok=false;if(!isReview)setSp(N,0);P.days[today()]=(P.days[today()]||0)+1;save()}
   Q.fields.forEach((_,j)=>{vals[j]=String(expOf(j));const e=$('#in'+j);e.classList.remove('active','ok');e.classList.add('ansshow')});showVals();
+  if(Q.onFail)try{Q.onFail()}catch(e){}
   if(Q.tap&&Q.reveal){Promise.resolve().then(()=>Q.reveal()).catch(()=>{})}
   setRes.push('o');
   const lost=prevStreak;renderMeter();
@@ -1980,6 +1985,9 @@ function failOut(judged){
   let stalled=false;if(BASE[P.stage]!=null&&!P.cleared.includes(P.stage)){P.stall=P.stall||{};const grew=((P.best||{})[P.stage]||0)>RUNBEST0;P.stall[P.stage]=grew?0:(P.stall[P.stage]||0)+1;stalled=P.stall[P.stage]>=STALL_N;save()}
   if(stalled){const bs=basesOf(P.stage);fb.querySelector('#again').textContent='ていたい だっしゅつ モードへ';fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">さいこうきろくが ${STALL_N}かい のびて いないよ。<br>${esc(baseLabel(bs))} を ノーミスで 1しゅう して もどって こよう</div>`)}
   fb._stalled=stalled;
+  /* くりあがりの 式だけの レベル: 3かい つづけて しっぱい → つぎから ほじょりん（くりあがりの 1）あり。8もん つづけて できたら ほじょりん なしに もどる（11/24 11:19 ボス） */
+  if(Q.aidable&&!(P.aid||{})[P.stage]){P.cf=P.cf||{};P.cf[P.stage]=(P.cf[P.stage]||0)+1;if(P.cf[P.stage]>=AID_N){P.aid=P.aid||{};P.aid[P.stage]=1;logAnswer({ev:'aid-on',lv:P.stage+1,st:P.stage,at:Date.now()});
+    fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">${AID_N}かい つづけて しっぱい したので、<br>つぎから くりあがりの 1 が 出るよ（ほじょりん）</div>`)}save()}
   $('#padwrap').after(fb);fitScreen();
   if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
   const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();try{b.scrollIntoView({block:'end',behavior:'smooth'})}catch(e){}b.onclick=()=>{const st=fb._stalled;fb.remove();setRes=[];if(st){P.stall[P.stage]=0;logAnswer({ev:'rescue-start',lv:P.stage+1,st:P.stage,at:Date.now()});startRescue('rescue',basesOf(P.stage));start();return}ARMED=true;start()}},lost?700+lost*110:300)}
@@ -2027,6 +2035,9 @@ function finishItem(kind){
   if(!setRes.length)setFacts=[];
   setRes.push(kind);setFacts.push({st:NS,k:N,rej:rejects,how:Q.how});
   /* 8もん つづいたら クリア。しっぱい したら 連続が 0に くずれる アニメの あと けっか（10もんの まとまりは やめた） */
+  if(MODE==='normal'&&(P.aid||{})[P.stage]&&streakOf()>=CLEAR_STREAK){ /* ほじょりん ありで 8もん つづいた → ていたい だっしゅつ。ほじょりん なしの ふつうに もどる（クリアには しない） */
+    delete P.aid[P.stage];if(P.cf)P.cf[P.stage]=0;P.streak[P.stage]=0;setRes=[];save();logAnswer({ev:'aid-off',lv:P.stage+1,st:P.stage,at:Date.now()});
+    overlay('🎉 ていたい だっしゅつ！','つぎは ほじょりん なしで やって みよう','lvup',()=>start(),'すすむ');return}
   if(MODE==='normal'&&streakOf()>=CLEAR_STREAK){showResult();return}
   if(MODE==='normal'&&Q.ok===false){const lost=prevStreak;renderMeter();const tk=qToken;setTimeout(()=>{if(tk===qToken)showResult()},lost?700+lost*110+300:500);return}
   start();
@@ -2041,6 +2052,7 @@ function showResult(){
   const cleared=streakOf()>=CLEAR_STREAK;
   const canNext=cleared&&P.stage<STAGES.length-1;
   if(cleared&&P.stall)P.stall[P.stage]=0;
+  if(cleared&&P.cf)P.cf[P.stage]=0;
   if(cleared&&!P.cleared.includes(P.stage))P.cleared.push(P.stage);
   if(cleared)logAnswer({ev:'clear',lv:P.stage+1,st:P.stage,at:Date.now(),k:cur().kind});
   { /* きろく（ドットと 同じ: いつ・ぱっと見・じかん）。1レベル 30かいまで */

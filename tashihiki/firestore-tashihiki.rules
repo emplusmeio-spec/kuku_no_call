@@ -27,8 +27,8 @@
                     && get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.by == 'user'
                     && request.resource.data.nick == get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.nick
                     && request.resource.data.root == get(/databases/$(database)/documents/tashihiki_invites/$(code)).data.root
-                    && request.resource.data.stage is int && request.resource.data.stage >= 0 && request.resource.data.stage < 30
-                    && request.resource.data.cl is list && request.resource.data.cl.size() <= 30
+                    && request.resource.data.stage is int && request.resource.data.stage >= 0 && request.resource.data.stage < 100
+                    && request.resource.data.cl is list && request.resource.data.cl.size() <= 100
                     && request.resource.data.seen is int && request.resource.data.seen >= 0 && request.resource.data.seen <= 999;
       allow delete: if teacher();
     }

@@ -650,7 +650,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/24d';
+const VER='11/24e';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -822,9 +822,12 @@ async function teacherScreen(){
   const login=()=>{T.innerHTML=`<div class="gate"><h2>先生ログイン</h2><input id="tEmail" placeholder="メール" value="${TEACHER_EMAIL}" style="font-size:1rem;margin-bottom:8px"><input id="tPw" type="password" placeholder="パスワード" style="font-size:1rem"><div class="mapbtns"><button class="btn" id="tLogin">ログイン</button></div><div class="err" id="tErr"></div></div>`;
     $('#tLogin').onclick=()=>fbAuth.signInWithEmailAndPassword($('#tEmail').value,$('#tPw').value).catch(e=>$('#tErr').textContent='ログインできません: '+e.code)};
   fbAuth.onAuthStateChanged(u=>{if(!u||u.email!==TEACHER_EMAIL){login();return}dashboard()});
-  async function dashboard(){
+  async function dashboard(){try{await dashboard2()}catch(e){T.innerHTML=`<div class="gate"><h2>先生画面を 表示できません</h2><p class="err">${esc(e.message||String(e))}</p><p style="font-size:.8rem;color:var(--muted)">${esc(String(e.stack||'').split('\n').slice(0,3).join(' / '))}</p></div>`}}
+  async function dashboard2(){
     T.innerHTML='<p>読みこみ中…</p>';
-    const [us,is]=await Promise.all([db.collection(COL.users).get(),db.collection(COL.invites).get()]);
+    /* 読みこみで 止まった ままに しない: エラーと 時間切れ（15秒）を 画面に 出す（11/24 ボス「読み込み中のままでうごきません」） */
+    let us,is;try{[us,is]=await Promise.race([Promise.all([db.collection(COL.users).get(),db.collection(COL.invites).get()]),new Promise((_,rj)=>setTimeout(()=>rj({code:'timeout',message:'15秒 たっても 返事が ありません'}),15000))])}
+    catch(e){T.innerHTML=`<div class="gate"><h2>読みこめません</h2><p class="err">${esc(e.code||'')} ${esc(e.message||String(e))}</p><p>permission-denied のときは Firestore のルール、timeout のときは 通信を たしかめてください。</p><div class="mapbtns"><button class="btn" id="tRetry">もういちど</button> <button class="btn ghost" id="tOut2">ログアウト</button></div></div>`;$('#tRetry').onclick=dashboard;$('#tOut2').onclick=()=>fbAuth.signOut();return}
     const users=us.docs.map(d=>({id:d.id,...d.data()})),invites=is.docs.map(d=>({id:d.id,...d.data()}));
     const roots=invites.filter(i=>i.by==='teacher');
     const userOf=c=>{const iv=invites.find(i=>i.id===c);return iv&&iv.uid?users.find(u=>u.id===iv.uid):null};

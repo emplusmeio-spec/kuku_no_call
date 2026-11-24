@@ -418,6 +418,8 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .ldscene.tk20 .trow{--ts:clamp(10px,min(2.9vw,3vh),22px);gap:4px;padding:6px 8px}
 .tk20 .g5w{gap:2px;padding:2px;border-width:2px}.tk20 .g5w:nth-child(2){margin-right:8px}
 .tk20 .tc.hl{box-shadow:0 0 0 2px var(--accent)!important}
+#result .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5;margin:8px auto;max-width:420px}
+.fr.teihl{outline:5px solid var(--accent);outline-offset:6px;border-radius:14px}
 .failbox .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5}
 /* ヒント（Lv21・23） */
 .hintbtn{position:absolute;right:8px;bottom:6px;z-index:6;margin:0}
@@ -629,6 +631,10 @@ const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=7?'小1 
 /* つまずきの 多い 段 と、その ベースに なる 段（0はじまり）。ていたい だっしゅつ・ふりかえりで ベースを ノーミスで 1しゅう する（11/23 ボス）
    Lv3→Lv1 ／ Lv4→Lv3 ／ Lv5→Lv4 ／ Lv9〜12（分解）→Lv5〜8（11/23 19:57 ボス）／ Lv13（10の なかま）→Lv10 ／ Lv16・17（ちがいは）→Lv14 ／ Lv21〜25（くりあがり）・Lv26・27（くりさがり）→Lv13 */
 const BASE={2:0,3:2,4:3,8:[4,5,6,7],9:[4,5,6,7],10:[4,5,6,7],11:[4,5,6,7],12:9,15:13,16:13,20:12,21:12,22:12,23:12,24:12,25:12,26:12};
+/* じかんの レベル → 対に なる じっくりの レベル（0はじまり）。じかんの レベルで 1もんでも つまずいたら、じっくりへ もどして「ていたい モード」。
+   そこで 8もん つづけて できたら もとの じかんの レベルへ（11/24 21:17・22:04 ボス）。対の ある レベルでは「さいこうきろくが 3かい のびない → ていたい だっしゅつ」は つかわない */
+const TWIN={6:5,11:10,14:13,16:15,18:17,21:20,23:22,26:25,41:40,44:43,46:45,48:47,50:49,52:51,54:53,56:55,58:57};
+const TWIN_J=Object.values(TWIN);
 const AID_N=3;      /* くりあがりの 式だけの レベル: つづけて これだけ しっぱい したら ほじょりん あり（11/24 ボス） */
 const STALL_N=3;    /* さいこうきろくが のびない ちょうせんが これだけ つづいたら「ていたい」 */
 const AWAY_DAYS=2;  /* 11/23 19:57 ボス「日にちは２日」 */
@@ -650,7 +656,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/24g';
+const VER='11/24h';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1741,9 +1747,9 @@ function moveFrames(a,b,hint){
   const compact=id=>FS.dots.filter(d=>d.frame===id).sort((x,y)=>x.idx-y.idx).forEach((d,i)=>put(d,id,i));
   const moveDot=d=>{const to=d.frame==='A'?'B':'A',n=FS.dots.filter(x=>x.frame===to).length;if(n>=10)return;const from=d.frame;put(d,to,n);compact(from);upd()};
   const draw=()=>{fscene([{id:'A',n:a,cls:'a'},'＋',{id:'B',n:b,cls:'b'}],'mv');
-    FS.dots.forEach(d=>{d.el.onclick=e=>{e.stopPropagation();if(phase!=='input'||hinting)return;Q.moves=(Q.moves||0)+1;moveDot(d)}});upd();
+    FS.dots.forEach(d=>{d.el.onclick=e=>{e.stopPropagation();if(phase!=='input'||hinting)return;if(Q.lockMv&&Q.lockMv())return;Q.moves=(Q.moves||0)+1;moveDot(d)}});upd();
     if(hint){const hb=el('button','btn ghost sm hintbtn');hb.textContent='ヒント';hb.onclick=e=>{e.stopPropagation();runHint()};F().appendChild(hb)}
-    rd('タイルを おすと となりへ うごくよ')};
+    rd('タイルを おすと となりへ うごくよ');if(Q&&Q.lockMv&&Q.onActive&&active!=null)Q.onActive(active)};
   /* ヒント（Lv21・23。11/23 ボス）: 1回 おすと ①かたほうだけで 10を つくる → 1びょうで もどる → 1びょう あと ②上の 5と 5で 10の かこい＋下の あまりを かたほうへ → 1びょうで もどる */
   let hinting=false;
   const runHint=async()=>{if(hinting||phase!=='input'||!FS)return;hinting=true;Q.hints=(Q.hints||0)+1;const tk=qToken,sl=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1773,10 +1779,17 @@ function moveFrames(a,b,hint){
 /* こたえる時間（びょう）: 段の きまり（lim）か 先生画面の 時間。limMul は その 何倍か（Lv25 総テストは 0.7倍） */
 function limOf(){const s=STAGES[NS]||{};return (s.lim||P.limit)*(s.limMul||1)}
 /* ---- Lv21〜25 くりあがり（11/23 ボス）: key は 'a+b'。Lv21・23 は タイルを おすと 反対がわへ（5・10を つくる）。テストは 式だけ ---- */
-function genCarryMv(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b,true),how:`${a}＋${b}（くりあがり・うごかす）`})}
+/* ていたい モード（11/24 21:17 ボス）: 式の 数字を かくし、タイルを 見て ひだりの 数 → みぎの 数 → こたえ を 入れる。数を 入れる までは タイルは うごかない */
+const teiOn=()=>MODE==='normal'&&(P.tei||{})[NS]!=null;
+function teiMv(q,a,b){if(!teiOn())return q;
+  q.title='タイルを 見て すうじを 入れよう';q.row3=true;q.fields=[{pre:'',ans:a},{pre:'＋',ans:b},{pre:'＝',ans:a+b}];q.how+='・ていたい';
+  q.lockMv=()=>!(vals[0]===String(a)&&vals[1]===String(b));
+  q.onActive=i=>{if(FS&&FS.frames.A&&FS.wrap.isConnected){FS.frames.A.classList.toggle('teihl',i===0);FS.frames.B.classList.toggle('teihl',i===1)}rd(i===0?'ひだりの タイルは いくつ？':i===1?'みぎの タイルは いくつ？':'あわせて いくつ？ タイルを おすと うごくよ')};
+  return q}
+function genCarryMv(k){const [a,b]=String(k).split('+').map(Number);return teiMv(Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b,true),how:`${a}＋${b}（くりあがり・うごかす）`}),a,b)}
 function genCarryEq(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}＋${b}（くりあがり・式だけ）`})}
-function genOver5Mv(s){const [a,b]=choice(OVER5[s]);return Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`})}
-function genSmallAddMv(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`})}
+function genOver5Mv(s){const [a,b]=choice(OVER5[s]);return teiMv(Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`}),a,b)}
+function genSmallAddMv(k){const [a,b]=String(k).split('+').map(Number);return teiMv(Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`}),a,b)}
 /* ---- Lv10・11 分解: ぜんぶで T。見えている a こ を おすと 左はし／右はし が いれかわる。どちらから 見ると らくかは 子どもが きめる ---- */
 function sideBag(T,lo,hi,hlo,hhi){lo=Math.max(1,T-hhi,lo);hi=Math.min(hi,T-hlo);const a=rint(lo,hi),h=T-a;let side='L',done=false;
   /* かくれている ところは 大きな くさむら 1つで おおう（中は オレンジの タイル。こたえで くさむらが どく） */
@@ -1968,6 +1981,7 @@ function showStart(){MODE='normal';NS=P.stage;qToken++;phase='ready';P.streak=P.
   r.innerHTML=`<div class="badge st" style="background:var(${PH[s.p][2]})">${s.lv}</div><h2>Lv.${s.lv}　${esc(s.name)}</h2>
   <p style="color:var(--muted,#777);font-weight:700;margin:-4px 0 6px">${WHEN(P.stage)}</p>
   <p style="font-size:1.1rem">${nare?'⏱ じかん せいげん あり<br>じかんの うちに 8もん つづけて せいかい で クリア':'🤔 じっくり かんがえて いいよ<br>8もん つづけて せいかい で クリア'}</p>
+  ${(P.tei||{})[P.stage]!=null?`<div class="stallmsg">ていたい モード<br>8もん つづけて できたら Lv.${P.tei[P.stage]+1} に もどるよ</div>`:''}
   <button class="btn" id="goStart" style="font-size:1.5rem;padding:.6em 2.6em">スタート</button>`;
   $('#goStart').onclick=()=>{ARMED=true;start()}}
 function start(){
@@ -2026,15 +2040,18 @@ function failOut(judged){
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="again" hidden>もういちど？</button>`;
   /* ていたい: さいこうきろくが のびない ちょうせんが STALL_N かい つづいたら、ベースの 段へ（つまずきの 多い 段だけ。クリアずみの 段は のぞく） */
-  let stalled=false;if(BASE[P.stage]!=null&&!P.cleared.includes(P.stage)){P.stall=P.stall||{};const grew=((P.best||{})[P.stage]||0)>RUNBEST0;P.stall[P.stage]=grew?0:(P.stall[P.stage]||0)+1;stalled=P.stall[P.stage]>=STALL_N;save()}
+  const twin=MODE==='normal'&&TWIN[P.stage]!=null?TWIN[P.stage]:null,inPair=TWIN[P.stage]!=null||TWIN_J.includes(P.stage);
+  let stalled=false;if(!inPair&&BASE[P.stage]!=null&&!P.cleared.includes(P.stage)){P.stall=P.stall||{};const grew=((P.best||{})[P.stage]||0)>RUNBEST0;P.stall[P.stage]=grew?0:(P.stall[P.stage]||0)+1;stalled=P.stall[P.stage]>=STALL_N;save()}
   if(stalled){const bs=basesOf(P.stage);fb.querySelector('#again').textContent='ていたい だっしゅつ モードへ';fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">さいこうきろくが ${STALL_N}かい のびて いないよ。<br>${esc(baseLabel(bs))} を ノーミスで 1しゅう して もどって こよう</div>`)}
   fb._stalled=stalled;
+  /* じかんの レベルで 1もんでも つまずいた → 対の じっくりへ もどして ていたい モード（11/24 ボス） */
+  if(twin!=null){fb._twin=twin;fb.querySelector('#again').textContent=`Lv.${twin+1} へ もどる`;fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">じっくりの Lv.${twin+1}「${esc(STAGES[twin].name)}」に もどるよ。<br>8もん つづけて できたら、また ここへ</div>`)}
   /* くりあがりの 式だけの レベル: 3かい つづけて しっぱい → つぎから ほじょりん（くりあがりの 1）あり。8もん つづけて できたら ほじょりん なしに もどる（11/24 11:19 ボス） */
-  if(Q.aidable&&!(P.aid||{})[P.stage]){P.cf=P.cf||{};P.cf[P.stage]=(P.cf[P.stage]||0)+1;if(P.cf[P.stage]>=AID_N){P.aid=P.aid||{};P.aid[P.stage]=1;logAnswer({ev:'aid-on',lv:P.stage+1,st:P.stage,at:Date.now()});
+  if(twin==null&&Q.aidable&&!(P.aid||{})[P.stage]){P.cf=P.cf||{};P.cf[P.stage]=(P.cf[P.stage]||0)+1;if(P.cf[P.stage]>=AID_N){P.aid=P.aid||{};P.aid[P.stage]=1;logAnswer({ev:'aid-on',lv:P.stage+1,st:P.stage,at:Date.now()});
     fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">${AID_N}かい つづけて しっぱい したので、<br>つぎから くりあがりの 1 が 出るよ（ほじょりん）</div>`)}save()}
   $('#padwrap').after(fb);fitScreen();
   if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
-  const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();try{b.scrollIntoView({block:'end',behavior:'smooth'})}catch(e){}b.onclick=()=>{const st=fb._stalled;fb.remove();setRes=[];if(st){P.stall[P.stage]=0;logAnswer({ev:'rescue-start',lv:P.stage+1,st:P.stage,at:Date.now()});startRescue('rescue',basesOf(P.stage));start();return}ARMED=true;start()}},lost?700+lost*110:300)}
+  const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();try{b.scrollIntoView({block:'end',behavior:'smooth'})}catch(e){}b.onclick=()=>{const st=fb._stalled,tw=fb._twin;fb.remove();setRes=[];if(tw!=null){const from=P.stage;P.tei=P.tei||{};P.tei[tw]=from;P.stage=tw;P.streak=P.streak||{};P.streak[tw]=0;save();logAnswer({ev:'tei-on',lv:from+1,st:from,to:tw,at:Date.now()});ARMED=false;start();return}if(st){P.stall[P.stage]=0;logAnswer({ev:'rescue-start',lv:P.stage+1,st:P.stage,at:Date.now()});startRescue('rescue',basesOf(P.stage));start();return}ARMED=true;start()}},lost?700+lost*110:300)}
 /* 1もんごとの きろく。手もとは 300もんまで、クラウドの ログ（tashihiki_users/{鍵}/log/{日}）には ぜんぶ のこす（11/23 ボス） */
 function histPush(e){P.lastPlay=Date.now();P.hist.push(e);if(P.hist.length>300)P.hist=P.hist.slice(-300);
   const s=STAGES[NS]||{};if(Q&&Q.hints)e.hn=Q.hints;logAnswer({...e,st:NS,k:s.kind||'',lim:s.kind==='nare'?+limOf().toFixed(2):0,sk:streakOf()})}
@@ -2082,6 +2099,9 @@ function finishItem(kind){
   if(MODE==='normal'&&(P.aid||{})[P.stage]&&streakOf()>=CLEAR_STREAK){ /* ほじょりん ありで 8もん つづいた → ていたい だっしゅつ。ほじょりん なしの ふつうに もどる（クリアには しない） */
     delete P.aid[P.stage];if(P.cf)P.cf[P.stage]=0;P.streak[P.stage]=0;setRes=[];save();logAnswer({ev:'aid-off',lv:P.stage+1,st:P.stage,at:Date.now()});
     overlay('🎉 ていたい だっしゅつ！','つぎは ほじょりん なしで やって みよう','lvup',()=>start(),'すすむ');return}
+  if(MODE==='normal'&&(P.tei||{})[P.stage]!=null&&streakOf()>=CLEAR_STREAK){ /* ていたい モードで 8もん つづいた → もとの じかんの レベルへ */
+    const from=P.stage,to=P.tei[from];delete P.tei[from];if(!P.cleared.includes(from))P.cleared.push(from);P.streak[from]=0;P.stage=to;setRes=[];save();logAnswer({ev:'tei-off',lv:from+1,st:from,to,at:Date.now()});
+    ARMED=false;overlay('🎉 ていたい だっしゅつ！',`Lv.${to+1}「${STAGES[to].name}」に もどるよ`,'lvup',()=>start(),'すすむ');return}
   if(MODE==='normal'&&streakOf()>=CLEAR_STREAK){showResult();return}
   if(MODE==='normal'&&Q.ok===false){const lost=prevStreak;renderMeter();const tk=qToken;setTimeout(()=>{if(tk===qToken)showResult()},lost?700+lost*110+300:500);return}
   start();

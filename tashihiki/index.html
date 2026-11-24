@@ -538,7 +538,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="pwa.js?v=1119"></script>
-<script src="../darts.js?v=1122a"></script>
+<script src="../darts.js?v=1124a"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -650,7 +650,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/24f';
+const VER='11/24g';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -660,9 +660,22 @@ const inviteURL=code=>`${SITE}?i=${code}`;
 const lineShare=text=>'https://line.me/R/share?text='+encodeURIComponent(text);
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+/* 記録の 保存（11/24 及川さんの 記録が 消えた 件）:
+   Firestore は「配列の 中の 配列」を 受けつけない。P.fix・P.screen.list が それに あたり、ある あいだ 保存が ずっと 失敗して いた。
+   → まるごとの 記録は 文字列（pj）で 送る。progress は 先生画面用に、配列の 中の 配列だけ 文字列に かえて 送る。失敗したら 10びょう後に やりなおす */
+function fsSafe(v,inArr){
+  if(Array.isArray(v))return inArr?JSON.stringify(v):v.map(x=>fsSafe(x,true));
+  if(v&&typeof v==='object'){const o={};for(const k in v)if(v[k]!==undefined)o[k]=fsSafe(v[k],false);return o}
+  return v;
+}
 function cloudSave(){
   if(!db||!TOKEN)return;clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>{db.collection(COL.users).doc(TOKEN).update({progress:P,stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});boardSave()},1500);
+  syncTimer=setTimeout(()=>{
+    const retry=e=>{try{console.warn('cloudSave',e)}catch(_){}clearTimeout(syncTimer);syncTimer=setTimeout(cloudSave,10000)};
+    try{const pj=JSON.stringify(P);
+      db.collection(COL.users).doc(TOKEN).update({pj,progress:fsSafe(JSON.parse(pj),false),stage:P.stage,seen:seenCount(),cleared:P.cleared.length,nick:ME?ME.nick:'',updated:firebase.firestore.FieldValue.serverTimestamp()}).catch(retry);
+    }catch(e){retry(e)}
+    boardSave()},1500);
 }
 /* 解答ログ: 1日 1ドキュメントに 追記（arrayUnion）。2びょう まとめて おくる。とじる ときにも おくる */
 let LOGQ=[],logTimer=null;
@@ -682,9 +695,16 @@ const kidURL=c=>`${SITE}?i=${c}`;
 async function loadKid(token,code){
   const d=await db.collection(COL.users).doc(token).get();
   if(!d.exists)return false;
+  const sameKid=lsGet(LS.token)===token;
   TOKEN=token;ME=d.data();CUR=code||ME.inv;lsSet(LS.token,token);
-  P=(ME.progress&&ME.progress.sp)?Object.assign(fresh(),ME.progress):fresh();setRes=[];applyJump(ME.jump);
-  lsSet(LS.p,JSON.stringify(P));
+  let cp=null;try{if(ME.pj)cp=JSON.parse(ME.pj)}catch(e){}
+  if(!(cp&&cp.sp))cp=(ME.progress&&ME.progress.sp)?ME.progress:null;
+  /* この 端末に のこっている 記録の ほうが 新しければ、そちらを つかって クラウドへ 送りなおす（クラウドへの 保存が 失敗して いても 消えない ように） */
+  let lp=null;if(sameKid){try{lp=JSON.parse(lsGet(LS.p))}catch(e){}}
+  const pt=x=>x?(x.lastPlay||(x.hist&&x.hist.length?x.hist[x.hist.length-1].at:0)||0):0;
+  const newer=!!(lp&&lp.sp&&pt(lp)>pt(cp));
+  P=Object.assign(fresh(),newer?lp:(cp||{}));setRes=[];
+  if(!applyJump(ME.jump)){lsSet(LS.p,JSON.stringify(P));if(newer)cloudSave()}
   showOnly('play');start();boardSave();dartsStart();return true;
 }
 /* ダーツ（ごほうび。九九ラボ・よむよむと 共通の 財布）: ログインで 1日1本 */

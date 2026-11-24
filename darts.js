@@ -56,6 +56,12 @@ const DARTS = (() => {
     } catch (e) { wallet = null; wid = null; }
     return wallet;
   }
+  // サーバーの いまの 財布を 読みなおす（先生が 支払った あと、子どもの 画面にも すぐ 出るように）
+  async function refresh() {
+    if (!db || !wid) return wallet;
+    try { const d = await db.collection(COL).doc(wid).get(); if (d.exists) wallet = d.data(); } catch (e) {}
+    return wallet;
+  }
   const balance = () => (wallet ? wallet.balance || 0 : null);
   const has = (k) => !!(wallet && wallet.claims && wallet.claims[k]);
 
@@ -139,6 +145,7 @@ const DARTS = (() => {
   async function resultBox(box, unit, kind) {
     if (!wallet) { box.innerHTML = ""; return; }
     box.innerHTML = '<div class="dt-box">…</div>';
+    await refresh();
     const r = await medal(unit, kind);
     const show = () => {
       const pend = pending();
@@ -185,7 +192,8 @@ const DARTS = (() => {
       tr.querySelector(".dt-pay").onclick = async () => {
         const n = Math.floor(+tr.querySelector(".dt-n").value);
         if (!(n > 0 && n <= (w.balance || 0))) { msg("支払う本数を 1〜いまの本数で 入れてください"); return; }
-        await tdb.collection(COL).doc(id).update({ balance: FV().increment(-n), paid: FV().increment(n), updated: FV().serverTimestamp(), log: FV().arrayUnion({ t: Date.now(), app: "先生", why: "支払い", n: -n }) });
+        try { await tdb.collection(COL).doc(id).update({ balance: FV().increment(-n), paid: FV().increment(n), updated: FV().serverTimestamp(), log: FV().arrayUnion({ t: Date.now(), app: "先生", why: "支払い", n: -n }) }); }
+        catch (e) { msg("支払いを 記録できませんでした。電波を たしかめて もういちど（" + (e && e.message || e) + "）"); return; }
         teacherPanel(box, tdb);
       };
       tr.querySelector(".dt-name").onchange = (e) => tdb.collection(COL).doc(id).update({ name: e.target.value.trim() });
@@ -206,6 +214,6 @@ const DARTS = (() => {
     };
   }
 
-  return { init, login, medal, resultBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
+  return { init, refresh, login, medal, resultBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
 })();
 window.DARTS = DARTS;

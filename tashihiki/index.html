@@ -650,7 +650,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/24e';
+const VER='11/24f';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -851,7 +851,7 @@ async function teacherScreen(){
     ${boardHTML(users,roots)}
     <div class="rep"><h3>新しい招待コードを発行</h3><div class="pbar"><input id="tLabel" placeholder="メモ（例: 年長 さくら組）" style="flex:1;font-size:1rem"><button class="btn sm" id="tNew">発行</button></div><div id="tNewOut"></div></div>`;
     roots.sort((a,b)=>(b.created?.seconds||0)-(a.created?.seconds||0)).forEach(r=>{
-      html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">コード ${esc(r.id)}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${inviteURL(r.id)}</div><ul class="tree">${byInv(r.id).map(node).join('')||'<li class="mt">まだ だれも</li>'}</ul></div>`});
+      html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">コード ${esc(r.id)}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${inviteURL(r.id)}</div><ul class="tree">${rootNode(r.id)}</ul></div>`});
     const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
     if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">${umeta(u)}</span></li>`).join('')}</ul></div>`;
     html+=`<div class="rep"><h3>一覧（最終利用順）</h3><div class="tbl"><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>できた</th><th>最終</th><th>この子の URL</th><th>飛び級</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/${SEENTOTAL}</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-u="${esc(urlOf(u))}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族以外に送らない）\n${urlOf(u)}`)}">LINE</a></td><td><select class="jSel" data-t="${esc(u.id)}" style="font-size:.85rem">${STAGES.map((st,i)=>`<option value="${i}" ${i===(u.stage||0)?'selected':''}>Lv.${i+1} ${esc(st.name)}</option>`).join('')}</select> <button class="btn sm jBtn" data-t="${esc(u.id)}">移動</button></td></tr>`).join('')}</table></div><p class="mt" style="color:var(--muted);font-size:.8rem">飛び級: 選んだステージへ移し、それより前をクリア扱いにします。子どもの端末には、次にアプリを開いたとき（または次の10問の始め）に反映されます。<br>この子の URL はその子の鍵です（どの端末でも これを ひらけば つづき）。保護者本人にだけ送ってください。</p></div></div>`;

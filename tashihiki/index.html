@@ -555,7 +555,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','いたの せかい','--pC']];   /* 11/23 ボス「２桁とばして３桁で完結」→ ぼうの せかい（じゅんび中）は なくした */
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる たしざん（じかん①）'],[0,'5を こえる たしざん（じかん②）'],[0,'5を こえる たしざん（じかん③）'],[0,'5を こえる（式だけ）'],[0,'5を こえる（式だけ・じかん①）'],[0,'5を こえる（式だけ・じかん②）'],[0,'5を こえる（式だけ・じかん③）'],[0,'6〜9＋小さい数'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'ひきざん（式だけ・じかん）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり①（じかん）'],[0,'くりあがり②'],[0,'くりあがり②（じかん）'],[0,'くりあがり そうテスト'],[0,'くりさがり'],[0,'くりさがり（じかん）'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる たしざん（じかん①）'],[0,'5を こえる たしざん（じかん②）'],[0,'5を こえる たしざん（じかん③）'],[0,'5を こえる（式だけ）'],[0,'5を こえる（式だけ・じかん①）'],[0,'5を こえる（式だけ・じかん②）'],[0,'5を こえる（式だけ・じかん③）'],[0,'6〜9＋小さい数（じかん①）'],[0,'6〜9＋小さい数（じかん②）'],[0,'6〜9＋小さい数（じかん③）'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'ひきざん（式だけ・じかん）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり①（じかん）'],[0,'くりあがり②'],[0,'くりあがり②（じかん）'],[0,'くりあがり そうテスト'],[0,'くりさがり'],[0,'くりさがり（じかん）'],[0,'まぜて 20まで'],
  [1,'3けたの かず①'],[1,'3けたの かず②（1が ある）'],[1,'3けたの かず③（0が ある）'],[1,'3けたの かず（じかん）'],[1,'3けたの たしざん'],[1,'3けたの たしざん（きえる）'],[1,'3けたの たしざん（式だけ）'],[1,'3けたの ひきざん'],[1,'3けたの ひきざん（きえる）'],[1,'3けたの ひきざん（式だけ）'],[1,'くりあがり（タイル）'],[1,'くりあがり（1を かく）'],[1,'くりあがり（式だけ）'],[1,'くりあがり（じかん）'],[1,'ぼうの くりあがり（タイル）'],[1,'ぼうの くりあがり（式だけ）'],[1,'ぼうの くりあがり（じかん）'],[1,'くりあがった さきが 0'],[1,'くりあがった さきが 0（じかん）'],[1,'ちょうど 10で 0'],[1,'ちょうど 10で 0（じかん）'],[1,'9に 1が くる'],[1,'9に 1が くる（じかん）'],[1,'10と 9が かさなる'],[1,'10と 9が かさなる（じかん）'],[1,'2かい くりあがる'],[1,'2かい くりあがる（じかん）'],[1,'たしざん まぜて'],[1,'たしざん まぜて（じかん）'],[1,'ぜんぶ くりあがる'],[1,'ぜんぶ くりあがる（じかん）'],
 ];
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
@@ -582,7 +582,10 @@ const STAGES=[
  S('5を こえる（式だけ・じかん①）',[6,7,8],0,k=>genOver5(k,true),0,3),   // Lv11 3びょう（もとの Lv7）
  Object.assign(S('5を こえる（式だけ・じかん②）',[6,7,8],0,k=>genOver5(k,true),0,3),{limMul:2/3}),   // Lv12
  Object.assign(S('5を こえる（式だけ・じかん③）',[6,7,8],0,k=>genOver5(k,true),0,3),{limMul:1/2}),   // Lv13
- S('6〜9＋小さい数',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),   // ためす（Lv6と おなじ）
+ /* 11/26 19:09 ボス「Lv14も３つに分けましょう（時間で）」: 先生画面の 時間 → 2/3 → 1/2 */
+ S('6〜9＋小さい数（じかん①）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),
+ Object.assign(S('6〜9＋小さい数（じかん②）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),{limMul:2/3}),
+ Object.assign(S('6〜9＋小さい数（じかん③）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),{limMul:1/2}),
  S('6〜10の 分解①',[6,7,8,9],0,k=>sideBag(k,1,4,1,5)),   // ためす: 見えている タイルか くさむらを おすと 左右が いれかわる（11/22 19:26 ボス「Lv9とLv10入れ替え」）
  S('6〜10の 分解②',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト
  S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),
@@ -634,15 +637,15 @@ const STAGES=[
 ];
 STAGES.forEach((s,i)=>{s.p=LEVELS[i][0];s.lv=i+1});
 /* 学校で ならう 時期の めやす（教育出版 令和6年度版。ひき算は 推測）。スタート画面に 出す（11/23 ボス） */
-const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=13?'小1 6月ごろ':i<=18?'小1 5〜6月ごろ':i<=20?'小1 6〜7月ごろ':i<=24?'小1 7月ごろ':i===25?'小1 9月ごろ':i<=30?'小1 10〜11月ごろ':i<=32?'小1 12月ごろ':i===33?'小1 1月ごろ':i<=37?'小2 6月ごろ':'小3 5月ごろ';
+const WHEN=i=>i<=3?'小1 4〜5月ごろ':i===4?'小1 5〜6月ごろ':i<=15?'小1 6月ごろ':i<=20?'小1 5〜6月ごろ':i<=22?'小1 6〜7月ごろ':i<=26?'小1 7月ごろ':i===27?'小1 9月ごろ':i<=32?'小1 10〜11月ごろ':i<=34?'小1 12月ごろ':i===35?'小1 1月ごろ':i<=39?'小2 6月ごろ':'小3 5月ごろ';
 /* つまずきの 多い 段 と、その ベースに なる 段（0はじまり）。ていたい だっしゅつ・ふりかえりで ベースを ノーミスで 1しゅう する（11/23 ボス）
    Lv3→Lv1 ／ Lv4→Lv3 ／ Lv5→Lv4 ／ Lv9〜12（分解）→Lv5〜8（11/23 19:57 ボス）／ Lv13（10の なかま）→Lv10 ／ Lv16・17（ちがいは）→Lv14 ／ Lv21〜25（くりあがり）・Lv26・27（くりさがり）→Lv13 */
-const BASE={2:0,3:2,4:3,18:15,21:19,22:19,26:18,27:18,28:18,29:18,30:18,31:18,32:18};   /* 11/26: 番号を 6つ ずらした。もとの Lv8〜11 の ぶんは BACK に かえた */
+const BASE={2:0,3:2,4:3,20:17,23:21,24:21,28:20,29:20,30:20,31:20,32:20,33:20,34:20};   /* 11/26: 番号を 6つ ずらした。もとの Lv8〜11 の ぶんは BACK に かえた */
 /* さいこうきろくが STALL_N かい のびなかったら もどる 先（0はじまり）。Lv14〜17（もとの Lv8〜11）→ Lv10。Lv10 → Lv6。もどった 先から じゅんに クリアしなおす（11/26 16:58 ボス） */
-const BACK={13:9,14:9,15:9,16:9,9:5};
+const BACK={9:5,13:9,14:9,15:9,16:9,17:9,18:9};
 /* じかんの レベル → 対に なる じっくりの レベル（0はじまり）。じかんの レベルで 1もんでも つまずいたら、じっくりへ もどして「ていたい モード」。
    そこで 8もん つづけて できたら もとの じかんの レベルへ（11/24 21:17・22:04 ボス）。対の ある レベルでは「さいこうきろくが 3かい のびない → ていたい だっしゅつ」は つかわない */
-const TWIN={6:5,7:5,8:5,10:9,11:9,12:9,17:16,20:19,22:21,24:23,27:26,29:28,32:31,47:46,50:49,52:51,54:53,56:55,58:57,60:59,62:61,64:63};
+const TWIN={6:5,7:5,8:5,10:9,11:9,12:9,19:18,22:21,24:23,26:25,29:28,31:30,34:33,49:48,52:51,54:53,56:55,58:57,60:59,62:61,64:63,66:65};
 const TWIN_J=Object.values(TWIN);
 const AID_N=3;      /* くりあがりの 式だけの レベル: つづけて これだけ しっぱい したら ほじょりん あり（11/24 ボス） */
 const STALL_N=3;    /* さいこうきろくが のびない ちょうせんが これだけ つづいたら「ていたい」 */
@@ -653,7 +656,7 @@ const baseLabel=bs=>bs.length>1?`Lv.${bs[0]+1}〜${bs[bs.length-1]+1}`:`Lv.${bs[
    nare なれる → 制限時間内に 連続8もんで クリア（リーチ なし） */
 /* ボスの 指示（11/22）より: Lv1 復習・Lv4 このまま（時間）・Lv5 なれる・Lv8 時間しばり（Lv6 は 11/22 18:05 ボス「Lv6時間制限なし」）・Lv7 なれる・Lv10 定着テスト（11/22 19:26 Lv9と いれかえ）・Lv14 合格2秒・Lv15 なれる → nare
    Lv2 数字→量・Lv3 量→数字（時間 なし。11/22 ボス）→ teach ／ Lv9・Lv11〜13（試行錯誤）→ try ／ Lv16〜21 は「未定（変更なし）」なので もとの 時間あり（nare）のまま。かってに かえない */
-const KIND=['nare','teach','teach','nare','nare','try','nare','nare','nare','try','nare','nare','nare','nare','try','nare','try','nare','try','try','nare','try','nare','try','nare','nare','try','nare','try','nare','nare','try','nare','nare','teach','teach','teach','nare','try','try','try','try','try','try','try','try','try','nare','try','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare'];
+const KIND=['nare','teach','teach','nare','nare','try','nare','nare','nare','try','nare','nare','nare','nare','nare','nare','try','nare','try','nare','try','try','nare','try','nare','try','nare','nare','try','nare','try','nare','nare','try','nare','nare','teach','teach','teach','nare','try','try','try','try','try','try','try','try','try','nare','try','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare','try','nare'];
 STAGES.forEach((s,i)=>{s.kind=KIND[i]||'nare'});
 const CLEAR_STREAK=8;
 const SET=10,CLEAR_MIN=8;
@@ -665,7 +668,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26a';
+const VER='11/26b';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1882,7 +1885,7 @@ function finishScreen(pass){const S=P.screen;
   if(weak!=null){P.stage=weak;save();overlay('たしかめテスト おわり',`Lv.${weak+1}「${esc(STAGES[weak].name)}」で れんしゅう しよう。<br>ここが すらすら できると、タイルを うごかすのも らくに なるよ`,'fix',()=>start(),'すすむ');return}
   P.stage=S.from;save();overlay('たしかめテスト おわり',`Lv.3〜5 は だいじょうぶ！<br>Lv.${S.from+1} で、タイルを うごかして ためして みよう`,'fix',()=>start(),'すすむ')}
 /* ---- レベルの ならびが かわった（11/22: Lv15「ひきざん（式だけ）」を 入れて うしろへ 1つ ずらす）ときの きろくの 引っこし ---- */
-function migrateLayout(){if((P.lay||1)>=11)return;if((P.lay||1)===10){migrateLay11();return}if((P.lay||1)===9){migrateLay10();return}if((P.lay||1)===8){migrateLay9();return}if((P.lay||1)===7){migrateLay8();return}if((P.lay||1)===6){migrateLay7();return}if((P.lay||1)===5){migrateLay6();return}if((P.lay||1)===4){migrateLay5();return}if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
+function migrateLayout(){if((P.lay||1)>=12)return;if((P.lay||1)===11){migrateLay12();return}if((P.lay||1)===10){migrateLay11();return}if((P.lay||1)===9){migrateLay10();return}if((P.lay||1)===8){migrateLay9();return}if((P.lay||1)===7){migrateLay8();return}if((P.lay||1)===6){migrateLay7();return}if((P.lay||1)===5){migrateLay6();return}if((P.lay||1)===4){migrateLay5();return}if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
   P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=k.indexOf(sep);if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');
@@ -1943,7 +1946,14 @@ function migrateLay11(){const sh=i=>i>=7?i+6:i===6?10:i,was=P.stage;
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');P.aid=mv(P.aid,'');P.cf=mv(P.cf,'');P.stall=mv(P.stall,'');
   if(P.tei){const r={};for(const [k,v] of Object.entries(P.tei))r[sh(+k)]=sh(v);P.tei=r}
-  delete P.screen;delete P.fix;delete P.fixTotal;if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=11}
+  delete P.screen;delete P.fix;delete P.fixTotal;if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=11;migrateLayout()}
+/* lay12（11/26 19:09 ボス）: Lv14 6〜9＋小さい数 を じかん①②③ の 3レベルに。Lv15 いこうは 2つ うしろへ */
+function migrateLay12(){const sh=i=>i>=14?i+2:i,was=P.stage;
+  P.stage=sh(was);P.cleared=(P.cleared||[]).map(sh);if(was>=14)[14,15].forEach(i=>{if(!P.cleared.includes(i))P.cleared.push(i)});
+  const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
+  P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');P.aid=mv(P.aid,'');P.cf=mv(P.cf,'');P.stall=mv(P.stall,'');
+  if(P.tei){const r={};for(const [k,v] of Object.entries(P.tei))r[sh(+k)]=sh(v);P.tei=r}
+  delete P.screen;delete P.fix;delete P.fixTotal;if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=12}
 
 /* ===== 1もんの ながれ =====
    スタート → タイルを 一瞬 見せて かくす → テンキーで こたえ（ちがう 数字は 入らない。1回 0.1びょう たす）→ ぜんぶ 入ったら すぐ はんてい

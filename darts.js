@@ -78,6 +78,8 @@ const DARTS = (() => {
     return n;
   }
 
+  // ボーナス（レベル チェックなど）：key は 1回ごとに ちがう もの。n は 1〜12
+  async function bonus(n, key, why) { if (!wallet) return 0; await refresh(); return Math.max(0, await give(n, [key], why)); }
   // ログイン：アプリごとに 1日1本
   async function login() {
     const k = "login_" + ctx.app + "_" + today();
@@ -214,6 +216,6 @@ const DARTS = (() => {
     };
   }
 
-  return { init, refresh, login, medal, resultBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
+  return { init, refresh, bonus, login, medal, resultBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
 })();
 window.DARTS = DARTS;

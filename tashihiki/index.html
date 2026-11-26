@@ -540,7 +540,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="pwa.js?v=1119"></script>
-<script src="../darts.js?v=1124a"></script>
+<script src="../darts.js?v=1126a"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s);
@@ -647,6 +647,12 @@ const BACK={9:5,13:9,14:9,15:9,16:9,17:9,18:9};
    そこで 8もん つづけて できたら もとの じかんの レベルへ（11/24 21:17・22:04 ボス）。対の ある レベルでは「さいこうきろくが 3かい のびない → ていたい だっしゅつ」は つかわない */
 const TWIN={6:5,7:5,8:5,10:9,11:9,12:9,19:18,22:21,24:23,26:25,29:28,31:30,34:33,49:48,52:51,54:53,56:55,58:57,60:59,62:61,64:63,66:65};
 const TWIN_J=Object.values(TWIN);
+/* スクリーニング（レベル チェック。11/26 19:20・19:27 ボス）: 学年を えらぶ → Lv10〜その学年の 上限 から 10もん（その レベルの 時間で）。
+   まちがいが あれば、いちばん 低い まちがいレベルの 1つ 手前を 上限に して つぎの テスト。全問正解なら 同じ 範囲で もう一度。
+   3かい 以上 テストして、全問正解できた 範囲の 上限が 開始レベル（さいだい 6かい）。Lv10 だけでも 全問正解 できなければ Lv6 から。
+   ダーツ: テスト 1かいごとに 100点 3本・80点 2本・60点 1本。開始レベルより 前の レベルでは ダーツは 出ない */
+const PLACE_LO=9,PLACE_FLOOR=5,PLACE_MIN=3,PLACE_MAX=6,PLACE_N=10;
+const GRADES=[['小1',35],['小2',39],['小3',66],['小4',66],['小5',66],['小6〜',66]];   /* 上限（0はじまり）: 小1 Lv36 まぜて 20まで／小2 Lv40 3けたの かず／小3〜 Lv67 */
 const AID_N=3;      /* くりあがりの 式だけの レベル: つづけて これだけ しっぱい したら ほじょりん あり（11/24 ボス） */
 const STALL_N=3;    /* さいこうきろくが のびない ちょうせんが これだけ つづいたら「ていたい」 */
 const AWAY_DAYS=2;  /* 11/23 19:57 ボス「日にちは２日」 */
@@ -668,7 +674,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26b';
+const VER='11/26c';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -722,7 +728,7 @@ async function loadKid(token,code){
   const pt=x=>x?(x.lastPlay||(x.hist&&x.hist.length?x.hist[x.hist.length-1].at:0)||0):0;
   const newer=!!(lp&&lp.sp&&pt(lp)>pt(cp));
   P=Object.assign(fresh(),newer?lp:(cp||{}));setRes=[];
-  if(!applyJump(ME.jump)){lsSet(LS.p,JSON.stringify(P));if(newer)cloudSave()}
+  const jp=applyJump(ME.jump),pl=applyPlace(ME.place);if(!jp&&!pl){lsSet(LS.p,JSON.stringify(P));if(newer)cloudSave()}
   showOnly('play');start();boardSave();dartsStart();return true;
 }
 /* ダーツ（ごほうび。九九ラボ・よむよむと 共通の 財布）: ログインで 1日1本 */
@@ -780,7 +786,7 @@ function registerScreen(code,inv,claimed){
         $('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     }
     const root=inv.by==='teacher'?code:(inv.root||code);
-    P=fresh();P.name=nick;
+    P=fresh();P.name=nick;P.needPlace=true;   /* あたらしく 登録した 子は、さいしょに かならず レベル チェック（11/26 ボス） */
     try{
       await db.collection(COL.users).doc(token).set({nick,code:my,inv:code,root,progress:P,stage:0,seen:0,cleared:0,created:ts,updated:ts});
       await db.collection(COL.invites).doc(my).set({by:'user',parent:code,root,nick,created:ts}); // みんなの様子 用
@@ -892,7 +898,7 @@ async function teacherScreen(){
       html+=`<div class="rep"><h3>${esc(r.label||'（メモなし）')}　<span class="mt" style="font-weight:400;color:var(--muted)">コード ${esc(r.id)}　${countBranch(r.id)} 人　${fmt(r.created)}</span></h3><div class="codebox">${inviteURL(r.id)}</div><ul class="tree">${rootNode(r.id)}</ul></div>`});
     const orphan=users.filter(u=>!invites.some(i=>i.id===u.inv));
     if(orphan.length)html+=`<div class="rep"><h3>招待元が不明</h3><ul class="tree">${orphan.map(u=>`<li><span class="nm">${esc(u.nick)}</span><span class="mt">${umeta(u)}</span></li>`).join('')}</ul></div>`;
-    html+=`<div class="rep"><h3>一覧（最終利用順）</h3><div class="tbl"><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>できた</th><th>最終</th><th>この子の URL</th><th>飛び級</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/${SEENTOTAL}</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-u="${esc(urlOf(u))}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族以外に送らない）\n${urlOf(u)}`)}">LINE</a></td><td><select class="jSel" data-t="${esc(u.id)}" style="font-size:.85rem">${STAGES.map((st,i)=>`<option value="${i}" ${i===(u.stage||0)?'selected':''}>Lv.${i+1} ${esc(st.name)}</option>`).join('')}</select> <button class="btn sm jBtn" data-t="${esc(u.id)}">移動</button></td></tr>`).join('')}</table></div><p class="mt" style="color:var(--muted);font-size:.8rem">飛び級: 選んだステージへ移し、それより前をクリア扱いにします。子どもの端末には、次にアプリを開いたとき（または次の10問の始め）に反映されます。<br>この子の URL はその子の鍵です（どの端末でも これを ひらけば つづき）。保護者本人にだけ送ってください。</p></div></div>`;
+    html+=`<div class="rep"><h3>一覧（最終利用順）</h3><div class="tbl"><table class="tt"><tr><th>ニックネーム</th><th>枝</th><th>ステージ</th><th>できた</th><th>最終</th><th>この子の URL</th><th>飛び級・レベルチェック</th></tr>${users.sort((a,b)=>(b.updated?.seconds||0)-(a.updated?.seconds||0)).map(u=>`<tr><td>${esc(u.nick)}</td><td>${esc(u.root||'')}</td><td>${(u.stage||0)+1}</td><td>${u.seen||0}/${SEENTOTAL}</td><td>${fmt(u.updated)}</td><td><button class="btn ghost sm hoBtn" data-u="${esc(urlOf(u))}">コピー</button> <a class="btn ghost sm" style="text-decoration:none" target="_blank" rel="noopener" href="${lineShare(`${APP} ${u.nick} さんの URL（家族以外に送らない）\n${urlOf(u)}`)}">LINE</a></td><td><select class="jSel" data-t="${esc(u.id)}" style="font-size:.85rem">${STAGES.map((st,i)=>`<option value="${i}" ${i===(u.stage||0)?'selected':''}>Lv.${i+1} ${esc(st.name)}</option>`).join('')}</select> <button class="btn sm jBtn" data-t="${esc(u.id)}">移動</button> <button class="btn ghost sm pBtn" data-t="${esc(u.id)}">レベルチェック</button></td></tr>`).join('')}</table></div><p class="mt" style="color:var(--muted);font-size:.8rem">レベルチェック: 押すと、その子が次にアプリを開いたとき、学年を選んで開始レベルを決めるテスト（10問×3回以上）が始まります。<br>飛び級: 選んだステージへ移し、それより前をクリア扱いにします。子どもの端末には、次にアプリを開いたとき（または次の10問の始め）に反映されます。<br>この子の URL はその子の鍵です（どの端末でも これを ひらけば つづき）。保護者本人にだけ送ってください。</p></div></div>`;
     html+=`<div class="rep" id="logPanel"><h3>解答ログ（どこが 重い・軽い）</h3><p class="mt" style="color:var(--muted);font-size:.8rem">1もんごとの きろく（11/23 から）。レベル番号は 記録した ときの 版の もの。</p><div class="pbar"><button class="btn sm" id="logLoad">集計する</button><button class="btn ghost sm" id="logCsv" hidden>CSV ダウンロード</button></div><div id="logOut"></div></div>`;
     html+=`<div class="rep" id="dtPanel"></div>`;
     T.innerHTML=html;
@@ -901,6 +907,8 @@ async function teacherScreen(){
     $('#tReload').onclick=dashboard;$('#tOut').onclick=()=>fbAuth.signOut();
     document.querySelectorAll('.jBtn').forEach(b=>b.onclick=async()=>{const sel=document.querySelector(`.jSel[data-t="${b.dataset.t}"]`),to=+sel.value;b.disabled=true;
       try{await db.collection(COL.users).doc(b.dataset.t).update({jump:{to,at:Date.now()},stage:to});b.textContent='移動しました'}catch(e){b.textContent='失敗';b.disabled=false}});
+    document.querySelectorAll('.pBtn').forEach(b=>b.onclick=async()=>{b.disabled=true;
+      try{await db.collection(COL.users).doc(b.dataset.t).update({place:{at:Date.now()}});b.textContent='指定しました'}catch(e){b.textContent='失敗';b.disabled=false}});
     document.querySelectorAll('.hoBtn').forEach(b=>b.onclick=()=>{const u=b.dataset.u;navigator.clipboard?.writeText(u).then(()=>{b.textContent='コピーしました';setTimeout(()=>b.textContent='コピー',1500)}).catch(()=>{})});
     const bf=$('#bFilter');if(bf)bf.onchange=()=>document.querySelectorAll('.board tr[data-root]').forEach(tr=>tr.hidden=!!bf.value&&tr.dataset.root!==bf.value);
     $('#tNew').onclick=async()=>{const code=rnd(6);const label=$('#tLabel').value.trim();
@@ -1238,11 +1246,11 @@ function ensureMeter(){if(METER)return;METER=el('div','meter');
   TBAR=el('div','tbar');TBAR.innerHTML='<i></i>';$('#stagewrap').before(TBAR)}
 /* 画面はばを 8つに わけた マス。正解で 1つ すすむ。さいこうきろくまでは 金色の わく。まちがえると とった マスが 1つずつ くずれて きえる */
 function renderMeter(){ensureMeter();const show=MODE==='normal';METER.hidden=!(show||MODE==='screen');
-  const kind=MODE==='screen'?(P.screen&&P.screen.mode?'jk':'nare'):cur().kind;METER.className='meter '+(kind==='nare'?'nare':'jk');
+  const kind=MODE==='screen'?(P.screen&&P.screen.mode&&!isPlace()?'jk':'nare'):cur().kind;METER.className='meter '+(kind==='nare'?'nare':'jk');
   METER.querySelector('.mmode').textContent=kind==='nare'?'⏱ じかん せいげん あり':'🤔 じっくり かんがえて いいよ';
   const segs=[...METER.querySelectorAll('.seg')];
   METER.querySelector('.msegs').style.display=MODE==='screen'?'none':'';
-  if(MODE==='screen'){METER.querySelector('.mlab').textContent=modeName();if(P.screen&&P.screen.mode)METER.querySelector('.mmode').textContent='ノーミスで 1しゅう';METER.querySelector('.mnum').textContent='';METER.querySelector('.mleft').textContent='';segs.forEach(g=>g.className='seg');prevStreak=0;return}
+  if(MODE==='screen'){METER.querySelector('.mlab').textContent=modeName();if(P.screen&&P.screen.mode&&!isPlace())METER.querySelector('.mmode').textContent='ノーミスで 1しゅう';METER.querySelector('.mnum').textContent='';METER.querySelector('.mleft').textContent='';segs.forEach(g=>g.className='seg');prevStreak=0;return}
   METER.querySelector('.mlab').textContent='れんぞく';
   const s=streakOf(),best=Math.min(CLEAR_STREAK,(P.best||{})[P.stage]||0);
   METER.querySelector('.mnum').innerHTML=`<b>${s}</b> / ${CLEAR_STREAK}　<small>さいこう ${best}</small>`;
@@ -1252,7 +1260,7 @@ function renderMeter(){ensureMeter();const show=MODE==='normal';METER.hidden=!(s
     else{g.classList.toggle('on',i<s);if(i===s-1&&s>prevStreak){g.classList.remove('pop');void g.offsetWidth;g.classList.add('pop')}}});
   const left=CLEAR_STREAK-s;const ml=METER.querySelector('.mleft');ml.textContent=left<=3&&left>0?`あと ${left}もん！`:'';ml.classList.toggle('hot',left<=3);
   prevStreak=s}
-function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||(MODE==='screen'&&!(P.screen&&P.screen.mode));TBAR.hidden=!timed;if(!timed)return;
+function barStart(){ensureMeter();const timed=(MODE==='normal'&&cur().kind==='nare')||(MODE==='screen'&&(!(P.screen&&P.screen.mode)||isPlace()));TBAR.hidden=!timed;if(!timed)return;
   const ms=limOf()*1000*Q.fields.length,b=TBAR.querySelector('i');TBAR.classList.remove('over');b.style.transition='none';b.style.width='100%';void b.offsetWidth;
   b.style.transition=`width ${ms}ms linear`;b.style.width='0%';clearTimeout(TBAR._t);TBAR._t=setTimeout(()=>TBAR.classList.add('over'),ms)}
 function barStop(){if(!TBAR)return;const b=TBAR.querySelector('i');b.style.width=getComputedStyle(b).width;b.style.transition='none';clearTimeout(TBAR._t)}
@@ -1267,7 +1275,7 @@ function renderProg(){
   if(MODE==='screen'&&P.screen){const S=P.screen;
     for(let i=0;i<S.list.length;i++){const d=el('i');if(i<S.i)d.className='p';p.appendChild(d)}
     $('#progress').textContent=S.mode?`${Math.min(S.i+1,S.list.length)} / ${S.list.length}`:`たしかめテスト ${Math.min(S.i+1,S.list.length)} / ${S.list.length}`;
-    $('#stageTag').textContent=S.mode?`${modeName()} Lv.${NS+1}`:`たしかめテスト（Lv.${NS+1}）`;$('#stageTag').style.background=`var(${PH[0][2]})`;return}
+    $('#stageTag').textContent=S.mode==='place'?`レベル チェック ${S.tests+1}かいめ`:S.mode?`${modeName()} Lv.${NS+1}`:`たしかめテスト（Lv.${NS+1}）`;$('#stageTag').style.background=`var(${PH[0][2]})`;return}
   if(MODE==='lvup'&&P.lvup){
     const L=P.lvup;
     L.facts.forEach((f,j)=>{if(j)p.appendChild(el('span','gap'));for(let i=0;i<LVUP_NEED;i++){const d=el('i');if(i<(L.st[f]||0))d.className='p';p.appendChild(d)}});
@@ -1288,7 +1296,7 @@ function applyJump(j){
 }
 function checkJump(){
   if(!db||!TOKEN)return;
-  db.collection(COL.users).doc(TOKEN).get().then(d=>{if(d.exists&&applyJump(d.data().jump))start()}).catch(()=>{});
+  db.collection(COL.users).doc(TOKEN).get().then(d=>{if(!d.exists)return;const a=applyJump(d.data().jump),b=applyPlace(d.data().place);if(a||b)start()}).catch(()=>{});
 }
 function newFactsOf(i){return STAGES[i].facts.slice()}
 function overlay(title,sub,kind,then,btn){
@@ -1864,7 +1872,8 @@ const SCREEN_ST=[2,3,4];
 function startScreen(from){const list=[];SCREEN_ST.forEach(st=>{const fs=shuffle(STAGES[st].facts.slice());list.push([st,fs[0]],[st,fs[1]])});P.screen={from,list:shuffle(list),i:0,ng:{}};save()}
 /* ===== ていたい だっしゅつ モード／ふりかえり モード（11/23 ボス）=====
    ベースの 段の もんだいを 1しゅるい 1もんずつ、ノーミス（ちがう 数字を おさない）で 1しゅう できたら もとの レベルへ。まちがえたら さいしょから */
-const modeName=()=>!P.screen||!P.screen.mode?'たしかめテスト':P.screen.mode==='rescue'?'ていたい だっしゅつ':'ふりかえり';
+const isPlace=()=>!!(P.screen&&P.screen.mode==='place');
+const modeName=()=>!P.screen||!P.screen.mode?'たしかめテスト':P.screen.mode==='place'?'レベル チェック':P.screen.mode==='rescue'?'ていたい だっしゅつ':'ふりかえり';
 const rescueList=bs=>[].concat(...bs.map(b=>shuffle(STAGES[b].facts.slice()).map(f=>[b,f]))); /* レベルの じゅんに、中は まぜて */
 function startRescue(mode,bases,from){if(from==null)from=P.stage;bases=[].concat(bases);P.screen={from,bases,mode,list:rescueList(bases),i:0,ng:{}};setRes=[];save()}
 function awayCheck(){const last=P.lastPlay||(P.hist&&P.hist.length?P.hist[P.hist.length-1].at:0);if(!last)return false;
@@ -1872,7 +1881,37 @@ function awayCheck(){const last=P.lastPlay||(P.hist&&P.hist.length?P.hist[P.hist
   const bs=basesOf(P.stage)||[P.stage-1];if(bs[0]<0||bs.some(b=>!STAGES[b])){save();return false}
   startRescue('review',bs);
   overlay('ひさしぶり！',`${days}日ぶり だね。<br><b>ふりかえり モード</b><br>${esc(baseLabel(bs))} を<br>ノーミスで 1しゅう してから<br>Lv.${P.stage+1} に もどろう`,'fix',()=>start(),'はじめる');return true}
+/* ===== スクリーニング（レベル チェック）===== */
+function placeList(lo,hi){const n=hi-lo+1,l=[];for(let j=0;j<PLACE_N;j++){const a=lo+Math.floor(j*n/PLACE_N),b=lo+Math.floor((j+1)*n/PLACE_N)-1,st=n<PLACE_N?lo+j%n:rint(a,Math.max(a,b));l.push([st,choice(STAGES[st].facts)])}return shuffle(l)}
+function showGrade(){MODE='normal';NS=P.stage;qToken++;phase='ready';if(TBAR)TBAR.hidden=true;if(METER)METER.hidden=true;document.querySelectorAll('.mark,#failbox').forEach(x=>x.remove());
+  $('#progress').textContent='';$('#prog').innerHTML='';$('#stageTag').textContent='レベル チェック';
+  $('#q').hidden=true;const r=$('#result');r.hidden=false;
+  r.innerHTML=`<h2>レベル チェック</h2><p style="font-size:1.1rem">どの レベルから はじめるか、テストで きめるよ。<br>1かい 10もん。3かい いじょう やるよ。<br>100てん 🎯3本・80てん 2本・60てん 1本</p><h2 style="margin-top:14px">なんねんせい？</h2>
+  <div class="mapbtns" style="flex-wrap:wrap;justify-content:center;gap:10px">${GRADES.map((g,i)=>`<button class="btn" data-g="${i}" style="font-size:1.3rem;min-width:5.2em">${g[0]}</button>`).join('')}</div>`;
+  r.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=GRADES[+b.dataset.g];delete P.needPlace;delete P.fix;delete P.fixTotal;delete P.lvup;
+    P.screen={mode:'place',from:P.stage,grade:g[0],hi:g[1],list:placeList(PLACE_LO,g[1]),i:0,miss:[],tests:0,ng:{}};setRes=[];save();logAnswer({ev:'place-start',grade:g[0],hi:g[1],at:Date.now()});start()})}
+function placeMiss(){if(phase!=='input')return;phase='shown';$('#pad').classList.add('locked');barStop();
+  const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
+  histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:false,at:Date.now(),b:'place'});P.days[today()]=(P.days[today()]||0)+1;save();
+  showMark(false,'',()=>finishScreen(false))}
+async function placeEnd(){const S=P.screen,score=Math.round((S.list.length-S.miss.length)/S.list.length*100),dn=score>=100?3:score>=80?2:score>=60?1:0,hi0=S.hi;S.tests++;
+  const low=S.miss.length?Math.min(...S.miss):null;let done=null;
+  if(low==null){if(S.tests>=PLACE_MIN)done=S.hi}
+  else if(S.hi<=PLACE_LO)done=PLACE_FLOOR;
+  else S.hi=Math.max(PLACE_LO,low-1);
+  if(done==null&&S.tests>=PLACE_MAX)done=S.hi;
+  logAnswer({ev:'place-test',no:S.tests,score,hi:hi0,miss:S.miss.map(x=>x+1).join(','),next:done==null?S.hi:null,start:done,at:Date.now()});
+  let got=0;if(dn&&window.DARTS&&db&&TOKEN&&DARTS.bonus){try{got=await DARTS.bonus(dn,'tashihiki_place_'+Date.now(),'レベル チェック')}catch(e){got=0}}
+  const dl=got>0?`<br>🎯 ダーツ ＋${got}本！（いま ${DARTS.balance()}本）`:'';
+  if(done==null){const no=S.tests;S.list=placeList(PLACE_LO,S.hi);S.i=0;S.miss=[];save();
+    overlay(`${score}てん！`,`${no}かいめ おわり${dl}<br>つぎは ${no+1}かいめ`,'fix',()=>start(),'つぎへ');return}
+  const tests=S.tests,grade=S.grade;delete P.screen;MODE='normal';setRes=[];P.stage=done;for(let i=0;i<done;i++)if(!P.cleared.includes(i))P.cleared.push(i);
+  P.dartFrom=done;P.placed={at:Date.now(),grade,start:done,tests};P.streak=P.streak||{};P.streak[done]=0;ARMED=false;save();
+  overlay(`${score}てん！`,`レベル チェック おわり${dl}<br><b>Lv.${done+1}「${esc(STAGES[done].name)}」</b><br>から スタート`,'lvup',()=>start(),'すすむ')}
+/* 先生画面からの スクリーニング指定: users.place={at}。開いたとき（と 10もんの はじめ）に たしかめる */
+function applyPlace(p){if(!p||!(p.at>(P.placeAt||0)))return false;P.placeAt=p.at;P.needPlace=true;delete P.screen;setRes=[];save();return true}
 function finishScreen(pass){const S=P.screen;
+  if(S.mode==='place'){if(!pass)S.miss.push(NS);S.i++;if(S.i<S.list.length){save();start();return}placeEnd();return}
   if(S.mode){
     if(!pass){S.list=S.bases?rescueList(S.bases):shuffle(S.list);S.i=0;save();overlay('おしい！','ノーミスで 1しゅう できたら もどれるよ。<br>もういちど さいしょから','fix',()=>start(),'もういちど');return}
     S.i++;if(S.i<S.list.length){save();start();return}
@@ -1977,7 +2016,7 @@ function typeKey(k){
   if(k==='del'){vals[active]=vals[active].slice(0,-1);showVals();return}
   const exp=expOf(active);
   if(vals[active].length>=exp.length)return;
-  if(exp[vals[active].length]!==k){rejects++;if(MODE==='normal'){failOut();return}qStart-=100;const e=$('#in'+active);e.classList.remove('rej');void e.offsetWidth;e.classList.add('rej');setTimeout(()=>e.classList.remove('rej'),260);return}
+  if(exp[vals[active].length]!==k){rejects++;if(MODE==='normal'){failOut();return}if(MODE==='screen'&&isPlace()){placeMiss();return}qStart-=100;const e=$('#in'+active);e.classList.remove('rej');void e.offsetWidth;e.classList.add('rej');setTimeout(()=>e.classList.remove('rej'),260);return}
   vals[active]+=k;showVals();
   if(vals[active].length>=exp.length){$('#in'+active).classList.add('ok');const nx=Q.fields.findIndex((_,j)=>vals[j].length<expOf(j).length);if(nx>=0)setActive(nx);if(Q.onField)Q.onField()}
   if(Q.fields.every((_,j)=>vals[j]===expOf(j)))judge();
@@ -2014,6 +2053,7 @@ function showStart(){MODE='normal';NS=P.stage;qToken++;phase='ready';P.streak=P.
 function start(){
   if(setRes.length===0&&MODE==='normal'&&!(P.fix&&P.fix.length)&&!P.lvup)checkJump();
   migrateLayout();
+  if(P.needPlace&&!isPlace()){showGrade();return}
   if(!P.screen){delete P.fix;delete P.fixTotal} /* 10もんの あとの たしかめは やめた（11/22 ボス） */
   if(setRes.length===0&&!P.screen&&!P.lvup){if(awayCheck())return;if(!ARMED){showStart();return}ARMED=false;RUNBEST0=(P.best||{})[P.stage]||0} /* どの ステージも「スタート」を おしてから 0もんめ */
   N=pick();lastN=N;
@@ -2027,7 +2067,7 @@ function start(){
   const build=MODE==='fix'||MODE==='lvup';
   document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent='うごきで たしかめよう';if(build)$('#stagewrap').appendChild(flash);
   const token=++qToken;
-  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now();if(!build)barStart();else if(TBAR)TBAR.hidden=true};
+  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now();if(MODE==='screen'&&isPlace())setTimeout(()=>{if(token===qToken&&phase==='input')placeMiss()},limOf()*1000*Q.fields.length+400);if(!build)barStart();else if(TBAR)TBAR.hidden=true};
   setTimeout(async()=>{if(token!==qToken)return;flash.remove();
     if(build){ /* たしかめ・チャレンジ: 絵を 見せて うごきを 見てから こたえる（時間は はからない） */
       if(Q.tlBuild){f.innerHTML='';ready();Q.used=true;Q.timeline(()=>token===qToken&&phase==='input');return}
@@ -2080,7 +2120,7 @@ function failOut(judged){
   if(twin==null&&Q.aidable&&!(P.aid||{})[P.stage]){P.cf=P.cf||{};P.cf[P.stage]=(P.cf[P.stage]||0)+1;if(P.cf[P.stage]>=AID_N){P.aid=P.aid||{};P.aid[P.stage]=1;logAnswer({ev:'aid-on',lv:P.stage+1,st:P.stage,at:Date.now()});
     fb.querySelector('#again').insertAdjacentHTML('beforebegin',`<div class="stallmsg">${AID_N}かい つづけて しっぱい したので、<br>つぎから くりあがりの 1 が 出るよ（ほじょりん）</div>`)}save()}
   $('#padwrap').after(fb);fitScreen();
-  if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
+  if(kind&&window.DARTS&&db&&TOKEN&&!(P.dartFrom!=null&&P.stage<P.dartFrom))DARTS.resultBox(fb.querySelector('#dtBox'),'tashihiki_'+P.stage,kind);
   const tk=qToken;setTimeout(()=>{if(tk!==qToken)return;const b=$('#again');b.hidden=false;padIntoView();try{b.scrollIntoView({block:'end',behavior:'smooth'})}catch(e){}b.onclick=()=>{const st=fb._stalled,tw=fb._twin,bk=fb._back;fb.remove();setRes=[];if(bk!=null){const from=P.stage;P.stall[from]=0;if(P.sbest)delete P.sbest[from];if(P.tei)delete P.tei[from];P.stage=bk;P.streak=P.streak||{};P.streak[bk]=0;save();logAnswer({ev:'back',lv:from+1,st:from,to:bk,at:Date.now()});ARMED=false;start();return}if(tw!=null){const from=P.stage;P.tei=P.tei||{};P.tei[tw]=from;P.stage=tw;P.streak=P.streak||{};P.streak[tw]=0;save();logAnswer({ev:'tei-on',lv:from+1,st:from,to:tw,at:Date.now()});ARMED=false;start();return}if(st){P.stall[P.stage]=0;logAnswer({ev:'rescue-start',lv:P.stage+1,st:P.stage,at:Date.now()});startRescue('rescue',basesOf(P.stage));start();return}ARMED=true;start()}},lost?700+lost*110:300)}
 /* 1もんごとの きろく。手もとは 300もんまで、クラウドの ログ（tashihiki_users/{鍵}/log/{日}）には ぜんぶ のこす（11/23 ボス） */
 function histPush(e){P.lastPlay=Date.now();P.hist.push(e);if(P.hist.length>300)P.hist=P.hist.slice(-300);
@@ -2100,7 +2140,7 @@ function judge(){
     showMark(success,MODE==='fix'?'うごきで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));return}
   const limit=limOf()*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
   histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:(P.screen&&P.screen.mode)||'screen'}:{})});
-  if(MODE==='screen'){const ok=P.screen.mode?rejects===0:pass;if(ok)sayQ();P.days[today()]=(P.days[today()]||0)+1;save();showMark(ok,'',()=>finishScreen(ok));return}
+  if(MODE==='screen'){const ok=isPlace()?(pass&&rejects===0):P.screen.mode?rejects===0:pass;if(ok)sayQ();P.days[today()]=(P.days[today()]||0)+1;save();showMark(ok,'',()=>finishScreen(ok));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
   if(Q.ok){renderMeter();sayQ()}
   if(MODE==='normal'&&!Q.ok){P.days[today()]=(P.days[today()]||0)+1;save();failOut(true);return}
@@ -2169,7 +2209,7 @@ function showResult(){
   `<div class="badge ${kind||'none'}">${name}</div><h2>${msg}</h2><p>れんぞく さいこう ${run} もん</p>
   <div class="shelf"><span><i class="g"></i>${P.badges.g}</span><span><i class="s"></i>${P.badges.s}</span><span><i class="b"></i>${P.badges.b}</span></div><div id="dtBox"></div>
   <button class="btn" id="nextSet" style="font-size:1.2rem">${canNext?'つぎの レベルへ':'もういちど ちょうせん する？'}</button>${canNext?'<button class="btn ghost" id="sameSet" style="margin-left:8px">もういちど</button>':''}<div style="margin-top:10px"><button class="btn ghost" id="resKiroku">きろくを みる</button></div>`;
-  if(kind&&window.DARTS&&db&&TOKEN)DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
+  if(kind&&window.DARTS&&db&&TOKEN&&!(P.dartFrom!=null&&P.stage<P.dartFrom))DARTS.resultBox($('#dtBox'),'tashihiki_'+P.stage,kind);
   $('#resKiroku').onclick=()=>showKiroku(P.stage,'result');
   if(back){const nb=$('#nextSet'),ss=$('#sameSet');if(ss)ss.remove();
     if(back.screen){nb.textContent='たしかめテストへ';nb.insertAdjacentHTML('beforebegin','<p>タイルを うごかすのが まだ たいへんそう。Lv.3〜5 が すらすら できるか、6もんで たしかめよう。</p>');

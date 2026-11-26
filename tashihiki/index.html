@@ -419,6 +419,7 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tk20 .g5w{gap:2px;padding:2px;border-width:2px}.tk20 .g5w:nth-child(2){margin-right:8px}
 .tk20 .tc.hl{box-shadow:0 0 0 2px var(--accent)!important}
 #result .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5;margin:8px auto;max-width:420px}
+.lrow.teihl{outline:5px solid var(--accent);outline-offset:4px;border-radius:14px}
 .fr.teihl{outline:5px solid var(--accent);outline-offset:6px;border-radius:14px}
 .failbox .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5}
 /* ヒント（Lv21・23） */
@@ -691,7 +692,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26e';
+const VER='11/26f';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1580,10 +1581,10 @@ function takeToggle(m){const r=rint(1,m-1),n=10+r,ans=n-m;let mode='L';
   const say=()=>rd(mode==='L'?'下の だんを おすと うごくよ':mode==='T'?'10の ところに そろえたよ':'右はしに そろえたよ');
   const hl=()=>{ldCells(F().querySelector('.lrow')).forEach((c,k)=>c.classList.toggle('hl',k<n&&!lowOn(k)))};
   const mkLow=()=>{const rw=row20(k=>lowOn(k)?'b':'v',' dlow');
-    rw.onclick=()=>{if(phase!=='input'&&!Q.done)return;mode=mode==='L'?'T':mode==='T'?'R':'L';Q.moves=(Q.moves||0)+1;rw.replaceWith(mkLow());if(Q.done){hl();rd(`${n} − ${m} ＝ ${ans}`)}else say()};return rw};
+    rw.onclick=()=>{if(phase!=='input'&&!Q.done)return;if(!Q.done&&Q.lockMv&&Q.lockMv())return;mode=mode==='L'?'T':mode==='T'?'R':'L';Q.moves=(Q.moves||0)+1;rw.replaceWith(mkLow());if(Q.done){hl();rd(`${n} − ${m} ＝ ${ans}`)}else say()};return rw};
   const draw=()=>{const w=ldScene();w.classList.add('tk20');w.appendChild(row20(k=>k<n?'a':'e'));w.appendChild(mkLow());say()};
   const after=async()=>{if(!F().querySelector('.dlow'))draw();Q.done=true;hl();rd(`${n} − ${m} ＝ ${ans}`)};
-  return Object.assign(one(ans,`${n} − ${m} ＝ ${ans}`),{title:`${B(n)} − ${B(m)}`,flash:false,draw,after,reveal:after,how:`${n}−${m}（くりさがり・ならべる）`})}
+  return teiRows(Object.assign(one(ans,`${n} − ${m} ＝ ${ans}`),{title:`${B(n)} − ${B(m)}`,flash:false,draw,after,reveal:after,how:`${n}−${m}（くりさがり・ならべる）`}),n,m,'−')}
 function genTake(m){const r=rint(1,m-1),n=10+r;
   return Object.assign(one(n-m,`${n} − ${m} ＝ ${n-m}`),{title:`${B(n)} − ${B(m)}`,...takeTL(n,m),how:`${n}−${m}`})}
 /* ---- Lv2 5と わける（ドット「5と わける」: 6〜9 は 5 と いくつ。5の かたまりを 見て こたえる） ---- */
@@ -1823,6 +1824,13 @@ function teiMv(q,a,b){if(!teiOn())return q;
   q.lockMv=()=>!(vals[0]===String(a)&&vals[1]===String(b));
   q.onActive=i=>{if(FS&&FS.frames.A&&FS.wrap.isConnected){FS.frames.A.classList.toggle('teihl',i===0);FS.frames.B.classList.toggle('teihl',i===1)}rd(i===0?'ひだりの タイルは いくつ？':i===1?'みぎの タイルは いくつ？':'あわせて いくつ？ タイルを おすと うごくよ')};
   return q}
+/* ていたい モードの ちがいは・くりさがり（11/26 21:27 ボス「36，47，51，58 弱点のとき だす」）: 式の 数字を かくし、うえの だんの 数 → したの だんの 数 → こたえ。数を 入れる までは 下の だんは うごかない */
+function teiRows(q,a,b,op){if(!teiOn())return q;
+  q.title='タイルを 見て すうじを 入れよう';q.row3=true;q.fields=[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:q.fields[0].ans}];q.how+='・ていたい';
+  q.lockMv=()=>!(vals[0]===String(a)&&vals[1]===String(b));
+  q.onActive=i=>{const rs=F().querySelectorAll('.lrow');if(rs.length>1){rs[0].classList.toggle('teihl',i===0);rs[1].classList.toggle('teihl',i===1)}rd(i===0?'うえの タイルは いくつ？':i===1?'したの タイルは いくつ？':'こたえは？ 下の だんを おすと うごくよ')};
+  const d0=q.draw;q.draw=()=>{d0();if(active!=null)q.onActive(active)};
+  return q}
 function genCarryMv(k){const [a,b]=String(k).split('+').map(Number);return teiMv(Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b,true),how:`${a}＋${b}（くりあがり・うごかす）`}),a,b)}
 function genCarryEq(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}＋${b}（くりあがり・式だけ）`})}
 function genOver5Mv(s){const [a,b]=choice(OVER5[s]);return teiMv(Object.assign(one(s,`${a} ＋ ${b} ＝ ${s}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b),how:`${a}＋${b}（うごかす）`}),a,b)}
@@ -1874,12 +1882,12 @@ function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
 function diffToggle(a,noTiles){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';
   const lowOn=k=>side==='L'?k<b:(k>=a-b&&k<a);
   const mkLow=()=>{const r=el('div','trow lrow dlow');for(let g=0;g<2;g++){const gw=el('div','g5w');for(let i=0;i<5;i++){const k=g*5+i;gw.appendChild(el('span','tc '+(lowOn(k)?'b':'v')))}r.appendChild(gw)}
-    r.onclick=()=>{if(phase!=='input'&&!Q.done)return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;r.replaceWith(mkLow());if(Q.done)hl()};return r};
+    r.onclick=()=>{if(phase!=='input'&&!Q.done)return;if(!Q.done&&Q.lockMv&&Q.lockMv())return;side=side==='L'?'R':'L';Q.moves=(Q.moves||0)+1;r.replaceWith(mkLow());if(Q.done)hl()};return r};
   const hl=()=>{const cs=ldCells(F().querySelector('.lrow'));cs.forEach((c,k)=>c.classList.toggle('hl',k<a&&!lowOn(k)))};
   const draw=()=>{const w=ldScene();w.appendChild(rowEl(a));w.appendChild(mkLow());rd('下の だんを おすと 左よせ・右よせ')};
   const after=async()=>{if(!F().querySelector('.dlow'))draw();Q.done=true;hl();rd(`${a} と ${b} の ちがいは ${d}`)};
   /* 11/23 ボス: さいしょから タイルを 出す（ことばだけの 2びょうは やめた） */
-  return Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,flash:false,...(noTiles?{draw:null,after:null,reveal:null}:{draw,after,reveal:after}), /* Lv17（テスト）は タイル なし（11/23 ボス） */how:`${a}と${b}のちがい`})}
+  const q_=Object.assign(one(d,`${a} と ${b} の ちがいは ${d}`),{title:`${B(a)} と ${B(b)}、ちがいは？`,flash:false,...(noTiles?{draw:null,after:null,reveal:null}:{draw,after,reveal:after}), /* Lv17（テスト）は タイル なし（11/23 ボス） */how:`${a}と${b}のちがい`});return noTiles?q_:teiRows(q_,a,b,'と')}
 const DIFF_T1=2000;
 /* ---- Lv15 ひきざん（式だけ） ---- */
 function genLeftEq(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;

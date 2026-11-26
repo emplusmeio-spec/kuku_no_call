@@ -712,7 +712,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26i';
+const VER='11/26j';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1865,13 +1865,14 @@ function genSen(k){let T,a;if(typeof k==='string'&&k.includes(':')){[T,a]=k.spli
   const after=async()=>{if(!W_())draw();done=true;cover(false);const t=W_().querySelector('.senans');if(t)t.textContent=h;rd(`${T} は ${a} と ${h}`)};
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`${B(T)} は ${B(a)} と いくつ？`,flash:false,draw:null,timeline,tlBuild:true,sen:true,block:()=>!shown,after,reveal:after,onFail:()=>{after()},how:`${T}は${a}と□（線分図）`})}
 /* ていたい モードの ちがいは・くりさがり（11/26 21:27 ボス「36，47，51，58 弱点のとき だす」）: 式の 数字を かくし、うえの だんの 数 → したの だんの 数 → こたえ。数を 入れる までは 下の だんは うごかない */
-function teiRows(q,a,b,op){if(!teiOn())return q;
-  q.title='タイルを 見て すうじを 入れよう';q.row3=true;q.fields=[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:q.fields[0].ans}];q.how+='・ていたい';
+/* 11/26 23:32 ボス「停滞モードに限らず タイルだけを 見ても こたえられない ように する（数字と リンクさせる）」→ いつも 入力 */
+function teiRows(q,a,b,op){
+  q.title='タイルを 見て すうじを 入れよう';q.row3=true;q.fields=[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:q.fields[0].ans}];q.how+=teiOn()?'・ていたい':'・かず入力';
   q.lockMv=()=>!(vals[0]===String(a)&&vals[1]===String(b));
   q.onActive=i=>{const rs=F().querySelectorAll('.lrow');if(rs.length>1){rs[0].classList.toggle('teihl',i===0);rs[1].classList.toggle('teihl',i===1)}rd(i===0?'うえの タイルは いくつ？':i===1?'したの タイルは いくつ？':'こたえは？ 下の だんを おすと うごくよ')};
   const d0=q.draw;q.draw=()=>{d0();if(active!=null)q.onActive(active)};
   return q}
-function genCarryMv(k){const [a,b]=String(k).split('+').map(Number);return teiMv(Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b,true),how:`${a}＋${b}（くりあがり・うごかす）`}),a,b)}
+function genCarryMv(k){const [a,b]=String(k).split('+').map(Number);return teiMv(Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,...moveFrames(a,b,true),how:`${a}＋${b}（くりあがり・うごかす）`}),a,b,true)}
 function genCarryEq(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}＋${b}（くりあがり・式だけ）`})}
 /* 3だんかいめ（11/26 23:13 ボス）: 式だけの たしざん ／ ミックス（key に ':' が あれば 分解の 線分図） */
 function genAddEq(k){const [a,b]=String(k).split('+').map(Number);return Object.assign(one(a+b,`${a} ＋ ${b} ＝ ${a+b}`),{title:`${B(a)} ＋ ${B(b)}`,flash:false,draw:null,after:null,reveal:null,how:`${a}＋${b}（式だけ）`})}

@@ -419,6 +419,15 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tk20 .g5w{gap:2px;padding:2px;border-width:2px}.tk20 .g5w:nth-child(2){margin-right:8px}
 .tk20 .tc.hl{box-shadow:0 0 0 2px var(--accent)!important}
 #result .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5;margin:8px auto;max-width:420px}
+.senscene{display:block;width:100%;padding:6px 4px;text-align:center}
+.sensvg{display:block;width:100%;height:auto;max-height:42vh}
+.senw{fill:none;stroke:var(--ink);stroke-width:3}.senbg{fill:var(--paper)}.senfr{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:6 5}
+.sena{fill:var(--dot)}.senb{fill:#ea8a2e}.sene{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
+.senpa{fill:none;stroke:var(--dot);stroke-width:3}.senpb{fill:none;stroke:#ea8a2e;stroke-width:3}
+.sent{font-family:var(--font-display);font-weight:900;font-size:40px;text-anchor:middle}.senT{fill:var(--accent)}.senA{fill:var(--dot)}.senB{fill:#ea8a2e}
+.senbox{fill:var(--paper);stroke:var(--dot);stroke-width:4}
+.senbush rect{fill:#9ccf7a;stroke:#4f9a3a;stroke-width:3}.senbush text{fill:#fff}.senbush{cursor:pointer}
+.senscene.open .senbush{display:none}
 .lrow.teihl{outline:5px solid var(--accent);outline-offset:4px;border-radius:14px}
 .fr.teihl{outline:5px solid var(--accent);outline-offset:6px;border-radius:14px}
 .failbox .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5}
@@ -556,7 +565,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PH=[['1','ばらの せかい','--pA'],['2','いたの せかい','--pC']];   /* 11/23 ボス「２桁とばして３桁で完結」→ ぼうの せかい（じゅんび中）は なくした */
 const ISLAND=PH.map(x=>x[1]);
 const LEVELS=[
- [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる たしざん（じかん①）'],[0,'5を こえる たしざん（じかん②）'],[0,'5を こえる たしざん（じかん③）'],[0,'5を こえる（式だけ）'],[0,'5を こえる（式だけ・じかん①）'],[0,'5を こえる（式だけ・じかん②）'],[0,'5を こえる（式だけ・じかん③）'],[0,'6〜9＋小さい数（じかん①）'],[0,'6〜9＋小さい数（じかん②）'],[0,'6〜9＋小さい数（じかん③）'],[0,'6〜10の 分解①'],[0,'6〜10の 分解②'],[0,'6〜10の 分解③'],[0,'6〜10の 分解③（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'ひきざん（式だけ・じかん）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり①（じかん）'],[0,'くりあがり②'],[0,'くりあがり②（じかん）'],[0,'くりあがり そうテスト'],[0,'くりさがり'],[0,'くりさがり（じかん）'],[0,'まぜて 20まで'],
+ [0,'0〜5 まとめ'],[0,'どこまで？'],[0,'6〜10は いくつ'],[0,'6〜10を 見る'],[0,'5と いくつで'],[0,'5を こえる たしざん'],[0,'5を こえる たしざん（じかん①）'],[0,'5を こえる たしざん（じかん②）'],[0,'5を こえる たしざん（じかん③）'],[0,'5を こえる（式だけ）'],[0,'5を こえる（式だけ・じかん①）'],[0,'5を こえる（式だけ・じかん②）'],[0,'5を こえる（式だけ・じかん③）'],[0,'6〜9＋小さい数（じかん①）'],[0,'6〜9＋小さい数（じかん②）'],[0,'6〜9＋小さい数（じかん③）'],[0,'6〜9は 5と いくつ'],[0,'6〜9は 5と いくつ（じかん）'],[0,'10は いくつと いくつ'],[0,'10は いくつと いくつ（じかん）'],[0,'10の なかま'],[0,'のこりは'],[0,'のこりは（じかん）'],[0,'ちがいは'],[0,'ちがいは（じかん）'],[0,'ひきざん（式だけ）'],[0,'ひきざん（式だけ・じかん）'],[0,'10と いくつ'],[0,'くりあがり①'],[0,'くりあがり①（じかん）'],[0,'くりあがり②'],[0,'くりあがり②（じかん）'],[0,'くりあがり そうテスト'],[0,'くりさがり'],[0,'くりさがり（じかん）'],[0,'まぜて 20まで'],
  [1,'3けたの かず①'],[1,'3けたの かず②（1が ある）'],[1,'3けたの かず③（0が ある）'],[1,'3けたの かず（じかん）'],[1,'3けたの たしざん'],[1,'3けたの たしざん（きえる）'],[1,'3けたの たしざん（式だけ）'],[1,'3けたの ひきざん'],[1,'3けたの ひきざん（きえる）'],[1,'3けたの ひきざん（式だけ）'],[1,'くりあがり（タイル）'],[1,'くりあがり（1を かく）'],[1,'くりあがり（式だけ）'],[1,'くりあがり（じかん）'],[1,'ぼうの くりあがり（タイル）'],[1,'ぼうの くりあがり（式だけ）'],[1,'ぼうの くりあがり（じかん）'],[1,'くりあがった さきが 0'],[1,'くりあがった さきが 0（じかん）'],[1,'ちょうど 10で 0'],[1,'ちょうど 10で 0（じかん）'],[1,'9に 1が くる'],[1,'9に 1が くる（じかん）'],[1,'10と 9が かさなる'],[1,'10と 9が かさなる（じかん）'],[1,'2かい くりあがる'],[1,'2かい くりあがる（じかん）'],[1,'たしざん まぜて'],[1,'たしざん まぜて（じかん）'],[1,'ぜんぶ くりあがる'],[1,'ぜんぶ くりあがる（じかん）'],
 ];
 const S=(name,facts,ms,gen,review,lim)=>({name,facts,ms,gen,review:!!review,lim});
@@ -587,10 +596,12 @@ const STAGES=[
  S('6〜9＋小さい数（じかん①）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),
  Object.assign(S('6〜9＋小さい数（じかん②）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),{limMul:2/3}),
  Object.assign(S('6〜9＋小さい数（じかん③）',['6+1','6+2','6+3','6+4','7+1','7+2','7+3','8+1','8+2','9+1'],0,k=>genSmallAddMv(k)),{limMul:1/2}),
- S('6〜10の 分解①',[6,7,8,9],0,k=>sideBag(k,1,4,1,5)),   // ためす: 見えている タイルか くさむらを おすと 左右が いれかわる（11/22 19:26 ボス「Lv9とLv10入れ替え」）
- S('6〜10の 分解②',[7,8,9,10],1500,k=>genBag(k,6,9)),               // 6〜10 の 定着テスト
- S('6〜10の 分解③',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),
- S('6〜10の 分解③（じかん）',[7,8,9,10],0,k=>sideBag(k,1,4,6,9)),   // Lv11 と おなじ もんだいで 時間制限あり（11/22 19:39 ボス）
+ /* 11/26 21:34・21:47 ボス: 分解は 数える ことを 助長して いた → 線分図の 形で、全部を 2色で 0.7びょう 見せてから かくす。5 と 10 に しぼる（7は 4と 3 などは 出さない）
+    key: '8a' = 8は 5と □ ／ '8b' = 8は 3と □（かくれて いるのが 5）。10 は 見えて いる 数 */
+ S('6〜9は 5と いくつ',['6a','6b','7a','7b','8a','8b','9a','9b'],0,k=>genSen(k)),
+ S('6〜9は 5と いくつ（じかん）',['6a','6b','7a','7b','8a','8b','9a','9b'],0,k=>genSen(k)),
+ S('10は いくつと いくつ',[1,2,3,4,5,6,7,8,9],0,k=>genSen(k)),
+ S('10は いくつと いくつ（じかん）',[1,2,3,4,5,6,7,8,9],0,k=>genSen(k)),
  S('10の なかま',[1,2,3,4,5,6,7,8,9],0,k=>lineFill(k),0,5.5),          // ためす: タイルの かたまりを 数直線に ドラッグ（どこに おいても よい）
  S('のこりは',[6,7,8,9,10],0,k=>tapLeft(k)),                      // ためす: おすと きえる（5の かたまりは まとめて きえる）
  S('のこりは（じかん）',[6,7,8,9,10],0,k=>tapLeft(k)),             // Lv14 と おなじ もんだいで 時間制限あり（11/22 22:10 ボス）
@@ -646,7 +657,7 @@ const BASE={2:0,3:2,4:3,20:17,23:21,24:21,28:20,29:20,30:20,31:20,32:20,33:20,34
 const BACK={9:5,13:9,14:9,15:9,16:9,17:9,18:9};
 /* じかんの レベル → 対に なる じっくりの レベル（0はじまり）。じかんの レベルで 1もんでも つまずいたら、じっくりへ もどして「ていたい モード」。
    そこで 8もん つづけて できたら もとの じかんの レベルへ（11/24 21:17・22:04 ボス）。対の ある レベルでは「さいこうきろくが 3かい のびない → ていたい だっしゅつ」は つかわない */
-const TWIN={6:5,7:5,8:5,10:9,11:9,12:9,19:18,22:21,24:23,26:25,29:28,31:30,34:33,49:48,52:51,54:53,56:55,58:57,60:59,62:61,64:63,66:65};
+const TWIN={6:5,7:5,8:5,10:9,11:9,12:9,17:16,19:18,22:21,24:23,26:25,29:28,31:30,34:33,49:48,52:51,54:53,56:55,58:57,60:59,62:61,64:63,66:65};
 let TWIN_J=Object.values(TWIN);
 /* スクリーニング（レベル チェック。11/26 19:20・19:27 ボス）: 学年を えらぶ → Lv10〜その学年の 上限 から 10もん（その レベルの 時間で）。
    まちがいが あれば、いちばん 低い まちがいレベルの 1つ 手前を 上限に して つぎの テスト。全問正解なら 同じ 範囲で もう一度。
@@ -654,6 +665,7 @@ let TWIN_J=Object.values(TWIN);
    ダーツ: テスト 1かいごとに 100点 3本・80点 2本・60点 1本。開始レベルより 前の レベルでは ダーツは 出ない */
 let PLACE_LO=9,PLACE_FLOOR=5;const PLACE_MIN=3,PLACE_MAX=6,PLACE_N=10;
 const GRADES=[['小1',35],['小2',39],['小3',66],['小4',66],['小5',66],['小6〜',66]];   /* 上限（0はじまり）: 小1 Lv36 まぜて 20まで／小2 Lv40 3けたの かず／小3〜 Lv67 */
+const SEN_MS=700;   /* 線分図: 全部を 見せる 時間（ミリびょう）。11/26 ボス OK */
 const AID_N=3;      /* くりあがりの 式だけの レベル: つづけて これだけ しっぱい したら ほじょりん あり（11/24 ボス） */
 const STALL_N=3;    /* さいこうきろくが のびない ちょうせんが これだけ つづいたら「ていたい」 */
 const AWAY_DAYS=2;  /* 11/23 19:57 ボス「日にちは２日」 */
@@ -692,7 +704,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26f';
+const VER='11/26g';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1824,6 +1836,26 @@ function teiMv(q,a,b){if(!teiOn())return q;
   q.lockMv=()=>!(vals[0]===String(a)&&vals[1]===String(b));
   q.onActive=i=>{if(FS&&FS.frames.A&&FS.wrap.isConnected){FS.frames.A.classList.toggle('teihl',i===0);FS.frames.B.classList.toggle('teihl',i===1)}rd(i===0?'ひだりの タイルは いくつ？':i===1?'みぎの タイルは いくつ？':'あわせて いくつ？ タイルを おすと うごくよ')};
   return q}
+/* ---- 線分図の 分解（11/26 ボス）: 上の かっこ＝ぜんぶ、下の かっこ 2つ＝部分。全部の タイルを 2色で SEN_MS だけ 見せて、だいだいの がわを くさむらで かくす。
+   数える 時間を あたえない（5の まとまりと 絵の きおくで こたえる）。時間なしの レベルは くさむらを おすと もう いちど SEN_MS だけ 見られる。時間は かくして から はかる ---- */
+function genSen(k){let T,a;if(typeof k==='string'){T=+k[0];a=k[1]==='a'?5:T-5}else{T=10;a=+k}const h=T-a;let shown=false,flashing=false,done=false;
+  const u=46,g=6,X=i=>40+i*(u+g)+(i>=5?16:0),W=X(9)+u+40,xa=X(0)-4,xb=X(a-1)+u+4,xc=X(T-1)+u+4,mid=(xb+X(a)-4)/2;
+  const svg=()=>{let s=`<svg class="sensvg" viewBox="0 0 ${W} 236" role="img" aria-label="線分図">`;
+    s+=`<path d="M${xa},70 v-22 H${xc} v22" class="senw"/><rect x="${(xa+xc)/2-46}" y="20" width="92" height="46" rx="8" class="senbg"/><text x="${(xa+xc)/2}" y="60" class="sent senT">${T}</text>`;
+    for(let i=0;i<10;i++){if(i%5===0)s+=`<rect x="${X(i)-5}" y="79" width="${5*(u+g)-g+10}" height="${u+10}" rx="10" class="senfr"/>`;
+      if(i<a)s+=`<rect x="${X(i)}" y="84" width="${u}" height="${u}" rx="11" class="sena"/>`;else if(i<T)s+=`<rect x="${X(i)}" y="84" width="${u}" height="${u}" rx="11" class="senb"/>`;else s+=`<rect x="${X(i)}" y="84" width="${u}" height="${u}" rx="11" class="sene"/>`}
+    s+=`<g class="senbush"><rect x="${X(a)-4}" y="72" width="${xc-X(a)+4}" height="${u+24}" rx="20"/><text x="${(X(a)+xc)/2}" y="124" class="sent">？</text></g>`;
+    s+=`<path d="M${xa},146 v22 H${mid-3} v-22" class="senpa"/><path d="M${mid+3},146 v22 H${xc} v-22" class="senpb"/><text x="${(xa+mid)/2}" y="214" class="sent senA">${a}</text>`;
+    s+=`<rect x="${(mid+xc)/2-30}" y="176" width="60" height="50" rx="10" class="senbox"/><text x="${(mid+xc)/2}" y="214" class="sent senB senans"></text></svg>`;return s};
+  const W_=()=>F().querySelector('.senscene');
+  const cover=on=>{const w=W_();if(w)w.classList.toggle('open',!on)};
+  const peek=async(alive)=>{flashing=true;cover(false);await new Promise(r=>setTimeout(r,SEN_MS));flashing=false;if(done||(alive&&!alive()))return;cover(true)};
+  const draw=()=>{const w=ldScene();w.classList.add('senscene');w.innerHTML=svg();
+    w.onclick=e=>{if(!e.target.closest('.senbush')||phase!=='input'||flashing||done)return;if(MODE==='normal'&&cur().kind==='nare')return;if(MODE==='screen'&&isPlace())return;Q.moves=(Q.moves||0)+1;peek()}};
+  const timeline=async alive=>{draw();await peek(alive);if(!alive())return;shown=true;qStart=performance.now();barStart();
+    rd(MODE==='normal'&&cur().kind!=='nare'?'くさむらを おすと もう いちど 見られるよ':'')};
+  const after=async()=>{if(!W_())draw();done=true;cover(false);const t=W_().querySelector('.senans');if(t)t.textContent=h;rd(`${T} は ${a} と ${h}`)};
+  return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`${B(T)} は ${B(a)} と いくつ？`,flash:false,draw:null,timeline,tlBuild:true,sen:true,block:()=>!shown,after,reveal:after,onFail:()=>{after()},how:`${T}は${a}と□（線分図）`})}
 /* ていたい モードの ちがいは・くりさがり（11/26 21:27 ボス「36，47，51，58 弱点のとき だす」）: 式の 数字を かくし、うえの だんの 数 → したの だんの 数 → こたえ。数を 入れる までは 下の だんは うごかない */
 function teiRows(q,a,b,op){if(!teiOn())return q;
   q.title='タイルを 見て すうじを 入れよう';q.row3=true;q.fields=[{pre:'',ans:a},{pre:op,ans:b},{pre:'＝',ans:q.fields[0].ans}];q.how+='・ていたい';
@@ -1949,7 +1981,7 @@ function finishScreen(pass){const S=P.screen;
   if(weak!=null){P.stage=weak;save();overlay('たしかめテスト おわり',`Lv.${weak+1}「${esc(STAGES[weak].name)}」で れんしゅう しよう。<br>ここが すらすら できると、タイルを うごかすのも らくに なるよ`,'fix',()=>start(),'すすむ');return}
   P.stage=S.from;save();overlay('たしかめテスト おわり',`Lv.3〜5 は だいじょうぶ！<br>Lv.${S.from+1} で、タイルを うごかして ためして みよう`,'fix',()=>start(),'すすむ')}
 /* ---- レベルの ならびが かわった（11/22: Lv15「ひきざん（式だけ）」を 入れて うしろへ 1つ ずらす）ときの きろくの 引っこし ---- */
-function migrateLayout(){if((P.lay||1)>=13)return;if((P.lay||1)===12){migrateLay13();return}if((P.lay||1)===11){migrateLay12();return}if((P.lay||1)===10){migrateLay11();return}if((P.lay||1)===9){migrateLay10();return}if((P.lay||1)===8){migrateLay9();return}if((P.lay||1)===7){migrateLay8();return}if((P.lay||1)===6){migrateLay7();return}if((P.lay||1)===5){migrateLay6();return}if((P.lay||1)===4){migrateLay5();return}if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
+function migrateLayout(){if((P.lay||1)>=14)return;if((P.lay||1)===13){migrateLay14();return}if((P.lay||1)===12){migrateLay13();return}if((P.lay||1)===11){migrateLay12();return}if((P.lay||1)===10){migrateLay11();return}if((P.lay||1)===9){migrateLay10();return}if((P.lay||1)===8){migrateLay9();return}if((P.lay||1)===7){migrateLay8();return}if((P.lay||1)===6){migrateLay7();return}if((P.lay||1)===5){migrateLay6();return}if((P.lay||1)===4){migrateLay5();return}if((P.lay||1)===3){migrateLay4();return}if((P.lay||1)===2){migrateLay3();return}const S=14,sh=i=>i>=S?i+1:i;
   P.stage=sh(P.stage);P.cleared=(P.cleared||[]).map(sh);
   const mv=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=k.indexOf(sep);if(j>0&&/^\d+$/.test(k.slice(0,j)))r[sh(+k.slice(0,j))+k.slice(j)]=v;else r[k]=v}return r};
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');
@@ -2025,7 +2057,14 @@ function migrateLay13(){const sh=i=>O2N[i]!=null?O2N[i]:i;
   P.sp=mv(P.sp,':');P.weak=mv(P.weak,':');P.seen=mv(P.seen,'-');P.rec=mv(P.rec,'');P.streak=mv(P.streak,'');P.best=mv(P.best,'');P.fails=mv(P.fails,'');P.aid=mv(P.aid,'');P.cf=mv(P.cf,'');P.stall=mv(P.stall,'');P.sbest=mv(P.sbest,'');
   if(P.tei){const r={};for(const [k,v] of Object.entries(P.tei))r[sh(+k)]=sh(v);P.tei=r}
   if(P.dartFrom!=null)P.dartFrom=sh(P.dartFrom);if(P.placed&&P.placed.start!=null)P.placed.start=sh(P.placed.start);
-  delete P.screen;delete P.fix;delete P.fixTotal;if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=13}
+  delete P.screen;delete P.fix;delete P.fixTotal;if(P.lvup)P.lvup.to=sh(P.lvup.to);P.lay=13;migrateLayout()}
+/* lay14（11/26 21:47 ボス）: Lv23〜30 の 分解を 線分図の「5と いくつ」「10は いくつと いくつ」に 入れかえた。番号は そのまま。
+   そこに いた 子は Lv23 から（その 8レベルの クリアと きろくは けす）。もっと 先に いる 子は クリアずみの まま */
+function migrateLay14(){const A=22,Z=29,inR=i=>i>=A&&i<=Z;
+  if(inR(P.stage)){P.stage=A;P.cleared=(P.cleared||[]).filter(i=>!inR(i))}
+  const cut=(o,sep)=>{if(!o)return o;const r={};for(const [k,v] of Object.entries(o)){const j=sep?k.indexOf(sep):k.length;if(j>0&&/^\d+$/.test(k.slice(0,j))&&inR(+k.slice(0,j)))continue;r[k]=v}return r};
+  P.sp=cut(P.sp,':');P.weak=cut(P.weak,':');P.seen=cut(P.seen,'-');P.rec=cut(P.rec,'');P.streak=cut(P.streak,'');P.best=cut(P.best,'');P.stall=cut(P.stall,'');P.sbest=cut(P.sbest,'');P.tei=cut(P.tei,'');
+  if(P.screen&&P.screen.mode!=='place')delete P.screen;P.lay=14}
 
 /* ===== 1もんの ながれ =====
    スタート → タイルを 一瞬 見せて かくす → テンキーで こたえ（ちがう 数字は 入らない。1回 0.1びょう たす）→ ぜんぶ 入ったら すぐ はんてい
@@ -2100,7 +2139,7 @@ function start(){
   const build=MODE==='fix'||MODE==='lvup';
   document.querySelectorAll('#stagewrap .startflash').forEach(x=>x.remove());const flash=el('div','startflash');flash.textContent='うごきで たしかめよう';if(build)$('#stagewrap').appendChild(flash);
   const token=++qToken;
-  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now();if(MODE==='screen'&&isPlace())setTimeout(()=>{if(token===qToken&&phase==='input')placeMiss()},limOf()*1000*Q.fields.length+400);if(!build)barStart();else if(TBAR)TBAR.hidden=true};
+  const ready=()=>{if(token!==qToken)return;phase='input';pad.classList.remove('locked');$('#go').disabled=false;setActive(0);qStart=performance.now();if(MODE==='screen'&&isPlace())setTimeout(()=>{if(token===qToken&&phase==='input')placeMiss()},limOf()*1000*Q.fields.length+400+(Q.sen?SEN_MS:0));if(!build)barStart();else if(TBAR)TBAR.hidden=true};
   setTimeout(async()=>{if(token!==qToken)return;flash.remove();
     if(build){ /* たしかめ・チャレンジ: 絵を 見せて うごきを 見てから こたえる（時間は はからない） */
       if(Q.tlBuild){f.innerHTML='';ready();Q.used=true;Q.timeline(()=>token===qToken&&phase==='input');return}

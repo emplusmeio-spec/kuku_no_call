@@ -712,7 +712,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26j';
+const VER='11/27a';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1743,8 +1743,8 @@ function numK(ty,k){const hh=m=>{const h1=rint(1,m-1);return [h1,rint(1,m-h1)]};
 /* a＋b を 出す。mode 't'=タイル（place 'o'=ばら→ぼう ／ 't'=ぼう→いた を、まるを おして おこす） 'm'=数字のみ・くりあがりの 1 を じどうで かく 'e'=数字のみ */
 /* くりあがり なし・ありの ミックス（式だけ）。key の 1もじめ: N=くりあがり なし（16の かた） C=一のくらい T=十のくらい（ぼう） K=かた 2・3・4・5・7（2かい） */
 function genMix3(k){const t=k[0],r=k.slice(1);const [a,b]=t==='N'?num3(r,false):t==='C'?numC(r):t==='T'?numT(r):numK(+r[0],r[1]);return carryQ(a,b,'e','o','まぜ'+k)}
-function gen3c(k,mode){const [a,b]=numC(k);return carryQ(a,b,mode,'o',k)}
-function carryQ(a,b,mode,place,k){const s_=a+b,op='＋',mq=`${a} ${op} ${b} ＝ ${s_}`,D=String(s_),n=D.length;
+function gen3c(k,mode){const [a,b]=numC(k);return carryQ(a,b,mode,'o',k,mode==='t')}   /* 11/27 0:03 ボス「118いる」: タイルの 段は 上の 数 → 下の 数 → こたえ */
+function carryQ(a,b,mode,place,k,cnt){const s_=a+b,op='＋',mq=`${a} ${op} ${b} ＝ ${s_}`,D=String(s_),n=D.length;
   const dg=[];for(let i=0;i<n;i++)dg.push({pre:i===n-1?'＝':'',ans:+D[n-1-i],cls:'dg',ord:6-i});
   const KN=['一の くらい','十の くらい','百の くらい','千の くらい'],guide=i=>rd(i===0?'一の くらいから じゅんに 入れよう':`${KN[i]}は？`);
   const base={title:`${B(a)} ${op} ${B(b)}`,pad3:true,row3:true,flash:false,mq,fields:dg,reveal:null};
@@ -1756,19 +1756,21 @@ function carryQ(a,b,mode,place,k){const s_=a+b,op='＋',mq=`${a} ${op} ${b} ＝ 
     const drawE=()=>{const w=ldScene();w.classList.add('t3scene','t3e');hs(0,false)};
     return Object.assign(base,{draw:drawE,after:async()=>{if(!F().querySelector('.t3scene'))drawE();hs(0,true);rd(mq)},
       onActive:i=>{guide(i);hs(4-i,false)},onField:()=>hs(4-active,false),aidable:mode==='e',onFail:()=>{if(!F().querySelector('.t3scene'))drawE();hs(0,true,true)},how:`${a}${op}${b}（${k}・${mode==='m'?'1を かく':'式だけ'}）`})}
-  let carried=false;const gi=place==='o'?0:1,cls=place==='o'?'tu':'tb',rem=place==='o'?s_%10:((a/10|0)%10+(b/10|0)%10)%10;
+  const o0=cnt?2:0;let carried=false;const gi=(place==='o'?0:1)+o0,cls=place==='o'?'tu':'tb',rem=place==='o'?s_%10:((a/10|0)%10+(b/10|0)%10)%10;
   const carry=quiet=>{if(carried)return;carried=true;const w=F().querySelector('.t3scene');if(!w)return;const ring=w.querySelector('.t3ring'),R=w._rows,y=R[1][0];
     w.querySelectorAll(`.${cls}.r0`).forEach(g=>g.classList.add('gonev'));[...w.querySelectorAll(`.${cls}.r1`)].forEach((g,x)=>{if(x>=rem)g.classList.add('gonev')});
     /* くりあがった ぼう・いたは、上の くらいの 下の だんに、もとの タイルから 少し はなして おく（色を かえる） */
     if(place==='o'){const t2=(b/10|0)%10,x=t2?548+(t2-1)*15+(t2-1>=5?8:0)+10+16:548;ring.insertAdjacentHTML('beforebegin',`<g class="t3 carry"><rect class="t3f" x="${x}" y="${y}" width="10" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(q=>`M${x} ${y+q*10}h10`).join('')}"/></g>`)}
     else{const h2=b/100|0,x=h2*106+18;ring.insertAdjacentHTML('beforebegin',`<g class="t3 carry"><rect class="t3f" x="${x}" y="${y}" width="100" height="100"/><path class="t3l" d="${[1,2,3,4,5,6,7,8,9].map(q=>`M${x+q*10} ${y}v100M${x} ${y+q*10}h100`).join('')}"/></g>`)}
-    ring.classList.remove('tapme');ring.onclick=null;if(!quiet){Q.moves=(Q.moves||0)+1;guide(gi)}};
+    ring.classList.remove('tapme');ring.onclick=null;if(!quiet){Q.moves=(Q.moves||0)+1;guide(gi-o0)}};
   const draw=()=>{const w=t3scene([a,op,b]);carried=false;w.querySelector('.t3ring').onclick=()=>{if(phase==='input'&&active===gi)carry()}};
   return Object.assign(base,{draw,block:()=>active===gi&&!carried,
     after:async()=>{if(!F().querySelector('.t3scene'))draw();carry(true);t3ring(null);rd(mq)},
-    onActive:i=>{t3ring('oth'[i]);const r=F().querySelector('.t3ring');if(r)r.classList.toggle('tapme',i===gi&&!carried);
-      if(i===gi&&!carried)rd(place==='o'?'まるの 中を おして みよう（ばら 10こが ぼうに なるよ）':'まるの 中を おして みよう（ぼう 10本が いたに なるよ）');else guide(i)},
-    how:`${a}${op}${b}（${k}・タイル）`})}
+    ...(cnt?{title:'あわせて いくつ？',fields:[{pre:'',ans:a,ord:1},{pre:op,ans:b,ord:2},...dg]}:{}),
+    onActive:i=>{if(i<o0){t3ring(i);const r=F().querySelector('.t3ring');if(r)r.classList.remove('tapme');rd(i===0?'うえの タイルは いくつ？':'したの タイルは いくつ？');return}
+      t3ring('oth'[i-o0]);const r=F().querySelector('.t3ring');if(r)r.classList.toggle('tapme',i===gi&&!carried);
+      if(i===gi&&!carried)rd(place==='o'?'まるの 中を おして みよう（ばら 10こが ぼうに なるよ）':'まるの 中を おして みよう（ぼう 10本が いたに なるよ）');else guide(i-o0)},
+    how:`${a}${op}${b}（${k}・タイル）`+(cnt?'・かず入力':'')})}
 function gen3(k,sub,mode){const [a,b]=num3(k,sub),r_=sub?a-b:a+b,op=sub?'−':'＋',mq=`${a} ${op} ${b} ＝ ${r_}`;
   /* こたえは くらいごとの らん。水道方式の 筆算に あわせて 一のくらい → 十 → 百 の じゅんに 入れる（11/23 22:51 ボス）。タイルの 数（上・下）は いままで どおり 上の くらいから */
   const D=String(r_).padStart(3,'0'),dg=[{pre:'',ans:+D[2],cls:'dg',ord:5},{pre:'',ans:+D[1],cls:'dg',ord:4},{pre:'＝',ans:+D[0],cls:'dg',ord:3}];
@@ -1908,22 +1910,26 @@ function lineFill(n){const h=10-n;let W=null,blk=null,line=null,pos=-1;
     W.appendChild(pool);W.appendChild(line);W.appendChild(blk);f.appendChild(W);
     /* 11/22 ボス: ドラッグでは なく、下の マスを おすと そこへ うごく（はみだす ときは はしに よせる） */
     blk.style.pointerEvents='none';blk.style.transition='left .25s ease,top .25s ease';
-    [...line.children].forEach((c,i)=>{c.style.cursor='pointer';c.onclick=e=>{e.stopPropagation();if(phase!=='input')return;Q.moves=(Q.moves||0)+1;snap(i)}});
-    requestAnimationFrame(()=>{blk.style.transition='none';home();requestAnimationFrame(()=>blk.style.transition='left .25s ease,top .25s ease')});rd('下の マスを おすと タイルが そこへ うごくよ（どこでも いいよ）')};
+    [...line.children].forEach((c,i)=>{c.style.cursor='pointer';c.onclick=e=>{e.stopPropagation();if(phase!=='input')return;if(vals[0]!==String(n))return;Q.moves=(Q.moves||0)+1;snap(i)}});
+    requestAnimationFrame(()=>{blk.style.transition='none';home();requestAnimationFrame(()=>blk.style.transition='left .25s ease,top .25s ease')});onActive(active||0)};
+  /* 11/27 0:03 ボス「72いる」: タイルの 数 → あと いくつ。数を 入れる までは タイルは うごかない */
+  const onActive=i=>rd(i===0?'タイルは いくつ？':'あと いくつで 10？ 下の マスを おすと タイルが うごくよ');
   const after=async()=>{if(!W||!W.isConnected)draw();if(pos<0)await new Promise(r=>requestAnimationFrame(()=>{snap(0);r()}));
     [...line.children].forEach((c,i)=>{if(!(i>=pos&&i<pos+n))c.classList.add('gap')});rd(`${n} と ${h} で 10`)};
-  return Object.assign(one(h,`${n} と ${h} で 10`),{title:`${B(n)} は あと いくつで 10？`,draw,flash:false,after,reveal:after,how:`${n}はあと□で10`})}
+  return Object.assign(one(h,`${n} と ${h} で 10`),{title:'タイルは あと いくつで 10？',row3:true,fields:[{pre:'',ans:n},{pre:'と',ans:h}],onActive,draw,flash:false,after,reveal:after,how:`${n}はあと□で10・かず入力`})}
 /* ---- Lv13 のこりは: さいしょから タイル。おすと きえる（5の かたまりは まとめて きえる）。きえた ところを おすと もどる ---- */
 function tapLeft(a){const b=Math.random()<.1?a:rint(1,a-1),r_=a-b;
   /* とる数が 5いじょうの ときだけ、そろった 5の かたまりは まとめて きえる。けした タイルは うすい 色で のこる（もう いちど おすと もどる）。リセットで ぜんぶ もとどおり */
   const draw=()=>{const w=ldScene();const row=rowEl(a);row.classList.add('tapl');w.appendChild(row);
-    row.querySelectorAll('.tc').forEach((c,k)=>{if(k<a)c.classList.add('own');c.onclick=()=>{if(phase!=='input'||!c.classList.contains('own'))return;Q.moves=(Q.moves||0)+1;
+    row.querySelectorAll('.tc').forEach((c,k)=>{if(k<a)c.classList.add('own');c.onclick=()=>{if(phase!=='input'||!c.classList.contains('own'))return;if(vals[0]!==String(a))return;Q.moves=(Q.moves||0)+1;
       if(c.classList.contains('a')){const g=c.parentElement,cs=[...g.children];const left=b-row.querySelectorAll('.tc.gone2').length;const grp=left>=5&&cs.every(t=>t.classList.contains('a'))?cs:[c]; /* のこり とる数が 5いじょうの ときだけ 5こ まとめて。5みまんに なったら 1こずつ（11/22 ボス） */grp.forEach(t=>t.classList.replace('a','gone2'))}
       else c.classList.replace('gone2','a')}});
     const rs=el('button','btn ghost sm tlreset');rs.textContent='リセット';rs.onclick=e=>{e.stopPropagation();if(phase!=='input')return;row.querySelectorAll('.tc.gone2').forEach(t=>t.classList.replace('gone2','a'))};w.appendChild(rs);
-    rd('タイルを おすと きえるよ（もう いちど おすと もどる）')};
+    onActive(active||0)};
+  /* 11/27 0:03 ボス「73いる（少しの解説か分かりやすさ必要）」: はじめの 数 → とった 数 → のこり。1らんずつ 何を するかを 下に 出す。はじめの 数を 入れる までは タイルは きえない */
+  const onActive=i=>rd(i===0?'① はじめの タイルは いくつ？':i===1?`② タイルを ${b}こ おして けそう。けした 数は？`:'③ のこった タイルは いくつ？');
   const after=async()=>{if(!F().querySelector('.tapl'))draw();const rs=F().querySelector('.tlreset');if(rs)rs.remove();rd(`${a} − ${b} ＝ ${r_}`)};
-  return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(a)} こ。${B(b)} こ とると のこりは？`,draw,flash:false,after,reveal:after,how:`${a}−${b}（のこりは）`})}
+  return Object.assign(one(r_,`${a} − ${b} ＝ ${r_}`),{title:`${B(b)} こ とると のこりは？`,row3:true,fields:[{pre:'',ans:a},{pre:'−',ans:b},{pre:'＝',ans:r_}],onActive,draw,flash:false,after,reveal:after,how:`${a}−${b}（のこりは）・かず入力`})}
 /* ---- Lv14 ちがいは: 上に a、下に b。下の だんを おすと 左よせ・右よせ ---- */
 function diffToggle(a,noTiles){const b=Math.random()<.1?a:rint(1,a-1),d=a-b;let side='L';
   const lowOn=k=>side==='L'?k<b:(k>=a-b&&k<a);

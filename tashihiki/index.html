@@ -674,7 +674,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/26c';
+const VER='11/26d';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1886,7 +1886,7 @@ function placeList(lo,hi){const n=hi-lo+1,l=[];for(let j=0;j<PLACE_N;j++){const 
 function showGrade(){MODE='normal';NS=P.stage;qToken++;phase='ready';if(TBAR)TBAR.hidden=true;if(METER)METER.hidden=true;document.querySelectorAll('.mark,#failbox').forEach(x=>x.remove());
   $('#progress').textContent='';$('#prog').innerHTML='';$('#stageTag').textContent='レベル チェック';
   $('#q').hidden=true;const r=$('#result');r.hidden=false;
-  r.innerHTML=`<h2>レベル チェック</h2><p style="font-size:1.1rem">どの レベルから はじめるか、テストで きめるよ。<br>1かい 10もん。3かい いじょう やるよ。<br>100てん 🎯3本・80てん 2本・60てん 1本</p><h2 style="margin-top:14px">なんねんせい？</h2>
+  r.innerHTML=`<h2>レベル チェック</h2><p style="font-size:1.1rem">どの レベルから はじめるか、テストで きめるよ。<br>1かい 10もん。3かい いじょう やるよ。${db&&TOKEN?'<br>100てん 🎯3本・80てん 2本・60てん 1本':''}</p><h2 style="margin-top:14px">なんねんせい？</h2>
   <div class="mapbtns" style="flex-wrap:wrap;justify-content:center;gap:10px">${GRADES.map((g,i)=>`<button class="btn" data-g="${i}" style="font-size:1.3rem;min-width:5.2em">${g[0]}</button>`).join('')}</div>`;
   r.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=GRADES[+b.dataset.g];delete P.needPlace;delete P.fix;delete P.fixTotal;delete P.lvup;
     P.screen={mode:'place',from:P.stage,grade:g[0],hi:g[1],list:placeList(PLACE_LO,g[1]),i:0,miss:[],tests:0,ng:{}};setRes=[];save();logAnswer({ev:'place-start',grade:g[0],hi:g[1],at:Date.now()});start()})}
@@ -2232,7 +2232,7 @@ $('#mapBtn').onclick=()=>{renderMap();$('#invBox').hidden=true;showOnly('map')};
 $('#mapBack').onclick=()=>{showOnly('play')};
 function renderMap(){
   const n=seenCount();$('#seenNum').textContent=`${n} / ${SEENTOTAL}`;$('#seenFill').style.width=(n/SEENTOTAL*100)+'%';
-  const m=$('#mapBody');m.innerHTML=FREE?'<div class="rep" style="margin:0"><b>見本モード</b>：どのレベルも えらべます。丸を おすと そのレベルが はじまります。</div>':'';const maxOpen=Math.max(P.stage,...P.cleared.map(x=>x+1),0);
+  const m=$('#mapBody');m.innerHTML=FREE?'<div class="rep" style="margin:0"><b>見本モード</b>：どのレベルも えらべます。丸を おすと そのレベルが はじまります。<div style="margin-top:8px"><button class="btn" id="freePlace">レベル チェックを うける</button>　<small>開始レベルを 決める テスト（見本では ダーツは つきません）</small></div></div>':'';if(FREE)$('#freePlace').onclick=()=>{delete P.screen;P.needPlace=true;setRes=[];save();showOnly('play');start()};const maxOpen=Math.max(P.stage,...P.cleared.map(x=>x+1),0);
   PH.forEach((ph,pi)=>{
     const ids=LEVELS.map((l,i)=>l[0]===pi?i:-1).filter(i=>i>=0);
     const ready=ids.filter(i=>i<STAGES.length);
@@ -2244,8 +2244,9 @@ function renderMap(){
       c.innerHTML=`<span style="font-size:.95rem">${i+1}</span><small>${esc(LEVELS[i][1])}</small>`;c.title=`Lv.${i+1} ${LEVELS[i][1]}${has?'':'（じゅんび中）'}`;
       if(done)c.classList.add('done');if(i===P.stage)c.classList.add('cur');if(!open&&!done)c.classList.add('lock');
       c.onclick=()=>{if(!open&&!done)return;
-        if(P.screen&&P.screen.mode){overlay(`いまは ${modeName()} モード`,'ノーミスで 1しゅう できたら、<br>ちずから えらべる ように なるよ','fix',()=>showOnly('play'),'もどる');return} /* モード中は ちずから 出られない（11/23 ボス） */
-        P.stage=i;setRes=[];PAIR=null;delete P.fix;delete P.fixTotal;delete P.lvup;save();showOnly('play');start()};
+        if(FREE&&P.screen&&P.screen.mode==='place')delete P.screen; /* 見本では レベル チェックを とちゅうで やめられる */
+        if(P.screen&&P.screen.mode){overlay(`いまは ${modeName()} モード`,P.screen.mode==='place'?'テストが おわったら、<br>ちずから えらべる ように なるよ':'ノーミスで 1しゅう できたら、<br>ちずから えらべる ように なるよ','fix',()=>showOnly('play'),'もどる');return} /* モード中は ちずから 出られない（11/23 ボス） */
+        P.stage=i;delete P.needPlace;setRes=[];PAIR=null;delete P.fix;delete P.fixTotal;delete P.lvup;save();showOnly('play');start()};
       foot.appendChild(c)});
     sec.appendChild(foot);m.appendChild(sec)});
   $('#licBtn').hidden=!STAGES.every((s,i)=>s.p!==0||P.cleared.includes(i));$('#licBox').hidden=true;

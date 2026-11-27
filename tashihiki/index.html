@@ -712,7 +712,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/27b';
+const VER='11/27c';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1865,9 +1865,11 @@ function genSen(k){let T,a;if(typeof k==='string'&&k.includes(':')){[T,a]=k.spli
   const cover=on=>{const w=W_();if(w)w.classList.toggle('open',!on)};
   const peek=async(alive)=>{flashing=true;cover(false);await new Promise(r=>setTimeout(r,SEN_MS));flashing=false;if(done||(alive&&!alive()))return;cover(true)};
   const draw=()=>{const w=ldScene();w.classList.add('senscene');w.innerHTML=svg();
-    w.onclick=e=>{if(!e.target.closest('.senbush')||phase!=='input'||flashing||done)return;if(MODE==='normal'&&cur().kind==='nare')return;if(MODE==='screen'&&isPlace())return;Q.moves=(Q.moves||0)+1;peek()}};
-  const timeline=async alive=>{draw();await peek(alive);if(!alive())return;shown=true;qStart=performance.now();barStart();
-    rd(MODE==='normal'&&cur().kind!=='nare'?'くさむらを おすと もう いちど 見られるよ':'')};
+    w.onclick=e=>{if(!e.target.closest('.senbush')||phase!=='input'||flashing||done)return;if(MODE==='screen'&&isPlace())return;Q.moves=(Q.moves||0)+1;peek()}};
+  /* 11/27 8:59 ボス: さいしょに 見せるのは 逆効果（タイルしか 見ない → 数字を 見ない）→ なし。くさむらを おすと いっしゅん（SEN_MS）だけ 見える。
+     じかんの 段でも おせるが、時計は 止まらない（時間が みじかい 段ほど 見る ひまが なくなる） */
+  const timeline=async alive=>{draw();if(!alive())return;shown=true;qStart=performance.now();barStart();
+    rd(MODE==='screen'&&isPlace()?'':'くさむらを おすと いっしゅん 見られるよ')};
   const after=async()=>{if(!W_())draw();done=true;cover(false);const t=W_().querySelector('.senans');if(t)t.textContent=h;rd(`${T} は ${a} と ${h}`)};
   return Object.assign(one(h,`${T} は ${a} と ${h}`),{title:`${B(T)} は ${B(a)} と いくつ？`,flash:false,draw:null,timeline,tlBuild:true,sen:true,block:()=>!shown,after,reveal:after,onFail:()=>{after()},how:`${T}は${a}と□（線分図）`})}
 /* ていたい モードの ちがいは・くりさがり（11/26 21:27 ボス「36，47，51，58 弱点のとき だす」）: 式の 数字を かくし、うえの だんの 数 → したの だんの 数 → こたえ。数を 入れる までは 下の だんは うごかない */

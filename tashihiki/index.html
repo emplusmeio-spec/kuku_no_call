@@ -717,7 +717,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/27i';
+const VER='11/27j';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -771,6 +771,8 @@ async function loadKid(token,code){
   const pt=x=>x?(x.lastPlay||(x.hist&&x.hist.length?x.hist[x.hist.length-1].at:0)||0):0;
   const newer=!!(lp&&lp.sp&&pt(lp)>pt(cp));
   P=Object.assign(fresh(),newer?lp:(cp||{}));setRes=[];
+  /* 11/27 18:13 ボス「レベルテスト必須」: まだ うけて いない 子は つぎに 開いた ときに うける（1どだけ）。いま いる レベルより 下には ならない（P.placeKeep） */
+  if(!P.placed&&!P.needPlace&&!P.placeAuto&&!(P.screen&&P.screen.mode==='place')){P.placeAuto=1;P.needPlace=true;P.placeKeep=P.stage}
   const jp=applyJump(ME.jump),pl=applyPlace(ME.place);if(!jp&&!pl){lsSet(LS.p,JSON.stringify(P));if(newer)cloudSave()}
   showOnly('play');start();boardSave();dartsStart();return true;
 }
@@ -829,7 +831,7 @@ function registerScreen(code,inv,claimed){
         $('#gateErr').textContent='とうろくに しっぱいしました。電波を たしかめて もういちど。';$('#regBtn').disabled=false;return}
     }
     const root=inv.by==='teacher'?code:(inv.root||code);
-    P=fresh();P.name=nick;   /* レベル チェックの 自動開始は 保留（11/26 19:54 ボス）。先生画面の ボタンと 見本の ボタンは のこす */
+    P=fresh();P.name=nick;P.needPlace=true;   /* 11/27 18:13 ボス「レベルテスト必須にして」: 登録したら まず レベル チェック */
     try{
       await db.collection(COL.users).doc(token).set({nick,code:my,inv:code,root,progress:P,stage:0,seen:0,cleared:0,created:ts,updated:ts});
       await db.collection(COL.invites).doc(my).set({by:'user',parent:code,root,nick,created:ts}); // みんなの様子 用
@@ -1982,7 +1984,7 @@ function showGrade(){MODE='normal';NS=P.stage;qToken++;phase='ready';if(TBAR)TBA
   r.innerHTML=`<h2>レベル チェック</h2><p style="font-size:1.1rem">どの レベルから はじめるか、テストで きめるよ。<br>1かい 10もん。3かい いじょう やるよ。${db&&TOKEN?'<br>100てん 🎯3本・80てん 2本・60てん 1本':''}</p><h2 style="margin-top:14px">なんねんせい？</h2>
   <div class="mapbtns" style="flex-wrap:wrap;justify-content:center;gap:10px">${GRADES.map((g,i)=>`<button class="btn" data-g="${i}" style="font-size:1.3rem;min-width:5.2em">${g[0]}</button>`).join('')}</div>`;
   r.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{const g=GRADES[+b.dataset.g];delete P.needPlace;delete P.fix;delete P.fixTotal;delete P.lvup;
-    P.screen={mode:'place',from:P.stage,grade:g[0],hi:g[1],list:placeList(PLACE_LO,g[1]),i:0,miss:[],tests:0,ng:{}};setRes=[];save();logAnswer({ev:'place-start',grade:g[0],hi:g[1],at:Date.now()});start()})}
+    P.screen={mode:'place',from:P.stage,keep:P.placeKeep!=null?P.placeKeep:null,grade:g[0],hi:g[1],list:placeList(PLACE_LO,g[1]),i:0,miss:[],tests:0,ng:{}};setRes=[];save();logAnswer({ev:'place-start',grade:g[0],hi:g[1],at:Date.now()});start()})}
 function placeMiss(){if(phase!=='input')return;phase='shown';$('#pad').classList.add('locked');barStop();
   const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
   histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:false,at:Date.now(),b:'place'});P.days[today()]=(P.days[today()]||0)+1;save();
@@ -1990,7 +1992,7 @@ function placeMiss(){if(phase!=='input')return;phase='shown';$('#pad').classList
 async function placeEnd(){const S=P.screen,score=Math.round((S.list.length-S.miss.length)/S.list.length*100),dn=score>=100?3:score>=80?2:score>=60?1:0,hi0=S.hi;S.tests++;
   const low=S.miss.length?Math.min(...S.miss):null;let done=null;
   if(low==null){if(S.tests>=PLACE_MIN)done=S.hi}
-  else if(S.hi<=PLACE_LO)done=PLACE_FLOOR;
+  else if(S.hi<=PLACE_LO){done=PLACE_FLOOR;S.floored=true}
   else S.hi=Math.max(PLACE_LO,low-1);
   if(done==null&&S.tests>=PLACE_MAX)done=S.hi;
   logAnswer({ev:'place-test',no:S.tests,score,hi:hi0,miss:S.miss.map(x=>x+1).join(','),next:done==null?S.hi:null,start:done,at:Date.now()});
@@ -1998,6 +2000,8 @@ async function placeEnd(){const S=P.screen,score=Math.round((S.list.length-S.mis
   const dl=got>0?`<br>🎯 ダーツ ＋${got}本！（いま ${DARTS.balance()}本）`:'';
   if(done==null){const no=S.tests;S.list=placeList(PLACE_LO,S.hi);S.i=0;S.miss=[];save();
     overlay(`${score}てん！`,`${no}かいめ おわり${dl}<br>つぎは ${no+1}かいめ`,'fix',()=>start(),'つぎへ');return}
+  /* もう すすんで いる 子（keep）: いまの レベルより 下には しない。いちばん 下でも できなかった ときは いまの レベルの まま */
+  if(S.keep!=null)done=S.floored?S.keep:Math.max(S.keep,done);delete P.placeKeep;
   const tests=S.tests,grade=S.grade;delete P.screen;MODE='normal';setRes=[];P.stage=done;for(let i=0;i<done;i++)if(!P.cleared.includes(i))P.cleared.push(i);
   P.dartFrom=done;P.placed={at:Date.now(),grade,start:done,tests};P.streak=P.streak||{};P.streak[done]=0;ARMED=false;save();
   overlay(`${score}てん！`,`レベル チェック おわり${dl}<br><b>Lv.${done+1}「${esc(STAGES[done].name)}」</b><br>から スタート`,'lvup',()=>start(),'すすむ')}

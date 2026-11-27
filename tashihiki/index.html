@@ -420,15 +420,16 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .tk20 .tc.hl{box-shadow:0 0 0 2px var(--accent)!important}
 #result .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5;margin:8px auto;max-width:420px}
 .senscene{display:block;width:100%;padding:6px 4px;text-align:center}
-.sensvg{display:block;width:100%;height:auto;max-height:42vh}
+.sensvg{display:block;width:100%;height:auto;max-height:46vh}
 .senw{fill:none;stroke:var(--ink);stroke-width:3}.senbg{fill:var(--paper)}.senfr{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:6 5}
 .sena{fill:var(--dot)}.senb{fill:#ea8a2e}.sene{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 4}
 .senpa{fill:none;stroke:var(--dot);stroke-width:3}.senpb{fill:none;stroke:#ea8a2e;stroke-width:3}
-.sent{font-family:var(--font-display);font-weight:900;font-size:40px;text-anchor:middle}.senT{fill:var(--accent)}.senA{fill:var(--dot)}.senB{fill:#ea8a2e}
+.sent{font-family:var(--font-display);font-weight:900;font-size:54px;text-anchor:middle}.senT{fill:var(--accent)}.senA{fill:var(--dot)}.senB{fill:#ea8a2e}
 .senbox{fill:var(--paper);stroke:var(--dot);stroke-width:4}
 .senbush path{fill:#eef3f8;stroke:#9fb3c8;stroke-width:3;stroke-linejoin:round}.senbush .senq{fill:#7f95ab;font-size:30px}.senbush{cursor:pointer}
 .senscene.open .senbush{display:none}.senscene:not(.open) .senh{display:none}
-.sent.senL{text-anchor:start}.senk{fill:var(--ink);font-size:28px}.sent10{fill:#8f9aa6}
+.sent.senL{text-anchor:start}.senk{fill:var(--ink);font-size:38px}
+.field:has(.senscene){width:min(96vw,900px)}.senscene{padding:2px 0}.sent10{fill:#8f9aa6}
 .lrow.teihl{outline:5px solid var(--accent);outline-offset:4px;border-radius:14px}
 .fr.teihl{outline:5px solid var(--accent);outline-offset:6px;border-radius:14px}
 .failbox .stallmsg{font-weight:800;background:color-mix(in srgb,var(--accent) 12%,var(--paper));border:2px solid var(--accent);border-radius:14px;padding:8px 12px;line-height:1.5}
@@ -714,7 +715,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/27g';
+const VER='11/27h';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1857,15 +1858,15 @@ function teiMv(q,a,b,always){if(!teiOn()&&!always)return q;
 function genSen(k){let T,a;if(typeof k==='string'&&k.includes(':')){[T,a]=k.split(':').map(Number)}else if(typeof k==='string'){T=+k[0];a=k[1]==='a'?5:T-5}else{T=10;a=+k}const h=T-a;let shown=false,flashing=false,done=false;
   /* 11/27 9:27 ボス: 見せかたを かえた。上の だん「T は」＋ T枚の タイル。下の だん 左よせ「a と」＋ a枚の タイル、右よせ「□」＋ くも（目かくし。長さは いつも タイル 5枚ぶん）。
      くもを おすと かくれて いる タイルが 右よせで いっしゅん 見える */
-  const u=34,g=5,W=640,L=30,st=u+g,X=i=>L+i*st+(i>=5?12:0),CW=5*st-g,CX=W-L-CW;
+  const u=34,g=5,W=580,L=8,st=u+g,X=i=>L+i*st+(i>=5?12:0),CW=5*st-g,CX=W-L-CW;
   const tiles=(n,y,cls,x0)=>{let s='';for(let i=0;i<n;i++)s+=`<rect x="${(x0||0)+X(i)}" y="${y}" width="${u}" height="${u}" rx="8" class="${cls}"/>`;return s};
   const svg=()=>{const hx=W-L-(X(h-1)+u-L)-L;   /* かくれて いる タイルの 左はし（右よせ） */
     /* 11/27 9:45 ボス: 「T は」と タイルは まんなか。「a と」は タイルの まんなかに 合わせる。くもの 上の □も 同じ。下の だんは ぎりぎりまで 下げて、上との すきまを あける */
-    const wT=X(T-1)+u-L,xT=(W-wT)/2-L,wa=X(a-1)+u-L,yB=222;
+    const wT=X(T-1)+u-L,xT=(W-wT)/2-L,wa=X(a-1)+u-L,yB=236;
     let s=`<svg class="sensvg" viewBox="0 0 ${W} ${yB+u+8}" role="img" aria-label="分解">`;
-    s+=`<text x="${W/2}" y="40" class="sent senT">${T}<tspan class="senk"> は</tspan></text>`+tiles(T,54,'sent10',xT);
-    s+=`<text x="${Math.max(L+wa/2,46)}" y="${yB-14}" class="sent senA">${a}<tspan class="senk"> と</tspan></text>`+tiles(a,yB,'sena');
-    s+=`<rect x="${CX+CW/2-30}" y="${yB-80}" width="60" height="50" rx="10" class="senbox"/><text x="${CX+CW/2}" y="${yB-40}" class="sent senB senans"></text>`;
+    s+=`<text x="${W/2}" y="48" class="sent senT">${T}<tspan class="senk"> は</tspan></text>`+tiles(T,62,'sent10',xT);
+    s+=`<text x="${Math.max(L+wa/2,50)}" y="${yB-12}" class="sent senA">${a}<tspan class="senk"> と</tspan></text>`+tiles(a,yB,'sena');
+    s+=`<rect x="${CX+CW/2-34}" y="${yB-88}" width="68" height="58" rx="10" class="senbox"/><text x="${CX+CW/2}" y="${yB-41}" class="sent senB senans"></text>`;
     s+=`<g class="senh">${tiles(h,yB,'senb',hx)}</g>`;
     s+=`<g class="senbush"><path d="M${CX+18},${yB+u+6} a16,16 0 0 1 -4,-31 a22,22 0 0 1 40,-12 a26,26 0 0 1 48,2 a22,22 0 0 1 42,8 a20,20 0 0 1 36,10 a14,14 0 0 1 -8,23 z"/><text x="${CX+CW/2}" y="${yB+u-2}" class="sent senq">？</text></g></svg>`;return s};
   const W_=()=>F().querySelector('.senscene');

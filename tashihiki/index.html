@@ -443,6 +443,8 @@ table.krec{width:100%;border-collapse:collapse;font-size:.9rem}table.krec th,tab
 .failbox .fa{font-weight:800;font-size:clamp(18px,4.6vw,26px)}.failbox .fa b{font-family:var(--font-display);font-size:1.25em}
 .failbox .fm{font-weight:700;color:var(--muted,#777)}.failbox .md{font-weight:900;padding:1px 10px;border-radius:999px;color:#fff}.failbox .md.g{background:#d4a017}.failbox .md.s{background:#9aa3ad}.failbox .md.b{background:#b06a3b}
 .failbox .btn{font-size:1.4rem;padding:.5em 2.2em;margin-top:4px}
+.failbox .fwhy{font-weight:800;font-size:clamp(16px,4.2vw,22px);padding:4px 14px;border-radius:12px;line-height:1.4}.failbox .fwhy b{font-family:var(--font-display);font-size:1.3em}.failbox .fwhy small{display:block;font-weight:700;font-size:.72em;color:var(--muted,#777)}
+.failbox .fwhy.ng{background:#fdecea;color:#b3261e}.failbox .fwhy.slow{background:#fff4d6;color:#7a5200}
 .failbox .fmed{display:flex;align-items:center;gap:12px}.failbox .badge{width:64px;height:64px;font-size:1rem;margin:0}.failbox .fm b{color:var(--ink)}.failbox .shelf{margin:0}
 .ansfield.ansshow,.ansshow{color:#d9534f!important;border-color:#d9534f!important}
 .tc.v{visibility:hidden}.dlow .g5w{border-color:transparent}.dlow{cursor:pointer}
@@ -715,7 +717,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/27h';
+const VER='11/27i';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -2140,7 +2142,7 @@ function typeKey(k){
   if(k==='del'){vals[active]=vals[active].slice(0,-1);showVals();return}
   const exp=expOf(active);
   if(vals[active].length>=exp.length)return;
-  if(exp[vals[active].length]!==k){rejects++;if(MODE==='normal'){failOut();return}if(MODE==='screen'&&isPlace()){placeMiss();return}qStart-=100;const e=$('#in'+active);e.classList.remove('rej');void e.offsetWidth;e.classList.add('rej');setTimeout(()=>e.classList.remove('rej'),260);return}
+  if(exp[vals[active].length]!==k){rejects++;Q.badIn={f:active,v:vals[active]+k,exp:String(exp)};if(MODE==='normal'){failOut();return}if(MODE==='screen'&&isPlace()){placeMiss();return}qStart-=100;const e=$('#in'+active);e.classList.remove('rej');void e.offsetWidth;e.classList.add('rej');setTimeout(()=>e.classList.remove('rej'),260);return}
   vals[active]+=k;showVals();
   if(vals[active].length>=exp.length){$('#in'+active).classList.add('ok');const nx=Q.fields.findIndex((_,j)=>vals[j].length<expOf(j).length);if(nx>=0)setActive(nx);if(Q.onField)Q.onField()}
   if(Q.fields.every((_,j)=>vals[j]===expOf(j)))judge();
@@ -2213,7 +2215,7 @@ function failOut(judged){
   if(!judged){ /* まちがった キーを おした とき */
     phase='shown';$('#pad').classList.add('locked');barStop();
     const tenths=Math.max(1,Math.round((performance.now()-qStart)/100));
-    histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0});
+    histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass:false,used:Q.used,att:attempts+1,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(Q.badIn?{in:Q.badIn.v,inf:Q.badIn.f}:{})});
     P.streak=P.streak||{};P.streak[P.stage]=0;Q.ok=false;if(!isReview)setSp(N,0);P.days[today()]=(P.days[today()]||0)+1;save()}
   Q.fields.forEach((_,j)=>{vals[j]=String(expOf(j));const e=$('#in'+j);e.classList.remove('active','ok');e.classList.add('ansshow')});showVals();
   if(Q.onFail)try{Q.onFail()}catch(e){}
@@ -2227,7 +2229,13 @@ function failOut(judged){
   $('#padwrap').style.display='none';document.querySelectorAll('#failbox').forEach(x=>x.remove());
   const fb=el('div','failbox');fb.id='failbox';const mname={g:'きんメダル',s:'ぎんメダル',b:'どうメダル'}[kind]||'';
   /* メダルは 九九と おなじ: メダル・たな・ダーツ（ルーレット）を 出す。画面は きりかえない（11/22 ボス） */
-  fb.innerHTML=`<div class="fl">しっぱい</div><div class="fa">こたえ　<b>${esc(String(Q.mq))}</b></div>
+  /* 11/27 18:09 ボス「正しく入力したのに間違いと表示されるとクレーム」「入力した値を横に表示」: なぜ しっぱいかを 出す。
+     まちがった すうじを おした → おした すうじ（らんが いくつも ある ときは どの らんか）。すうじは あって いたが 時間ぎれ → そう 書く */
+  const nareNow=STAGES[NS].kind==='nare',fn=Q.fields.length,bi=!judged?Q.badIn:null,sec=x=>(x/10).toFixed(1).replace(/\.0$/,'');
+  const whyHTML=bi?`<div class="fwhy ng">おした すうじ　<b>${esc(bi.v)}</b>${fn>1?`<small>（${bi.f+1}ばんめの らん。そこは ${esc(bi.exp)}）</small>`:''}</div>`
+    :judged&&Q.slow&&nareNow?`<div class="fwhy slow">すうじは あって いたよ。<b>じかんぎれ</b><small>（${sec(Q.slow.t)}びょう かかった。${sec(Q.slow.lim)}びょう まで）</small></div>`
+    :judged&&Q.used?`<div class="fwhy slow">すうじは あって いたよ。<small>（とちゅうで たしかめを つかった）</small></div>`:'';
+  fb.innerHTML=`<div class="fl">${judged&&Q.slow&&nareNow?'じかんぎれ':'しっぱい'}</div><div class="fa">こたえ　<b>${esc(String(Q.mq))}</b></div>${whyHTML}
   <div class="fmed"><div class="fm">れんぞく さいこう ${run}もん</div></div>
   <div id="dtBox"></div>
   <button class="btn" id="again" hidden>もういちど？</button>`;
@@ -2262,8 +2270,8 @@ function judge(){
     P.days[today()]=(P.days[today()]||0)+1;save();
     const n=success&&MODE==='lvup'?(P.lvup.st[N]||0)+1:0;
     showMark(success,MODE==='fix'?'うごきで 見えたね':success?`${n}かい つづけて できた`:'まちがえたので つぎは さいしょから',()=>finishBuild(success));return}
-  const limit=limOf()*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;
-  histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(MODE==='screen'?{b:(P.screen&&P.screen.mode)||'screen'}:{})});
+  const limit=limOf()*10*Q.fields.length,fast=tenths<=limit,pass=fast&&!Q.used;Q.slow=!fast?{t:tenths,lim:limit}:null;
+  histPush({n:String(N),lv:NS+1,how:Q.how,t:tenths,pass,used:Q.used,att:attempts,rej:rejects,r:isReview,at:Date.now(),mv:Q.moves||0,...(!fast?{slow:1}:{}),...(MODE==='screen'?{b:(P.screen&&P.screen.mode)||'screen'}:{})});
   if(MODE==='screen'){const ok=isPlace()?(pass&&rejects===0):P.screen.mode?rejects===0:pass;if(ok)sayQ();P.days[today()]=(P.days[today()]||0)+1;save();showMark(ok,'',()=>finishScreen(ok));return}
   { /* 連続 カウント（クリアの じょうけん） */ const okQ=STAGES[NS].kind==='nare'?pass:rejects===0;P.streak=P.streak||{};P.streak[P.stage]=okQ?(P.streak[P.stage]||0)+1:0;P.best=P.best||{};P.best[P.stage]=Math.max(P.best[P.stage]||0,P.streak[P.stage]);SETMAX=Math.max(SETMAX,P.streak[P.stage]);Q.ok=okQ}
   if(Q.ok){renderMeter();sayQ()}

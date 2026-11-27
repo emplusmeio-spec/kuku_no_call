@@ -15,7 +15,9 @@
 // 支払い（へらす）は 先生だけ。
 
 const DARTS = (() => {
-  const ROULETTE = { s: [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 5], g: [2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 10] };
+  const ROULETTE = { s: [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 5], g: [2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 10],
+    // t: たしひきラボの「じかん③ クリア」ルーレット（11/27）。1本×8・2本×3・10本×1 ＝ 平均 2本
+    t: [1, 2, 1, 1, 10, 1, 1, 2, 1, 1, 2, 1] };
   const COL = "darts";
   let db = null, ctx = null, wallet = null, wid = null;
   const FV = () => firebase.firestore.FieldValue;
@@ -108,7 +110,7 @@ const DARTS = (() => {
     if (!wallet || !wallet.claims) return [];
     const out = [];
     Object.keys(wallet.claims).forEach((k) => {
-      const m = k.match(/^(.*)_rp_(s|g)$/);
+      const m = k.match(/^(.*)_rp_(s|g|t)$/);
       if (m && !has(m[1] + "_rd_" + m[2])) out.push({ unit: m[1], tier: m[2] });
     });
     return out;
@@ -128,14 +130,14 @@ const DARTS = (() => {
   }
   function roulette(box, p, onDone) {
     const vals = ROULETTE[p.tier];
-    box.innerHTML = `<div class="dt-box"><div class="dt-get">${p.tier === "g" ? "金" : "銀"}ルーレット チャンス！</div><div class="dt-wheel"><div class="dt-ptr"></div>${wheelSVG(p.tier)}</div><div class="dt-res"></div><button class="dt-btn">まわす</button></div>`;
+    box.innerHTML = `<div class="dt-box"><div class="dt-get">${p.tier === "g" ? "金" : p.tier === "s" ? "銀" : ""}ルーレット チャンス！</div><div class="dt-wheel"><div class="dt-ptr"></div>${wheelSVG(p.tier)}</div><div class="dt-res"></div><button class="dt-btn">まわす</button></div>`;
     const btn = box.querySelector(".dt-btn"), svgEl = box.querySelector(".dt-wheel svg"), res = box.querySelector(".dt-res");
     btn.onclick = async () => {
       btn.disabled = true;
       const i = Math.floor(Math.random() * 12), n = vals[i];
       svgEl.style.transform = `rotate(${360 * 5 - i * 30}deg)`;
       await new Promise((r) => setTimeout(r, window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? 50 : 3300));
-      const got = await give(n, [p.unit + "_rd_" + p.tier], `ルーレット（${p.tier === "g" ? "金" : "銀"}）`);
+      const got = await give(n, [p.unit + "_rd_" + p.tier], `ルーレット（${p.tier === "g" ? "金" : p.tier === "s" ? "銀" : "クリア"}）`);
       res.textContent = got > 0 ? `${n}本 ゲット！` : "つながりませんでした。あとで もういちど";
       btn.textContent = "OK"; btn.disabled = false;
       btn.onclick = () => onDone && onDone(got);
@@ -144,6 +146,21 @@ const DARTS = (() => {
   }
 
   // 演習の おわりに：メダルの 下に もらった本数と いまの本数、ルーレット
+  // たしひきラボ（11/27）: レベルを はじめて クリアしたら 1本（レベルごとに 1度だけ）。last（じかん③）なら ルーレットの 権利も
+  async function clearBox(box, unit, last) {
+    if (!wallet) { box.innerHTML = ""; return; }
+    box.innerHTML = '<div class="dt-box">…</div>';
+    await refresh();
+    let gained = 0;
+    if (!has(unit + "_c")) { const got = await give(1, last ? [unit + "_c", unit + "_rp_t"] : [unit + "_c"], "クリア"); gained = got > 0 ? got : 0; }
+    const show = () => {
+      const pend = pending();
+      box.innerHTML = `<div class="dt-box">${gained ? `<div class="dt-get">🎯 ダーツ ＋${gained}本！</div>` : ""}<div class="dt-now">いま もっている ダーツ 🎯 <b>${balance()}</b>本</div>${pend.length ? `<button class="dt-btn">ルーレットに チャレンジ（${pend.length}）</button>` : ""}</div>`;
+      const b = box.querySelector(".dt-btn");
+      if (b) b.onclick = () => roulette(box, pend[0], show);
+    };
+    show();
+  }
   async function resultBox(box, unit, kind) {
     if (!wallet) { box.innerHTML = ""; return; }
     box.innerHTML = '<div class="dt-box">…</div>';
@@ -216,6 +233,6 @@ const DARTS = (() => {
     };
   }
 
-  return { init, refresh, bonus, login, medal, resultBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
+  return { init, refresh, bonus, login, medal, resultBox, clearBox, homeBox, chipHTML, balance, pending, teacherPanel, ROULETTE };
 })();
 window.DARTS = DARTS;

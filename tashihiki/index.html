@@ -714,7 +714,7 @@ const COL={users:'tashihiki_users',invites:'tashihiki_invites',board:'tashihiki_
 const TEACHER_EMAIL='terauchi@em-plus.net';
 const BLOG='https://empmeio.blogspot.com';
 const APP='たしひきラボ';
-const VER='11/27f';
+const VER='11/27g';
 const SITE=location.origin+location.pathname;
 const LS={p:'tashihiki-v1',token:'tashihiki-token',kids:'tashihiki-kids'};
 let db=null,fbAuth=null,TOKEN=null,ME=null,syncTimer=null;
@@ -1860,12 +1860,14 @@ function genSen(k){let T,a;if(typeof k==='string'&&k.includes(':')){[T,a]=k.spli
   const u=34,g=5,W=640,L=30,st=u+g,X=i=>L+i*st+(i>=5?12:0),CW=5*st-g,CX=W-L-CW;
   const tiles=(n,y,cls,x0)=>{let s='';for(let i=0;i<n;i++)s+=`<rect x="${(x0||0)+X(i)}" y="${y}" width="${u}" height="${u}" rx="8" class="${cls}"/>`;return s};
   const svg=()=>{const hx=W-L-(X(h-1)+u-L)-L;   /* かくれて いる タイルの 左はし（右よせ） */
-    let s=`<svg class="sensvg" viewBox="0 0 ${W} 250" role="img" aria-label="分解">`;
-    s+=`<text x="${L}" y="44" class="sent senL senT">${T}<tspan class="senk"> は</tspan></text>`+tiles(T,58,'sent10');
-    s+=`<text x="${L}" y="158" class="sent senL senA">${a}<tspan class="senk"> と</tspan></text>`+tiles(a,172,'sena');
-    s+=`<rect x="${CX}" y="98" width="60" height="50" rx="10" class="senbox"/><text x="${CX+30}" y="138" class="sent senB senans"></text>`;
-    s+=`<g class="senh">${tiles(h,172,'senb',hx)}</g>`;
-    s+=`<g class="senbush"><path d="M${CX+18},${172+u+6} a16,16 0 0 1 -4,-31 a22,22 0 0 1 40,-12 a26,26 0 0 1 48,2 a22,22 0 0 1 42,8 a20,20 0 0 1 36,10 a14,14 0 0 1 -8,23 z"/><text x="${CX+CW/2}" y="${172+u-2}" class="sent senq">？</text></g></svg>`;return s};
+    /* 11/27 9:45 ボス: 「T は」と タイルは まんなか。「a と」は タイルの まんなかに 合わせる。くもの 上の □も 同じ。下の だんは ぎりぎりまで 下げて、上との すきまを あける */
+    const wT=X(T-1)+u-L,xT=(W-wT)/2-L,wa=X(a-1)+u-L,yB=222;
+    let s=`<svg class="sensvg" viewBox="0 0 ${W} ${yB+u+8}" role="img" aria-label="分解">`;
+    s+=`<text x="${W/2}" y="40" class="sent senT">${T}<tspan class="senk"> は</tspan></text>`+tiles(T,54,'sent10',xT);
+    s+=`<text x="${Math.max(L+wa/2,46)}" y="${yB-14}" class="sent senA">${a}<tspan class="senk"> と</tspan></text>`+tiles(a,yB,'sena');
+    s+=`<rect x="${CX+CW/2-30}" y="${yB-80}" width="60" height="50" rx="10" class="senbox"/><text x="${CX+CW/2}" y="${yB-40}" class="sent senB senans"></text>`;
+    s+=`<g class="senh">${tiles(h,yB,'senb',hx)}</g>`;
+    s+=`<g class="senbush"><path d="M${CX+18},${yB+u+6} a16,16 0 0 1 -4,-31 a22,22 0 0 1 40,-12 a26,26 0 0 1 48,2 a22,22 0 0 1 42,8 a20,20 0 0 1 36,10 a14,14 0 0 1 -8,23 z"/><text x="${CX+CW/2}" y="${yB+u-2}" class="sent senq">？</text></g></svg>`;return s};
   const W_=()=>F().querySelector('.senscene');
   const cover=on=>{const w=W_();if(w)w.classList.toggle('open',!on)};
   const peek=async(alive)=>{flashing=true;cover(false);await new Promise(r=>setTimeout(r,SEN_MS));flashing=false;if(done||(alive&&!alive()))return;cover(true)};
